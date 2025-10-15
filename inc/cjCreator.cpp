@@ -751,11 +751,13 @@ TopoDS_Solid CJGeoCreator::extrudeFace(const TopoDS_Face& evalFace, bool downwar
 	gp_Pnt p0 = helperFunctions::getFirstPointShape(evalFace);
 	gp_Vec normal = helperFunctions::computeFaceNormal(evalFace);
 
-	if (normal.Magnitude() < precision) { return{}; }
+	if (normal.Magnitude() < precision) { }
 
 	Handle(Geom_Plane) plane = new Geom_Plane(p0, normal);
-
 	Handle(Geom_Plane) planeFlat = new Geom_Plane(gp_Pnt(0, 0, splittingFaceHeight), gp_Vec(0, 0, -1));
+
+	if (wireCopyTop[0].IsNull()) { return{}; }
+
 
 	BRepBuilderAPI_MakeFace faceMakerTop(plane, wireCopyTop[0], precision);
 	BRepBuilderAPI_MakeFace faceMakerBottom(planeFlat, TopoDS::Wire(wireCopyBottom[0].Reversed()), precision);
@@ -1532,7 +1534,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 			gp_Dir currentdir = normalList[currentIdx];
 
 			bg::model::box < BoostPoint3D > cummulativeBox = helperFunctions::createBBox(currentFace);
-			
+
 			std::vector<Value> qResult;
 			qResult.clear();
 			shapeIdx.query(bgi::intersects(
@@ -1541,12 +1543,21 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 			for (size_t j = 0; j < qResult.size(); j++)
 			{
 				int otherFaceIdx = qResult[j].second;
-				TopoDS_Face otherFace = getFace(surfaceList[otherFaceIdx]); 
-				gp_Dir otherdir = normalList[otherFaceIdx];
 				if (currentIdx == otherFaceIdx) { continue; }
 				if (evalList[otherFaceIdx] == 1) { continue; }
-				if (!currentdir.IsParallel(otherdir, precision)) { continue; }
 
+				IfcSchema::IfcProduct* otherProduct = getProduct(surfaceList[otherFaceIdx]);
+				std::string otherType = "";
+				if (otherProduct != nullptr)
+				{
+					otherType = otherProduct->data().type()->name();
+				}
+				if (otherType == "IfcWindow" || otherType == "IfcDoor") { continue; } // windows and doors can not be merged
+
+				TopoDS_Face otherFace = getFace(surfaceList[otherFaceIdx]);
+				gp_Dir otherdir = normalList[otherFaceIdx];
+
+				if (!currentdir.IsParallel(otherdir, precision)) { continue; }
 				if (!helperFunctions::shareEdge(currentFace, otherFace)) { continue; }
 
 				if (std::find(mergedSurfaceIdxList.begin(), mergedSurfaceIdxList.end(), otherFaceIdx) == mergedSurfaceIdxList.end())
@@ -1557,92 +1568,91 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 			}
 		}
 
-		if (mergedSurfaceIdxList.size() == currentSurfaceIdxSize)
+		if (mergedSurfaceIdxList.size() != currentSurfaceIdxSize) { continue; }
+
+		if (mergedSurfaceIdxList.size() == 1)
 		{
-			if (mergedSurfaceIdxList.size() == 1)
+			if constexpr (usePair)
 			{
-				if constexpr (usePair)
-				{
-					cleanedFaceList.emplace_back(surfaceList[mergedSurfaceIdxList[0]]);
-				}
-				else
-				{
-					cleanedFaceList.emplace_back(getFace(surfaceList[mergedSurfaceIdxList[0]]));
-				}		
+				cleanedFaceList.emplace_back(surfaceList[mergedSurfaceIdxList[0]]);
 			}
 			else
 			{
-				std::vector<TopoDS_Face> tempFaceList;
-				std::map<IfcSchema::IfcProduct*, double> productAreaMap;
-				for (size_t i = 0; i < mergedSurfaceIdxList.size(); i++)
+				cleanedFaceList.emplace_back(getFace(surfaceList[mergedSurfaceIdxList[0]]));
+			}
+		}
+		else
+		{
+			std::vector<TopoDS_Face> tempFaceList;
+			std::map<IfcSchema::IfcProduct*, double> productAreaMap;
+			for (size_t i = 0; i < mergedSurfaceIdxList.size(); i++)
+			{
+				TopoDS_Face currentFace = getFace(surfaceList[mergedSurfaceIdxList[i]]);
+				IfcSchema::IfcProduct* currentProduct = getProduct(surfaceList[mergedSurfaceIdxList[i]]);
+
+				double currentArea = helperFunctions::computeArea(currentFace);
+				tempFaceList.emplace_back(currentFace);
+
+				if (productAreaMap.find(currentProduct) == productAreaMap.end())
 				{
-					TopoDS_Face currentFace = getFace(surfaceList[mergedSurfaceIdxList[i]]);
-					IfcSchema::IfcProduct* currentProduct = getProduct(surfaceList[mergedSurfaceIdxList[i]]);
-
-					double currentArea = helperFunctions::computeArea(currentFace);
-					tempFaceList.emplace_back(currentFace);
-
-					if (productAreaMap.find(currentProduct) == productAreaMap.end())
-					{
-						productAreaMap.emplace(currentProduct, 0);
-					}
-					productAreaMap[currentProduct] += currentArea;
+					productAreaMap.emplace(currentProduct, 0);
 				}
-				TopoDS_Face mergedFace = mergeFaces(tempFaceList);
-				if (!mergedFace.IsNull())
-				{ 
-					
-					// get the surface type of the type that has the largest area
-					double maxArea = 0;
-					IfcSchema::IfcProduct* surfaceProduct = nullptr;
-					for (const auto& [typeName, areaValue] : productAreaMap)
-					{
-						if (areaValue > maxArea)
-						{
-							maxArea = areaValue;
-							surfaceProduct = typeName;
-						}
-					}
+				productAreaMap[currentProduct] += currentArea;
+			}
+			TopoDS_Face mergedFace = mergeFaces(tempFaceList);
+			if (!mergedFace.IsNull())
+			{
 
-					if constexpr (usePair)
+				// get the surface type of the type that has the largest area
+				double maxArea = 0;
+				IfcSchema::IfcProduct* surfaceProduct = nullptr;
+				for (const auto& [typeName, areaValue] : productAreaMap)
+				{
+					if (areaValue > maxArea)
 					{
-						cleanedFaceList.emplace_back(std::make_pair(mergedFace, surfaceProduct));
+						maxArea = areaValue;
+						surfaceProduct = typeName;
 					}
-					else
+				}
+
+				if constexpr (usePair)
+				{
+					cleanedFaceList.emplace_back(std::make_pair(mergedFace, surfaceProduct));
+				}
+				else
+				{
+					cleanedFaceList.emplace_back(mergedFace);
+				}
+			}
+			else
+			{
+				if constexpr (usePair)
+				{
+					for (size_t i = 0; i < mergedSurfaceIdxList.size(); i++)
 					{
-						cleanedFaceList.emplace_back(mergedFace);
+						cleanedFaceList.emplace_back(surfaceList[mergedSurfaceIdxList[i]]);
 					}
 				}
 				else
 				{
-					if constexpr (usePair)
-					{
-						for (size_t i = 0; i < mergedSurfaceIdxList.size(); i++)
-						{
-							cleanedFaceList.emplace_back(surfaceList[mergedSurfaceIdxList[i]]);
-						}
-					}
-					else
-					{
-						cleanedFaceList.insert(cleanedFaceList.end(), tempFaceList.begin(), tempFaceList.end());
-					}
-					
+					cleanedFaceList.insert(cleanedFaceList.end(), tempFaceList.begin(), tempFaceList.end());
 				}
-			}
 
-			bool newSetFound = false;
-			for (size_t i = 0; i < surfaceList.size(); i++)
-			{
-				if (evalList[i] == 0)
-				{
-					mergedSurfaceIdxList = { (int) i };
-					newSetFound = true;
-					break;
-				}
 			}
-			if (newSetFound) { continue; }
-			break;
 		}
+
+		bool newSetFound = false;
+		for (size_t i = 0; i < surfaceList.size(); i++)
+		{
+			if (evalList[i] == 0)
+			{
+				mergedSurfaceIdxList = { (int)i };
+				newSetFound = true;
+				break;
+			}
+		}
+		if (newSetFound) { continue; }
+		break;
 	}
 	return cleanedFaceList;
 }
@@ -1721,7 +1731,7 @@ TopoDS_Face CJGeoCreator::mergeFaces(const std::vector<TopoDS_Face>& mergeFaces)
 	}
 
 	std::vector<TopoDS_Face> cleanedMergingFaces = helperFunctions::removeDubFaces(mergingFaces);
-	std::vector<TopoDS_Face> mergedFaces = helperFunctions::planarFaces2Outline(cleanedMergingFaces);
+	std::vector<TopoDS_Face> mergedFaces =  helperFunctions::planarFaces2Outline(cleanedMergingFaces);
 
 	if (!mergedFaces.size())
 	{
@@ -1737,7 +1747,7 @@ TopoDS_Face CJGeoCreator::mergeFaces(const std::vector<TopoDS_Face>& mergeFaces)
 
 	std::vector<TopoDS_Wire> cleanWireList = helperFunctions::cleanWires(wireList);
 	if (cleanWireList.size() == 0) { return TopoDS_Face(); }
-	TopoDS_Face cleanedFace = helperFunctions::wireCluster2Faces(cleanWireList);
+	TopoDS_Face cleanedFace =  helperFunctions::wireCluster2Faces(cleanWireList);
 	if (cleanedFace.IsNull()) { return TopoDS_Face(); }
 	transform.Invert();
 	BRepBuilderAPI_Transform transformer(cleanedFace, transform);

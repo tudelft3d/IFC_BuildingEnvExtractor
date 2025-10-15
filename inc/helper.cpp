@@ -2154,6 +2154,9 @@ std::vector<TopoDS_Face> helperFunctions::TriangulateFace(const TopoDS_Face& the
 	}
 	if (mesh.IsNull()) { return {}; }
 
+
+	double angularTol = SettingsCollection::getInstance().angularTolerance();
+	double precision = SettingsCollection::getInstance().spatialTolerance();
 	gp_Vec currentNormal = helperFunctions::computeFaceNormal(theFace);
 
 	std::vector<TopoDS_Face> triangleFaceList;
@@ -2164,9 +2167,12 @@ std::vector<TopoDS_Face> helperFunctions::TriangulateFace(const TopoDS_Face& the
 		gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
 		gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
 		gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
+		gp_Vec otherNormal = helperFunctions::newellsNormal({ p1,p2,p3 });
+
+		if (otherNormal.Magnitude() < precision) { continue; }
 
 		TopoDS_Face triangleFace;
-		if (currentNormal.IsOpposite(helperFunctions::newellsNormal({ p1,p2,p3 }), 1e-4))
+		if (currentNormal.IsOpposite(otherNormal, angularTol))
 		{
 			triangleFace = createPlanarFace(p3, p2, p1);
 		}
@@ -3003,7 +3009,6 @@ TopoDS_Face helperFunctions::getOuterFace(const TopoDS_Shape& splitShape, const 
 
 std::vector<TopoDS_Face> helperFunctions::invertFace(const TopoDS_Face& inputFace)
 {
-
 	gp_Vec baseNormal = helperFunctions::computeFaceNormal(inputFace);
 	gp_Pnt p0 = helperFunctions::getFirstPointShape(inputFace);
 	gp_Pln basePlane = gp_Pln(p0, baseNormal);

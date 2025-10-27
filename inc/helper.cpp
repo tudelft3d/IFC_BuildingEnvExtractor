@@ -4084,6 +4084,11 @@ TopoDS_Shape helperFunctions::addSolidSemantic(const TopoDS_Shape& assumedSolid)
 	brepSewer.Perform();
 	TopoDS_Shape sewedShape = brepSewer.SewedShape();
 
+	if (sewedShape.IsNull())
+	{
+		return assumedSolid;
+	}
+
 	if (sewedShape.Closed() && sewedShape.ShapeType() == TopAbs_SHELL)
 	{
 		TopoDS_Shell shell = TopoDS::Shell(sewedShape);

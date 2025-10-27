@@ -1579,7 +1579,6 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 	
 	int collectionSize = shapeCollection.size();
 
-
 	BRep_Builder builder;
 	TopoDS_Compound collection;
 	builder.MakeCompound(collection);

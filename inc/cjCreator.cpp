@@ -1025,8 +1025,6 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitFaces(
 	{
 		while (coreUse > inputFaceList.size()) { coreUse /= 2; }
 	}
-
-	coreUse = 1;
 	int splitListSize = static_cast<int>(floor(inputFaceList.size() / coreUse));
 
 	std::vector<std::thread> threadList;
@@ -2057,7 +2055,6 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 	{
 		while (coreUse > inputShapes.size()) { coreUse /= 2; }
 	}
-	coreUse = 1;
 
 	int splitListSize = static_cast<int>(floor(inputShapes.size() / coreUse));
 

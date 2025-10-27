@@ -39,6 +39,7 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <ShapeAnalysis_Shell.hxx>
 
+
 #include <TopExp_Explorer.hxx>
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
@@ -1025,6 +1026,7 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitFaces(
 		while (coreUse > inputFaceList.size()) { coreUse /= 2; }
 	}
 
+	coreUse = 1;
 	int splitListSize = static_cast<int>(floor(inputFaceList.size() / coreUse));
 
 	std::vector<std::thread> threadList;
@@ -1065,6 +1067,7 @@ void CJGeoCreator::getSplitFaces(std::vector<TopoDS_Face>& outFaceList, std::mut
 	// split the topfaces with the cutting faces
 	for (const TopoDS_Face& currentRoofSurface : inputFaceList)
 	{
+
 		if (currentRoofSurface.IsNull()) { continue; }
 		std::vector<std::pair<BoostBox3D, TopoDS_Face>> qResult;
 		bg::model::box <BoostPoint3D> searchBox = helperFunctions::createBBox(currentRoofSurface);
@@ -1088,9 +1091,27 @@ void CJGeoCreator::getSplitFaces(std::vector<TopoDS_Face>& outFaceList, std::mut
 			TopoDS_Face currentSplitter = cuttingFace;
 			if (currentSplitter.IsEqual(currentRoofSurface)) { continue; }
 
-			divider.AddTool(currentSplitter);
+			//TODO: make function
+			BRepAlgoAPI_Section section(currentRoofSurface, currentSplitter, Standard_False);
+			section.Approximation(Standard_True);
+			section.Build();
+
+			if (section.IsDone() && !section.Shape().IsNull()) {
+				TopoDS_Shape result = section.Shape();
+				if (!result.IsNull()) {
+					// Check if section has edges (non-empty)
+					TopExp_Explorer exp(result, TopAbs_EDGE);
+					if (exp.More()) {
+						divider.AddTool(currentSplitter);
+					}
+				}
+			}
+
+
 		}
 		divider.Perform();
+
+		if (divider.HasWarnings() || divider.HasErrors()) { continue; }
 
 		for (TopExp_Explorer expl(divider.Shape(), TopAbs_FACE); expl.More(); expl.Next()) {
 			TopoDS_Face subFace = TopoDS::Face(expl.Current());
@@ -1331,48 +1352,100 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 	for (const TopoDS_Face& currentTopFace : inputFaceList)
 	{
 		if (currentTopFace.IsNull()) { continue; }
-		TopoDS_Solid extrudedShape = extrudeFace(currentTopFace, true, lowestZ);
-
-		for (TopExp_Explorer expl(extrudedShape, TopAbs_FACE); expl.More(); expl.Next()) {
-			TopoDS_Face extrusionFace = TopoDS::Face(expl.Current());
-			// ignore if not vertical face
-			gp_Vec currentNormal = helperFunctions::computeFaceNormal(extrusionFace);
-			if (currentNormal.Magnitude() < precision) { continue; }
-			if (abs(currentNormal.Z()) > angularTolerance) { continue; };
-
-			// find if already found in model 
-			BoostBox3D faceBox = helperFunctions::createBBox(extrusionFace);
-			faceIdx.insert(std::make_pair(faceBox, extrusionFace));
-		}
-		BoostBox3D topFaceBox = helperFunctions::createBBox(currentTopFace);
+		BoostBox3D topFaceBox = helperFunctions::createBBox(currentTopFace, precision);
 		faceIdx.insert(std::make_pair(topFaceBox, currentTopFace));
-
 	}
 
 	if (!bufferSurfaceList.empty())
 	{
 		for (const TopoDS_Face& bufferSurface : bufferSurfaceList)
 		{
-			TopoDS_Solid extrudedShape = extrudeFace(bufferSurface, false, 1000000);
-			for (TopExp_Explorer expl(extrudedShape, TopAbs_FACE); expl.More(); expl.Next()) {
-				TopoDS_Face extrusionFace = TopoDS::Face(expl.Current());
-
-				// ignore if not vertical face
-				gp_Vec currentNormal = helperFunctions::computeFaceNormal(extrusionFace);
-				if (abs(currentNormal.Z()) > angularTolerance) { continue; };
-
-				// find if already found in model 
-				BoostBox3D faceBox = helperFunctions::createBBox(extrusionFace);
-				faceIdx.insert(std::make_pair(faceBox, extrusionFace));
-			}
+			BoostBox3D bufferFaceBox = helperFunctions::createBBox(bufferSurface, precision);
+			faceIdx.insert(std::make_pair(bufferFaceBox, bufferSurface));
 		}
 	}
 
-	// remove the faces that will presumably not split a single face
-	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> cuttingFaceIdx = indexUniqueFaces(faceIdx);
-	std::vector<TopoDS_Face> splitFaceList = getSplitFaces(inputFaceList, cuttingFaceIdx);
-	std::vector<TopoDS_Face> visibleFaceList = getVisTopSurfaces(splitFaceList, lowestZ, bufferSurfaceList);
-	std::vector<TopoDS_Face> visibleCleanFaceList = helperFunctions::TessellateFace(visibleFaceList);
+	//TODO: test make function if works
+	std::vector<TopoDS_Face> trimmedFace;
+	for (const TopoDS_Face& currentTopFace : inputFaceList)
+	{
+		BoostBox3D overSizedBox = helperFunctions::createBBox(currentTopFace, precision);
+		overSizedBox.max_corner().set<2>(1000);
+
+		std::vector<std::pair<BoostBox3D, TopoDS_Face>> qResult;
+		faceIdx.query(bgi::intersects(overSizedBox), std::back_inserter(qResult));
+		if (qResult.size() <= 1)
+		{
+			trimmedFace.emplace_back(currentTopFace);
+			continue;
+		}
+
+		TopoDS_Face currentFlatFace = helperFunctions::projectFaceFlat(currentTopFace, 0);
+		if (currentFlatFace.IsNull()) { continue; }
+
+		TopTools_ListOfShape trimFaces;
+		for (const auto& [otherBox, otherFace] : qResult)
+		{
+			if (currentTopFace.IsSame(otherFace)) { continue; }
+			TopoDS_Face otherFlatFace = helperFunctions::projectFaceFlat(otherFace, 0);
+			if (otherFlatFace.IsNull()) { continue; }
+
+			trimFaces.Append(otherFlatFace);
+		}
+
+		if (trimFaces.Size() == 0)
+		{
+			trimmedFace.emplace_back(currentTopFace);
+			continue;
+		}
+
+		BOPAlgo_Splitter divider;
+		divider.SetFuzzyValue(precision);
+		divider.SetRunParallel(Standard_False);
+		divider.AddArgument(currentFlatFace);
+		divider.SetTools(trimFaces);
+		divider.Perform();
+
+		TopoDS_Shape trimmedShape = divider.Shape();
+		if (trimmedShape.IsNull()) { continue; }
+
+		// return to old shape
+		gp_Vec currentNormal = helperFunctions::computeFaceNormal(currentTopFace);
+		if (currentNormal.Magnitude() < 1e-6) { continue; }
+
+		// if flat just move to old location
+		if (currentNormal.IsParallel(gp_Vec(0,0,1), 1e-4))
+		{
+		    double currentHeight = helperFunctions::getHighestZ(currentTopFace);
+			gp_Trsf translation;
+			translation.SetTranslation(gp_Vec(0, 0, currentHeight));
+
+			for (TopExp_Explorer expl(trimmedShape, TopAbs_FACE); expl.More(); expl.Next()) {
+				TopoDS_Face subFace = TopoDS::Face(expl.Current());
+				subFace.Move(translation);
+				trimmedFace.emplace_back(subFace);
+			}
+			continue;
+		}
+
+		// if not flat project to original plane
+		gp_Pln plane;
+		if (!helperFunctions::face2Plane(currentTopFace, &plane)) { continue; }
+
+		for (TopExp_Explorer expl(trimmedShape, TopAbs_FACE); expl.More(); expl.Next()) {
+		
+			TopoDS_Face subFace = TopoDS::Face(expl.Current());
+			TopoDS_Face flatSubFace = helperFunctions::projectFace(subFace, plane);
+
+			if (flatSubFace.IsNull()) { continue; }
+			trimmedFace.emplace_back(flatSubFace);
+		}
+	}
+
+	std::vector<TopoDS_Face> visibleFaceList = getVisTopSurfaces(trimmedFace, lowestZ, bufferSurfaceList);
+	std::vector<TopoDS_Face> visibleMergedFaceList = helperFunctions::mergeFaces(visibleFaceList);
+	std::vector<TopoDS_Face> visibleCleanFaceList = helperFunctions::TessellateFace(visibleMergedFaceList);
+
 	//clean the surfaces
 	return  visibleCleanFaceList;
 }
@@ -3361,7 +3434,6 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD04(DataManager* h, CJT::Kernel*
 		}
 
 		CJT::GeoObject geoObject = kernel->convertToJSON(collectionShape, "0.4", false, true);
-
 		geoObject.appendSurfaceData(semanticRoofData);
 		geoObject.setSurfaceTypeValues(typeValueList);
 		geoObjectCollection.emplace_back(geoObject);

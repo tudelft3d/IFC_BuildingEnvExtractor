@@ -58,6 +58,7 @@
 #include <BRepBuilderAPI_FindPlane.hxx>
 #include <BRepLib.hxx>
 #include <ShapeFix_Shape.hxx>
+#include <IntAna_IntConicQuad.hxx>
 
 #include <Prs3d_ShapeTool.hxx>
 
@@ -1946,6 +1947,76 @@ TopoDS_Face helperFunctions::projectFaceFlat(const TopoDS_Face& theFace, double 
 	}
 	fixFace(&flatFace);
 	return flatFace;
+}
+
+TopoDS_Face helperFunctions::projectFace(const TopoDS_Face& theFace, const gp_Pln& theReferencePlane)
+{
+	double precision = SettingsCollection::getInstance().spatialTolerance();
+
+	std::vector<TopoDS_Wire> wireList;
+	for (TopExp_Explorer wireExplorer(theFace, TopAbs_WIRE); wireExplorer.More(); wireExplorer.Next())
+	{
+		TopoDS_Wire currentWire = TopoDS::Wire(wireExplorer.Current());
+
+		int edgeCount = 0;
+		BRepBuilderAPI_MakeWire wireMaker;
+		for (BRepTools_WireExplorer expl(currentWire); expl.More(); expl.Next())
+		{
+			const TopoDS_Edge& edge = TopoDS::Edge(expl.Current());
+
+			gp_Pnt p0;
+			gp_Pnt p1;
+			if (edge.Orientation() == TopAbs_FORWARD)
+			{
+				p0 = helperFunctions::getFirstPointShape(edge);
+				p1 = helperFunctions::getLastPointShape(edge);
+			}
+			else
+			{
+				p0 = helperFunctions::getLastPointShape(edge);
+				p1 = helperFunctions::getFirstPointShape(edge);
+			}
+			if (p0.IsEqual(p1, precision)) { continue; }
+
+			gp_Lin line1(p0, gp_Dir(0, 0, 1));
+			gp_Lin line2(p1, gp_Dir(0, 0, 1));
+
+			// Intersect line with plane
+			IntAna_IntConicQuad intersector1(line1, theReferencePlane, Precision::Confusion());
+			IntAna_IntConicQuad intersector2(line2, theReferencePlane, Precision::Confusion());
+
+			if (!intersector1.IsDone() || intersector1.NbPoints() == 0)
+				continue;
+			if (!intersector2.IsDone() || intersector2.NbPoints() == 0)
+				continue;
+
+			gp_Pnt projectedP0 = intersector1.Point(1);
+			gp_Pnt projectedP1 = intersector2.Point(1);
+
+			TopoDS_Edge topEdge = BRepBuilderAPI_MakeEdge(projectedP0, projectedP1);
+			wireMaker.Add(topEdge);
+		}
+		if (!wireMaker.IsDone()) { continue; }
+		wireList.emplace_back(wireMaker.Wire());
+	}
+
+	if (wireList.empty()) { return TopoDS_Face(); }
+	if (wireList[0].IsNull()) { return TopoDS_Face(); }
+
+	BRepBuilderAPI_MakeFace faceMaker(theReferencePlane, wireList[0], precision);
+	for (size_t i = 1; i < wireList.size(); i++)
+	{
+		faceMaker.Add(wireList[i]);
+	}
+	if (!faceMaker.IsDone())
+	{
+		return TopoDS_Face();
+	}
+
+	TopoDS_Face angledSubFace = faceMaker.Face();
+	helperFunctions::fixFace(&angledSubFace);
+
+	return angledSubFace;
 }
 
 TopoDS_Wire helperFunctions::projectWireFlat(const TopoDS_Wire& theWire, double height)
@@ -4023,4 +4094,17 @@ TopoDS_Shape helperFunctions::addSolidSemantic(const TopoDS_Shape& assumedSolid)
 		return solidrep;
 	}
 	return assumedSolid;
+}
+
+bool helperFunctions::face2Plane(const TopoDS_Face& theFace, gp_Pln* thePlane)
+{
+	// if not flat project to original plane
+	Handle(Geom_Surface) currentSurf = BRep_Tool::Surface(theFace);
+	if (currentSurf.IsNull()) { return false; }
+	Handle(Geom_Plane) currentPlane = Handle(Geom_Plane)::DownCast(currentSurf);
+	if (currentPlane.IsNull()) { return false; }
+	gp_Pln plane = currentPlane->Pln();
+
+	*thePlane = plane;
+	return true;
 }

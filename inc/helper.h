@@ -1,4 +1,4 @@
-#define USE_IFC2x3
+#define USE_IFC4x3
 #define iterationVersion "0.2.6"
 
 #ifdef USE_IFC2x3
@@ -241,6 +241,8 @@ struct helperFunctions{
 	static TopoDS_Face createPlanarFace(const gp_Pnt& p0, const gp_Pnt& p1, const gp_Pnt& p2);
 	/// creates a planar copy of input face at input height
 	static TopoDS_Face projectFaceFlat(const TopoDS_Face& theFace, double height);
+	/// creates a copy of the input face at the reference plane
+	static TopoDS_Face projectFace(const TopoDS_Face& theFace, const gp_Pln& theReferencePlane);
 	/// creates a planar copy of the input wire
 	static TopoDS_Wire projectWireFlat(const TopoDS_Wire& theWire, double height);
 
@@ -365,6 +367,9 @@ struct helperFunctions{
 
 	/// forces solid semantic data on a solid shape that is missing it
 	static TopoDS_Shape addSolidSemantic(const TopoDS_Shape& assumedSolid);
+
+	/// creates a planar face based on the input face
+	static bool face2Plane(const TopoDS_Face& theFace, gp_Pln* thePlane);
 
 };
 #endif // HELPER_HELPER_H

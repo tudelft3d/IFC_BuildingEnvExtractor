@@ -39,6 +39,10 @@ enum class ErrorID {
 	warningFailedObjectConversion,
 	errorFailedInit,
 
+	errorNoGroundFLoorFound,
+	errorInconsistentGroundFLoorNumbers,
+	errorInconsistentGroundFloorElevations,
+
 	warningIfcUnableToParse,
 	warningIfcNotValid,
 	warningIfcNoSchema,

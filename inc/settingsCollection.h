@@ -101,7 +101,9 @@ private:
 	bool autoRotateGrid_ = true;
 	double desiredRotation_ = 0;
 
+    bool detectFootprintElevation_ = false;
 	double footprintElevation_ = 0;
+
     double horizontalSectionOffset_ = 0; // offset from the storey and footprint sections
     double horizontalSectionBuffer_ = 0.15; // buffer from which mostly horizontal faces are includes as if part of the section
 
@@ -155,9 +157,8 @@ private:
     IfcGeom::IteratorSettings iteratorSettings_;
     IfcGeom::IteratorSettings simpleIteratorSettings_;
 
-
     //  \/ global mutex \/
-    std::mutex wireOffSetterMutex_; // TODO: make more local
+    std::mutex wireOffSetterMutex_;
 
 public:
 	static SettingsCollection& getInstance() {
@@ -379,6 +380,10 @@ public:
 
     double desiredRotation() const { return desiredRotation_; }
     void setDesiredRotation(double value) { desiredRotation_ = value; }
+
+    double detectFootprintElevation() const { return detectFootprintElevation_; }
+    void setDetectFootprintElevation(double value) { detectFootprintElevation_ = value; }
+    void setDetectFootprintElevation(const nlohmann::json& json);
 
     double footprintElevation() const { return footprintElevation_; }
     void setFootprintElevation(double value) { footprintElevation_ = value; }

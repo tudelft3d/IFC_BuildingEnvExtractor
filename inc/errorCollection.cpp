@@ -77,6 +77,10 @@ ErrorCollection::ErrorCollection() {
 		{ErrorID::warningFailedObjectConversion, ErrorObject("P0006", errorWarningStringEnum::getString(ErrorID::warningFailedObjectConversion, false))},
 		{ErrorID::errorFailedInit, ErrorObject("P1000", errorWarningStringEnum::getString(ErrorID::errorFailedInit, false))},
 
+		{ErrorID::errorNoGroundFLoorFound, ErrorObject("P2001", errorWarningStringEnum::getString(ErrorID::errorFailedInit, false))},
+		{ErrorID::errorInconsistentGroundFLoorNumbers, ErrorObject("P2002", errorWarningStringEnum::getString(ErrorID::errorFailedInit, false))},
+		{ErrorID::errorInconsistentGroundFloorElevations, ErrorObject("P2003", errorWarningStringEnum::getString(ErrorID::errorFailedInit, false))},
+
 		{ErrorID::warningIfcUnableToParse, ErrorObject("I0001", errorWarningStringEnum::getString(ErrorID::warningIfcUnableToParse, false))},
 		{ErrorID::warningIfcNotValid, ErrorObject("I0002", errorWarningStringEnum::getString(ErrorID::warningIfcNotValid, false))},
 		{ErrorID::warningIfcNoSchema, ErrorObject("I0003", errorWarningStringEnum::getString(ErrorID::warningIfcNoSchema, false))},

@@ -168,17 +168,12 @@ struct helperFunctions{
 	static gp_Vec computeFaceNormal(const T& theFace);
 	/// compute normal of a pool of points in order representing a ring of edges
 	static gp_Vec newellsNormal(const std::vector<gp_Pnt>& pointList);
-	/// make a reversed copy of the input wire
-	static TopoDS_Wire reversedWire(const TopoDS_Wire& mainWire);
 	/// compute the largest angle of the edges, returns 0 if not found
 	static double computeLargestAngle(const TopoDS_Face& theFace);
 	/// compute the smallest angle of the edges, returns 0 if not found
 	static double computeSmallestAngle(const TopoDS_Face& theFace);
 	/// compute the horizontal dir based on vector count
 	static gp_Vec getShapedir(const std::vector<gp_Pnt>& pointList, bool isHorizontal);
-	/// compute if wire is properly oriented
-	static bool wireIsForwards(const TopoDS_Face& theFace, const TopoDS_Wire& theWire);
-
 
 	/// overlapping object code
 
@@ -188,8 +183,6 @@ struct helperFunctions{
 	static bool edgeEdgeOVerlapping(const TopoDS_Edge& currentEdge, const TopoDS_Edge& otherEdge);
 	/// check if upperface overlaps the lower face by checking the edges
 	static bool faceFaceOverlapping(const TopoDS_Face& upperFace, const TopoDS_Face& lowerFace);
-	/// check if the left face shares at least 1 identical edge with the right face
-	static bool faceFaceNeighbour(const TopoDS_Face& leftFace, const TopoDS_Face& rightFace);
 	/// check if coplanar surfaces overlap based on points
 	static bool coplanarOverlapping(const TopoDS_Face& leftFace, const TopoDS_Face& rightFace);
 	/// checks if surface is encapsulated by another shape
@@ -201,15 +194,6 @@ struct helperFunctions{
 	static bool triangleIntersecting(const std::vector<gp_Pnt>& line, const std::vector<gp_Pnt>& triangle);
 	/// test if point falls within the triangle
 	static bool baryCentricTest(const gp_Pnt& point, const std::vector<gp_Pnt>& triangle);
-
-	/// line line intersection related code
-
-	/// get the intersection between two linear lines, returns 0 if not intersection
-	static std::optional<gp_Pnt> linearLineIntersection(const gp_Pnt& sP1, const gp_Pnt& eP1, const gp_Pnt& sP2, const gp_Pnt& eP2, bool projected, double buffer = 0.01);
-	/// get the intersection between two linear lines, returns 0 if not intersection
-	static std::optional<gp_Pnt> linearLineIntersection(const Edge& edge1, const Edge& edge2, bool projected, double buffer = 0.01);
-	/// get the intersection between two linear lines, returns 0 if not intersection
-	static std::optional<gp_Pnt> linearLineIntersection(const TopoDS_Edge& edge1, const TopoDS_Edge& edge2, bool projected, double buffer = 0.01);
 
 	/// surface line intersection related code
 
@@ -256,10 +240,6 @@ struct helperFunctions{
 	static std::vector<TopoDS_Face> TriangulateFace(const TopoDS_Face& theFace);
 	/// fixes face if face is broken
 	static bool fixFace(TopoDS_Face* theFace);
-	/// creates a clean copy of the input face with no curves
-	static TopoDS_Wire wipeWireClean(const TopoDS_Wire& theWire);
-	/// projects a wire on a plane
-	static TopoDS_Wire projectWireOnPlane(const TopoDS_Wire& wire, const Handle(Geom_Plane)& plane);
 
 	/// @brief grows wires from unordered exterior edges
 	static std::vector<TopoDS_Wire> growWires(const std::vector<TopoDS_Edge>& edgeList);
@@ -280,8 +260,6 @@ struct helperFunctions{
 	static std::vector<TopoDS_Face> planarFaces2Outline(const std::vector<TopoDS_Face>& planarFaces);
 	/// fuses all the planar faces into a complex planar face structure
 	static std::vector<TopoDS_Shape> planarFaces2Cluster(const std::vector<TopoDS_Face>& planarFaces);
-	/// returns the outerface (bounding face) of a cluster of faces based on the original input face
-	static TopoDS_Face getOuterFace(const TopoDS_Shape& splitShape, const TopoDS_Face& originalFace);
 	/// creates faces from the inner wires of a face
 	static std::vector<TopoDS_Face> invertFace(const TopoDS_Face& inputFace);
 
@@ -327,18 +305,11 @@ struct helperFunctions{
 
 	/// return true if the edge is a straight line
 	static bool isStraight(const TopoDS_Edge& theEdge);
-	/// return true if all edges in a wire are straight lines
-	static bool isStraight(const TopoDS_Wire& theWire);
-
 
 	/// other code
  
-	/// compute the area of a shape
-	static double computeArea(const TopoDS_Shape& theShape);
 	/// compute the area of a face
 	static double computeArea(const TopoDS_Face& theFace);
-	/// compute the area of a triange
-	static double computeArea(const gp_Pnt& p0, const gp_Pnt& p1, const gp_Pnt& p2);
 
 	/// count the number of wires in a face
 	static int wireCount(const TopoDS_Face& theFace);
@@ -351,16 +322,12 @@ struct helperFunctions{
 	static bool isSame(const TopoDS_Face& faceL, const TopoDS_Face& faceR);
 	/// returns list of unique faces where dubs have been removed
 	static std::vector<TopoDS_Face> removeDubFaces(const std::vector<TopoDS_Face>& inputFaceList, bool fullProcessing = false);
-	/// returns list of the non repeating surfaces in aa list
-	static std::vector<TopoDS_Face> getUniqueFaces(const std::vector<TopoDS_Face>& inputFaceList);
-	/// returns a square face with the characteristics of the input plane
-	static TopoDS_Face plane2Face(const Handle(Geom_Plane)& geoPlane, const double& planeSize);
 
 	/// checks if the face is flat
 	static bool isFlat(const TopoDS_Face& theFace);
 
 	/// sorts the list of faces based on its area
-	static std::vector<TopoDS_Face> sortFaces(const std::vector<TopoDS_Face>& faceList);
+	static std::vector<TopoDS_Face> sortFaces(const std::vector<TopoDS_Face>& faceList); //TODO: not used but usefull potentially in the future
 
 	/// devide horizontal and vertical faces in seperate lists
 	static void devideFaces(const TopoDS_Shape& inputShape, std::vector<TopoDS_Face>* horizontalFaces, std::vector<TopoDS_Face>* verticalFaces);

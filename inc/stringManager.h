@@ -62,6 +62,8 @@ enum class CommunicationStringID {
 	infoParsingFile,
 	infoParsingFiles,
 	infoInternalizingGeo,
+	infoFetchGroundfloorElev,
+	infoGroundfloorElev,
 	infoCreateSpatialIndex,
 	infoIgnoreVoids,
 	infoFoundUnits,
@@ -222,6 +224,7 @@ enum class JsonObjectInID {
 	IFCignoreVoids,
 	IFCignoreSimple,
 	IFCCorrentPlacement,
+	IFCDetectFootprintElev,
 
 	JSON,
 	JSONFootprintElev,

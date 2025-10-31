@@ -293,7 +293,8 @@ The configuration json has a very simple structure. An example can be found belo
         "Ignore voids" : 0,
         "Simplify geometry" : true,
         "Ignore simplification" : [],
-        "Correct placement" : true
+        "Correct placement" : true,
+        "Fetch footprint elevation" : false
     },
     "JSON" : {
         "Footprint elevation": 1,
@@ -388,9 +389,14 @@ Optional:
 * :ballot_box_with_check: "IFC" "Correct placement"
   * Boolean
   * Toggles if the local placement of the model should be corrected.
+  * Default value = true
+* :ballot_box_with_check: "IFC" "Fetch footprint elevation"
+  * Boolean
+  * Toggles if the footprint elevation should be determined based on the IfcBuildingStorey object representing the ground floor. This uses the the DigiGO BIM Base IDS (BIM Basis ILS) naming convention to find the ground floor. This means the ground floor storey will have a name that starts with 0 or 00. If true this entry will disable the "JSON" "Footprint elevation" entry.
+  * Default value = false
 * :white_check_mark: "JSON" "Footprint elevation" :white_check_mark:
   * Float/double
-  * Sets the level at which a horizontal section will be taken of the building. This section is used to create the footprint.
+  * Sets the level at which a horizontal section will be taken of the building. This section is used to create the footprint. This entry is disabled if  "IFC" "Fetch footprint elevation" is true.
   * Default value = 0
 * :white_check_mark: "JSON" "Footprint based" :white_check_mark:
   * Boolean

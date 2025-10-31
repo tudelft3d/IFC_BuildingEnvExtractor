@@ -44,6 +44,7 @@ class FootprintSettings:
         self.footprint_based = tkinter.IntVar(value=0)
         self.footprint_elevation = tkinter.DoubleVar(value=0.0)
         self.footprint_unit =  tkinter.StringVar(value="m")
+        self.find_footprint_elev = tkinter.IntVar(value=0)
 
 class DivSettings:
     def __init__(self):
@@ -167,6 +168,13 @@ def toggleMakeFootprintBased(footprint_widges):
     else:
         footprint_widges['state'] = tkinter.DISABLED
 
+def toggleManualFootprintEleve(detect_footprint_elev_widges):
+    for widged in detect_footprint_elev_widges:
+        if footprint_settings.find_footprint_elev.get():
+            widged['state'] = tkinter.DISABLED
+        else:
+            widged['state'] = tkinter.NORMAL
+
 def runCode(input_path,
             output_path,
             lod_settings,
@@ -267,6 +275,8 @@ def runCode(input_path,
     else:
         json_dictionary["IFC"]["Ignore voids"] = 0
 
+    json_dictionary["IFC"]["Fetch footprint elevation"] = footprint_settings.find_footprint_elev.get()
+
     footprint_elevation = float(footprint_settings.footprint_elevation.get())
     if footprint_settings.footprint_unit.get() == "mm":
         footprint_elevation /= 1000
@@ -274,7 +284,9 @@ def runCode(input_path,
         footprint_elevation /= 100
 
     json_dictionary["JSON"] = {}
-    json_dictionary["JSON"]["Footprint elevation"] = footprint_elevation
+    if not footprint_settings.find_footprint_elev.get():
+        json_dictionary["JSON"]["Footprint elevation"] = footprint_elevation
+
     json_dictionary["JSON"]["Generate exterior"] = other_settings.make_exterior.get()
     json_dictionary["JSON"]["Generate interior"] = other_settings.make_interior.get()
 
@@ -512,7 +524,6 @@ def makeUnitWindow(frame_location, unit_variable):
         borderwidth=1.5,
         highlightthickness=0,
         direction="below")
-    entry_unit.pack(side=tkinter.LEFT, )
 
     # Add options to the Menu
     menu = tkinter.Menu(entry_unit, tearoff=0)
@@ -521,6 +532,7 @@ def makeUnitWindow(frame_location, unit_variable):
 
     # Attach the menu to the button
     entry_unit.configure(menu=menu)
+    return entry_unit
 
 # main variables
 size_entry_small = 13
@@ -758,7 +770,8 @@ button_plus_voxelsize = tkinter.Button(frame_voxel, text="+", width=size_button_
                                        command= lambda : increment(entry_voxelsize, 0.1))
 button_plus_voxelsize.pack(side=tkinter.LEFT)
 
-makeUnitWindow(frame_voxel, voxelSettings.voxel_unit)
+voxel_unit_toggle = makeUnitWindow(frame_voxel, voxelSettings.voxel_unit)
+voxel_unit_toggle.pack(side=tkinter.LEFT)
 
 # the footprint height
 frame_footprint = tkinter.Frame(frame_foot_voxel)
@@ -782,12 +795,21 @@ button_plus_footprint = tkinter.Button(frame_footprint, text="+", width=size_but
                                        command= lambda : increment(entry_footprint, 0.01))
 button_plus_footprint.pack(side=tkinter.LEFT)
 
-makeUnitWindow(frame_footprint, footprint_settings.footprint_unit)
+footprint_unit_toggle= makeUnitWindow(frame_footprint, footprint_settings.footprint_unit)
+footprint_unit_toggle.pack(side=tkinter.LEFT)
+
+# the footprint height detection
+auto_detect_foot_elev_toggle = ttk.Checkbutton(frame_footprint,
+                                               text="Automatic",
+                                               variable=footprint_settings.find_footprint_elev,
+                                               command= lambda : toggleManualFootprintEleve([entry_footprint,
+                                                                                             button_min_footprint,
+                                                                                             button_plus_footprint,
+                                                                                             footprint_unit_toggle ]))
+auto_detect_foot_elev_toggle.pack(side=tkinter.LEFT, padx=10)
 
 separatorFootprint = ttk.Separator(main_window, orient='horizontal')
 separatorFootprint.pack(fill='x', pady=10)
-
-makerep_toggle = ttk.Checkbutton(main_window, text="Create report", variable=other_settings.make_report)
 
 # The div objects
 message_div_objects = tkinter.Text(main_window,  width=300, height=5, bg="#F0F0F0", fg="#707070")
@@ -911,6 +933,8 @@ Tooltip(button_plus_voxelsize, "increment size by 0.1")
 Tooltip(entry_footprint, "Z height at which the footprint section is taken and the ground floor of the abstractions will be placed")
 Tooltip(button_min_footprint, "Decrement size by 0.01")
 Tooltip(button_plus_footprint, "Decrement size by 0.01")
+
+Tooltip(auto_detect_foot_elev_toggle, "If active the tool will fetch the ground floor IfcBuildingStorey object elevation, naming based on the BIM Base IDS")
 
 Tooltip(igoreproxy_toggle, "If active IfcBuildingProxyElements will be excluded from the process")
 Tooltip(useDefault_toggle, "If active default div objects will be used during the process")

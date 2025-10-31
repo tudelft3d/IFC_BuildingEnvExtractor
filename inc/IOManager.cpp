@@ -242,7 +242,16 @@ void IOManager::printSummary()
 
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "json settings\n";
 	std::cout << "- Footprint Elevation:\n";
-	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.footprintElevation() << "\n";;
+	if (settingsCollection.detectFootprintElevation())
+	{
+		std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << "Fetch from file \n";
+	}
+	else
+	{
+		std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.footprintElevation() << "\n";
+	}
+
+
 	std::cout << "- Footrint based extraction:\n";
 	std::cout << boolToString(settingsCollection.footPrintBased()) << "\n";
 	std::cout << "- horizontal section offset\n";
@@ -413,6 +422,7 @@ nlohmann::json IOManager::settingsToJSON()
 	std::string ifcignoreVoidOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreVoids);
 	std::string ifcSimpleOName = JsonObjectInEnum::getString(JsonObjectInID::IFCsimplefyGeo);
 	std::string ifcIgnoreSimpleOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreSimple);
+	std::string ifcDetectFootprintElevation = JsonObjectInEnum::getString(JsonObjectInID::IFCDetectFootprintElev);
 	
 	ifcJSON[ifcRotationOName] = settingsCollection.gridRotation();
 	std::vector<std::string> DivList;
@@ -433,6 +443,7 @@ nlohmann::json IOManager::settingsToJSON()
 	ifcJSON[ifcignoreVoidOName] = settingsCollection.ignoreVoidGrade();
 	ifcJSON[ifcSimpleOName] = settingsCollection.simplefyGeo();
 	ifcJSON[ifcIgnoreSimpleOName] = settingsCollection.getIgnoreSimplificationList();
+	ifcJSON[ifcDetectFootprintElevation] = settingsCollection.detectFootprintElevation();
 	settingsJSON[ifcOName] = ifcJSON;
 
 	// store the json data
@@ -477,6 +488,7 @@ void IOManager::internalizeGeo()
 	try
 	{
 		internalDataManager_->internalizeGeo();
+		internalDataManager_->fetchGroundFloorElevation();
 		internalDataManager_->indexGeo();
 	}
 	catch (const std::string& exceptionString)
@@ -564,7 +576,7 @@ void IOManager::setComputedSemantic(CJGeoCreator* geoCreator, CJT::CityObject& c
 
 	// find location of main entrance (CHEK related code)
 	std::unique_ptr<gp_Pnt> entranceCoord = nullptr;
-	entranceCoord = FetchMainEntranceLocation(std::move(entranceCoord)); //TODO: make this triggerable
+	entranceCoord = FetchMainEntranceLocation(std::move(entranceCoord));
 	if (entranceCoord != nullptr)
 	{
 		cityBuildingObject.addAttribute(sourceIdentifierEnum::getString(sourceIdentifierID::envExtractor) + "Main Entrance coordinate", 
@@ -636,9 +648,6 @@ std::unique_ptr<gp_Pnt> IOManager::FetchMainEntranceLocation(std::unique_ptr<gp_
 		for (auto it = doorlist->begin(); it != doorlist->end(); ++it)
 		{
 			IfcSchema::IfcDoor* currentDoor = *it;
-
-			//TODO: implement again
-
 			nlohmann::json attributeList = internalDataManager_->collectPropertyValues(currentDoor->GlobalId(), currentFile);
 
 			if (!attributeList.contains("CHEK_IsMainEntrance"))
@@ -922,7 +931,11 @@ bool IOManager::run()
 
 	// internalize the helper data
 	try { internalizeGeo(); }
-	catch (const std::string& exceptionString) { throw exceptionString; }
+	catch (const std::string& exceptionString) 
+	{ 
+		std::cout << exceptionString << std::endl;
+		return false;
+	}
 
 	// create the cjt objects
 	std::shared_ptr<CJT::CityCollection> collection = std::make_shared<CJT::CityCollection>();

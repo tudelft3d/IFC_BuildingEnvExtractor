@@ -97,8 +97,6 @@ private:
 	/// checks if all the buildingSurfaceDataList entries have a valid roofoutlines
 	bool hasRoofOutlines();
 
-	// group surfaces that are placed next or on top of eachother
-	std::vector<FaceComplex> groupFaces(const std::vector<TopoDS_Face>& inputFaceList);
 	// divides the projected footprints over the seperate buildings
 	std::vector<BuildingSurfaceCollection> sortRoofStructures(const std::vector<TopoDS_Face>& roofOutlines, const std::vector<RCollection>& rCollectionList);
 
@@ -200,8 +198,6 @@ private:
 
 	/// remove redundant edges and faces from a solid shape
 	TopoDS_Shape simplefySolid(const TopoDS_Shape& solidShape, bool evalOverlap = false);
-	/// remove redundant edges and faces from a group of faces
-	std::vector<TopoDS_Face> simplefyFacePool(const std::vector<TopoDS_Face>& surfaceList, bool evalOverlap = false);
 	/// remove redundant edges and faces from a group of faces assisted with the normal direction of the faces
 	template<typename T>
 	std::vector<T> simplefyFacePool(const std::vector<T>& surfaceList, const std::vector<gp_Dir>& normalList, bool evalOverlap = false);
@@ -335,6 +331,12 @@ private:
 	);
 
 	std::vector<TopoDS_Face> TrimHStoreyFaces(const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<treeDepth_>>& horizontalFaceIndex);
+
+	// splits surfaces by projecting them and the tools flat to the cplane. After splitting te turning face list is projected to the original plane
+	std::vector<TopoDS_Face> projectionSplitting(const std::vector<TopoDS_Face>& inputFaceList, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx);
+
+	// splits surfaces by actual intersection between surfaces
+	std::vector<TopoDS_Face> intersectionSplitting(const std::vector<TopoDS_Face>& inputFaceList, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx);
 
 public:
 	explicit CJGeoCreator(DataManager* h, double vSize);

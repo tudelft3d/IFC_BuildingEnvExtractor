@@ -1077,6 +1077,92 @@ void DataManager::internalizeGeo()
 		UnitStringEnum::getString(UnitStringID::seconds) << "\n" << std::endl;
 }
 
+void DataManager::fetchGroundFloorElevation()
+{
+	if (!SettingsCollection::getInstance().detectFootprintElevation()) { return; }
+
+	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoFetchGroundfloorElev) << std::endl;
+	auto startTime = std::chrono::high_resolution_clock::now();
+
+	std::vector<std::string> groundFloorCodes = { "0 ", "00 ", "0-" , "00-" };
+
+	std::vector<double> groundfloorElevationList;
+	for (const std::unique_ptr<fileKernelCollection>& dataItem : datacollection_)
+	{
+		IfcSchema::IfcBuildingStorey::list::ptr storeyList = dataItem->getFilePtr()->instances_by_type<IfcSchema::IfcBuildingStorey>();
+
+		for (auto it = storeyList->begin(); it != storeyList->end(); ++it)
+		{
+			IfcSchema::IfcBuildingStorey* storeyObject = *it;
+			if (!storeyObject->Elevation().has_value()) { continue; }
+
+			auto optionalName = storeyObject->Name();
+			if (optionalName.is_initialized())
+			{
+				bool found = false;
+				for (const std::string& floorCode : groundFloorCodes)
+				{
+					if (optionalName->_Starts_with(floorCode))
+					{
+						groundfloorElevationList.emplace_back(storeyObject->Elevation().get());
+						found = true;
+						break;
+					}
+				}	
+				if (found) { continue; }
+			}
+
+			auto optionalLongName = storeyObject->LongName();
+			if (optionalLongName.is_initialized())
+			{
+				bool found = false;
+				for (const std::string& floorCode : groundFloorCodes)
+				{
+					if (optionalLongName->_Starts_with(floorCode))
+					{
+						groundfloorElevationList.emplace_back(storeyObject->Elevation().get());
+						found = true;
+						break;
+					}
+				}
+				if (found) { continue; }
+			}
+		}
+
+	}
+
+	if (groundfloorElevationList.empty())
+	{
+		ErrorCollection::getInstance().addError(ErrorID::errorNoGroundFLoorFound);
+		throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoGroundFLoorFound));
+	}
+
+	if (groundfloorElevationList.size() != dataCollectionSize_)
+	{
+		ErrorCollection::getInstance().addError(ErrorID::errorInconsistentGroundFLoorNumbers);
+		throw std::string(errorWarningStringEnum::getString(ErrorID::errorInconsistentGroundFLoorNumbers));
+	}
+
+	double firstElevation = groundfloorElevationList[0];
+	double precision = SettingsCollection::getInstance().spatialTolerance();
+	for (double elevation : groundfloorElevationList)
+	{
+		if (firstElevation - precision < elevation && firstElevation + precision > elevation) { continue; }
+		ErrorCollection::getInstance().addError(ErrorID::errorInconsistentGroundFloorElevations);
+		throw std::string(errorWarningStringEnum::getString(ErrorID::errorInconsistentGroundFloorElevations));
+	}
+	
+	SettingsCollection::getInstance().setFootprintElevation(firstElevation);
+	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoGroundfloorElev) << firstElevation << " m\n";
+
+	std::cout <<
+		CommunicationStringEnum::getString(CommunicationStringID::indentSuccesFinished) <<
+		std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<
+		UnitStringEnum::getString(UnitStringID::seconds) << "\n" << std::endl;
+	
+	return;
+}
+
 void DataManager::indexGeo()
 {
 	// this indexing is done based on the rotated bboxes of the objects

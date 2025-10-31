@@ -248,6 +248,8 @@ public:
 
 	// internalises the geometry while approximating a smallest bbox around the geometry
 	void internalizeGeo();
+	/// fetch the ground floor elevation from file
+	void fetchGroundFloorElevation();
 	// makes a spatial index for the geometry
 	void indexGeo();
 

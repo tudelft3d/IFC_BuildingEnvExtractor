@@ -416,7 +416,6 @@ bool helperFunctions::pointIsSame(const BoostPoint3D& lp, const BoostPoint3D& rp
 	if (abs(lp.get<1>() - rp.get<1>()) > precision ) { return false; }
 	if (abs(lp.get<2>() - rp.get<2>()) > precision ) { return false; }
 	return true;
-
 }
 
 
@@ -437,7 +436,6 @@ void helperFunctions::bBoxDiagonal(const T& theShape, gp_Pnt* lllPoint, gp_Pnt* 
 		urrPoint->SetCoord(-9999999, -9999999, -9999999);
 	}
 
-	//TODO: implement rotation
 	for (TopExp_Explorer expl(theShape, TopAbs_VERTEX); expl.More(); expl.Next())
 	{
 		TopoDS_Vertex vertex = TopoDS::Vertex(expl.Current());
@@ -485,7 +483,7 @@ void helperFunctions::bBoxOrientated(const std::vector<gp_Pnt>& pointList, gp_Pn
 
 	// approximate smalles bbox
 	double angle = 22.5 * (M_PI / 180);
-	int maxIt = 15; //TODO: maybe add this to the settings collection
+	int maxIt = 15;
 	double smallestDistance = lllPoint->Distance(*urrPoint);
 
 	for (size_t i = 0; i < maxIt; i++)
@@ -950,7 +948,7 @@ bool helperFunctions::pointOnEdge(const TopoDS_Edge& theEdge, const gp_Pnt& theP
 }
 
 
-gp_Vec helperFunctions::computeEdgeDir(const TopoDS_Edge& theEdge) //TODO: make this smarter
+gp_Vec helperFunctions::computeEdgeDir(const TopoDS_Edge& theEdge)
 {
 	double precision = SettingsCollection::getInstance().spatialTolerance();
 	gp_Pnt startpoint = getFirstPointShape(theEdge);
@@ -1025,22 +1023,6 @@ gp_Vec helperFunctions::newellsNormal(const std::vector<gp_Pnt>& pointList)
 	return normal.Normalized();
 }
 
-TopoDS_Wire helperFunctions::reversedWire(const TopoDS_Wire& mainWire) {  //TODO: check where used
-	BRepBuilderAPI_MakeWire wireMaker;
-
-	for (TopExp_Explorer wireExp(mainWire, TopAbs_EDGE); wireExp.More(); wireExp.Next())
-	{
-		TopoDS_Edge edge = TopoDS::Edge(wireExp.Current());
-		gp_Pnt firstPoint = getFirstPointShape(edge);
-		gp_Pnt secondPoint = getLastPointShape(edge);
-
-		wireMaker.Add(BRepBuilderAPI_MakeEdge(secondPoint, firstPoint));
-	}
-	wireMaker.Build();
-
-	if (wireMaker.IsDone()) { return wireMaker.Wire(); }
-	return BRepBuilderAPI_MakeWire();
-}
 
 double helperFunctions::computeLargestAngle(const TopoDS_Face& theFace)
 {
@@ -1164,33 +1146,6 @@ gp_Vec helperFunctions::getShapedir(const std::vector<gp_Pnt>& pointList, bool i
 	}
 	return RotationVecPair.first.Normalized();
 }
-
-bool helperFunctions::wireIsForwards(const TopoDS_Face& theFace, const TopoDS_Wire& theWire)
-{
-	double area = 0.0;
-	for (TopExp_Explorer exp(theWire, TopAbs_EDGE); exp.More(); exp.Next())
-	{
-		TopoDS_Edge edge = TopoDS::Edge(exp.Current());
-		Standard_Real f, l;
-
-		Handle(Geom2d_Curve) curve2d = BRep_Tool::CurveOnSurface(edge, theFace, f, l);
-		if (curve2d.IsNull()) continue;
-
-		gp_Pnt2d p1 = curve2d->Value(f);
-		gp_Pnt2d p2;
-
-		const int n = 10;
-		for (int i = 1; i <= n; ++i)
-		{
-			Standard_Real t = f + (l - f) * i / n;
-			p2 = curve2d->Value(t);
-			area += (p2.X() - p1.X()) * (p2.Y() + p1.Y());
-			p1 = p2;
-		}
-	}
-	return (area > 0);
-}
-
 
 bool helperFunctions::shareEdge(const TopoDS_Face& theFace, const TopoDS_Face& theotherFace)
 {
@@ -1406,93 +1361,6 @@ bool helperFunctions::baryCentricTest(const gp_Pnt& point, const std::vector<gp_
 	return (u >= -precision && v >= -precision && (u + v) <= 1.0 + precision);
 }
 
-
-std::optional<gp_Pnt> helperFunctions::linearLineIntersection(const gp_Pnt& sP1, const gp_Pnt& eP1, const gp_Pnt& sP2, const gp_Pnt& eP2, bool projected, double buffer) {
-
-	double precision = SettingsCollection::getInstance().spatialTolerance();
-
-	gp_Pnt evalSP1 = sP1;
-	gp_Pnt evalEP1 = eP1;
-	gp_Pnt evalSP2 = sP2;
-	gp_Pnt evalEP2 = eP2;
-
-	if (projected)
-	{
-		evalSP1.SetZ(0);
-		evalEP1.SetZ(0);
-		evalSP2.SetZ(0);
-		evalEP2.SetZ(0);
-	}
-
-	if (evalSP1.IsEqual(evalEP1, precision)) { return std::nullopt; }
-	if (evalSP2.IsEqual(evalEP2, precision)) { return std::nullopt; }
-
-	double z = 0; //Todo: make work in 3d
-	if (!projected) { z = evalEP1.Z(); }
-
-	gp_Vec v1(evalSP1, evalEP1);
-	v1.Normalize();
-	gp_Vec v2(evalSP2, evalEP2);
-	v2.Normalize();
-
-	if (v1.IsEqual(v2, precision, precision)) { return std::nullopt; }
-
-	double x1 = evalSP1.X();
-	double x2 = evalEP1.X();;
-	double x3 = evalSP2.X();;
-	double x4 = evalEP2.X();;
-
-	double y1 = evalSP1.Y();
-	double y2 = evalEP1.Y();
-	double y3 = evalSP2.Y();
-	double y4 = evalEP2.Y();
-
-	double dom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-
-	if (abs(dom) == 0) { return std::nullopt; }
-
-	double xI = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / (dom);
-	double yI = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / (dom);
-
-	if (x1 - buffer <= xI && xI <= x2 + buffer ||
-		x1 + buffer >= xI && xI >= x2 - buffer)
-	{
-		if (y1 - buffer <= yI && yI <= y2 + buffer ||
-			y1 + buffer >= yI && yI >= y2 - buffer)
-		{
-			if (x3 - buffer <= xI && xI <= x4 + buffer ||
-				x3 + buffer >= xI && xI >= x4 - buffer)
-			{
-				if (y3 - buffer <= yI && yI <= y4 + buffer ||
-					y3 + buffer >= yI && yI >= y4 - buffer)
-				{
-					return gp_Pnt(xI, yI, z);
-				}
-			}
-		}
-	}
-	return std::nullopt;
-}
-
-std::optional<gp_Pnt> helperFunctions::linearLineIntersection(const Edge& edge1, const Edge& edge2, bool projected, double buffer) {
-	gp_Pnt sP1 = edge1.getStart(false);
-	gp_Pnt eP1 = edge1.getEnd(false);
-	gp_Pnt sP2 = edge2.getStart(false);
-	gp_Pnt eP2 = edge2.getEnd(false);
-
-	return linearLineIntersection(sP1, eP1, sP2, eP2, projected, buffer);
-}
-
-std::optional<gp_Pnt> helperFunctions::linearLineIntersection(const TopoDS_Edge& edge1, const TopoDS_Edge& edge2, bool projected, double buffer) {
-	return linearLineIntersection(
-		helperFunctions::getFirstPointShape(edge1),
-		helperFunctions::getLastPointShape(edge1),
-		helperFunctions::getFirstPointShape(edge2),
-		helperFunctions::getLastPointShape(edge2),
-		projected,
-		buffer
-	);
-}
 
 bool helperFunctions::LineShapeIntersection(const TopoDS_Shape& theShape, const gp_Pnt& lP1, const gp_Pnt& lP2)
 {
@@ -2260,53 +2128,6 @@ std::vector<TopoDS_Face> helperFunctions::TriangulateFace(const TopoDS_Face& the
 	return collapsedTriangles;
 }
 
-TopoDS_Wire helperFunctions::wipeWireClean(const TopoDS_Wire& theWire)
-{
-	BRepBuilderAPI_MakeWire wireMaker;
-	for (BRepTools_WireExplorer expl(theWire); expl.More(); expl.Next()) {
-		TopoDS_Edge currentEdge = TopoDS::Edge(expl.Current());
-
-		TopoDS_Edge reversedEdge = BRepBuilderAPI_MakeEdge(helperFunctions::getFirstPointShape(currentEdge), helperFunctions::getLastPointShape(currentEdge));
-
-		wireMaker.Add(reversedEdge);
-	}
-	TopoDS_Wire newWire = wireMaker.Wire();
-	return newWire;
-}
-
-TopoDS_Wire helperFunctions::projectWireOnPlane(const TopoDS_Wire& wire, const Handle(Geom_Plane)& plane)
-{
-	double precision = SettingsCollection::getInstance().spatialTolerance();
-
-	const Handle(Geom_Surface) surface = Handle(Geom_Surface)::DownCast(plane);
-
-	BRepBuilderAPI_MakeWire wireBuilder;
-	BRep_Builder builder;
-
-	for (TopExp_Explorer exp(wire, TopAbs_EDGE); exp.More(); exp.Next())
-	{
-		TopoDS_Edge edge = TopoDS::Edge(exp.Current());
-
-		Standard_Real f, l;
-		Handle(Geom_Curve) curve3d = BRep_Tool::Curve(edge, f, l);
-		if (curve3d.IsNull()) continue;
-
-		// Project to 2D on the plane
-		Handle(Geom2d_Curve) curve2d = GeomAPI::To2d(curve3d, plane->Pln());
-		if (curve2d.IsNull()) continue;
-
-		// Create new edge
-		TopoDS_Edge newEdge = BRepBuilderAPI_MakeEdge(curve3d, f, l);
-		builder.UpdateEdge(newEdge, curve2d, surface, TopLoc_Location(), precision);
-		newEdge.Orientation(edge.Orientation()); // preserve orientation
-
-		wireBuilder.Add(newEdge);
-	}
-
-	return wireBuilder.Wire();
-}
-
-
 std::vector<TopoDS_Wire> helperFunctions::growWires(const std::vector<TopoDS_Edge>& edgeList) {
 	std::vector<TopoDS_Wire> wireCollection;
 	std::vector<TopoDS_Wire> wireCollectionClosed;
@@ -2903,6 +2724,7 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 
 	gp_Trsf transform;
 	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double angularTol = SettingsCollection::getInstance().angularTolerance();
 
 	gp_Vec clusterNormal = computeFaceNormal(planarFaces[0]);
 	gp_Vec horizontalNormal = gp_Vec(0, 0, 1);
@@ -2987,7 +2809,7 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 	gp_Pnt p1 = gp_Pnt(urr.X() + 10, urr.Y() + 10, urr.Z());
 	TopoDS_Face boundingPlane = helperFunctions::createHorizontalFace(p0, p1, 0, urr.Z());
 
-	if (clusterNormal.IsOpposite(gp_Vec(0,0,1), 1e-4))
+	if (clusterNormal.IsOpposite(gp_Vec(0,0,1), angularTol))
 	{
 		boundingPlane.Reverse();
 	}
@@ -3052,37 +2874,14 @@ std::vector<TopoDS_Shape> helperFunctions::planarFaces2Cluster(const std::vector
 	return clusteredShapeList;
 }
 
-TopoDS_Face helperFunctions::getOuterFace(const TopoDS_Shape& splitShape, const TopoDS_Face& originalFace)
-{
-	// find the outer face
-	TopoDS_Face outerFace;
-	gp_Pnt p0 = helperFunctions::getFirstPointShape(originalFace);
-	for (TopExp_Explorer faceExpl(splitShape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
-	{
-		TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
-		bool isFound = false;
-
-		for (TopExp_Explorer vertExpl(currentFace, TopAbs_VERTEX); vertExpl.More(); vertExpl.Next()) {
-			TopoDS_Vertex currentVertex = TopoDS::Vertex(vertExpl.Current());
-			gp_Pnt currentPoint = BRep_Tool::Pnt(currentVertex);
-
-			if (currentPoint.IsEqual(p0, SettingsCollection::getInstance().spatialTolerance()))
-			{
-				outerFace = currentFace;
-				isFound = true;
-				break;
-			}
-		}
-		if (isFound) { break; }
-	}
-	return outerFace;
-}
-
 std::vector<TopoDS_Face> helperFunctions::invertFace(const TopoDS_Face& inputFace)
 {
 	gp_Vec baseNormal = helperFunctions::computeFaceNormal(inputFace);
 	gp_Pnt p0 = helperFunctions::getFirstPointShape(inputFace);
 	gp_Pln basePlane = gp_Pln(p0, baseNormal);
+
+	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double angularTol = SettingsCollection::getInstance().angularTolerance();
 
 	std::vector<TopoDS_Face> mergedFaceList;
 
@@ -3107,8 +2906,8 @@ std::vector<TopoDS_Face> helperFunctions::invertFace(const TopoDS_Face& inputFac
 		if (!currentWire.Closed()) { continue; }
 
 		gp_Vec wireNormal = helperFunctions::computeFaceNormal(currentWire);
-		if (wireNormal.Magnitude() < 1e-6) { continue; }
-		if (baseNormal.IsOpposite(wireNormal, 1e-4))
+		if (wireNormal.Magnitude() < precision) { continue; }
+		if (baseNormal.IsOpposite(wireNormal, angularTol))
 		{
 			currentWire = TopoDS::Wire(currentWire.Reversed());
 		}
@@ -3506,14 +3305,6 @@ void helperFunctions::writeToOBJ(const std::vector<std::vector<T>>& theShapeList
 	return;
 }
 
-double helperFunctions::computeArea(const TopoDS_Shape& theShape)
-{
-	GProp_GProps gprops;
-	BRepGProp::SurfaceProperties(theShape, gprops);
-	return gprops.Mass();
-}
-
-
 double helperFunctions::computeArea(const TopoDS_Face& theFace)
 {
 	GProp_GProps gprops;
@@ -3600,11 +3391,11 @@ TopoDS_Wire helperFunctions::CurveToCompound(const TopoDS_Edge& theEdge)
 	double curveLength = GCPnts_AbscissaPoint::Length(adaptorCurve, first, last);
 
 	int splitSteps = std::ceil(curveLength / stepLenght);
-	if (splitSteps < 2) { splitSteps = 3; }
+	if (curveLength / 3 < SettingsCollection::getInstance().spatialTolerance()) { splitSteps = 2; }
+	else if (splitSteps < 2) { splitSteps = 3; }
 
 	GCPnts_UniformAbscissa abscissa(adaptorCurve, splitSteps, first, last);
 	if (!abscissa.IsDone()) return {};
-
 
 	BRepBuilderAPI_MakeWire builder;
 	for (int i = 1; i < abscissa.NbPoints(); ++i) {
@@ -3612,7 +3403,8 @@ TopoDS_Wire helperFunctions::CurveToCompound(const TopoDS_Edge& theEdge)
 		gp_Pnt p2 = adaptorCurve.Value(abscissa.Parameter(i + 1));
 
 		if (p1.IsEqual(p2, precision))
-		{ continue;
+		{ 
+			continue;
 		}
 
 		TopoDS_Edge segment = BRepBuilderAPI_MakeEdge(p1, p2);
@@ -3629,6 +3421,7 @@ TopoDS_Wire helperFunctions::CurveToCompound(const TopoDS_Edge& theEdge)
 
 TopoDS_Wire helperFunctions::replaceCurves(const TopoDS_Wire& theWire)
 {
+
 	std::vector<TopoDS_Edge> fixedEdges;
 	double precision = SettingsCollection::getInstance().spatialTolerance();
 	bool isEdited = false;
@@ -3654,6 +3447,10 @@ TopoDS_Wire helperFunctions::replaceCurves(const TopoDS_Wire& theWire)
 
 		isEdited = true;
 		TopoDS_Wire straightCurve = CurveToCompound(currentEdge);
+		if (straightCurve.IsNull())
+		{
+			return theWire;
+		}
 
 		// if the wire is incorrectly ordered the order is reversed
 		std::vector<TopoDS_Edge> straightEdgeList;
@@ -3688,6 +3485,7 @@ TopoDS_Wire helperFunctions::replaceCurves(const TopoDS_Wire& theWire)
 		}
 		fixedEdges.insert(std::end(fixedEdges), std::begin(straightEdgeList), std::end(straightEdgeList));
 	}
+
 	if (!isEdited) {return theWire; }
 
 	BRepBuilderAPI_MakeWire builder;
@@ -3746,20 +3544,6 @@ bool helperFunctions::isStraight(const TopoDS_Edge& theEdge)
 
 	Handle(Geom_Line) line = Handle(Geom_Line)::DownCast(curve);
 	return !line.IsNull();
-}
-
-bool helperFunctions::isStraight(const TopoDS_Wire& theWire)
-{
-	for (TopExp_Explorer explorer(theWire, TopAbs_EDGE); explorer.More(); explorer.Next())
-	{
-		const TopoDS_Edge& edge = TopoDS::Edge(explorer.Current());
-
-		if (!isStraight(edge))
-		{
-			return false;
-		}
-	}
-	return true;
 }
 
 bool helperFunctions::hasVolume(const bg::model::box<BoostPoint3D>& bbox)
@@ -3825,13 +3609,6 @@ bool helperFunctions::isSame(const TopoDS_Face& faceL, const TopoDS_Face& faceR)
 	return true;
 }
 
-double helperFunctions::computeArea(const gp_Pnt& p0, const gp_Pnt& p1, const gp_Pnt& p2)
-{
-	gp_Vec v01(p0, p1);
-	gp_Vec v02(p0, p2);
-	gp_Vec cross = v01.Crossed(v02);
-	return 0.5 * cross.Magnitude();
-}
 
 int helperFunctions::wireCount(const TopoDS_Face& theFace)
 {
@@ -3917,59 +3694,6 @@ std::vector<TopoDS_Face> helperFunctions::removeDubFaces(const std::vector<TopoD
 		filteredFaceList.emplace_back(currentFace);
 	}
 	return filteredFaceList;
-}
-
-std::vector<TopoDS_Face> helperFunctions::getUniqueFaces(const std::vector<TopoDS_Face>& inputFaceList)
-{
-	std::vector<TopoDS_Face> cleanedFaceList;
-	double areaTolerance = SettingsCollection::getInstance().areaTolerance();
-	bgi::rtree<Value, bgi::rstar<25>> spatialIndex;
-	for (const TopoDS_Face& currentFace : inputFaceList)
-	{
-		if (computeArea(currentFace) < areaTolerance) { continue; }
-		bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentFace);
-		spatialIndex.insert(std::make_pair(bbox, spatialIndex.size()));
-	}
-
-	for (const TopoDS_Face& currentFace : inputFaceList)
-	{
-		std::vector<Value> qResult;
-		qResult.clear();
-		bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentFace);
-		spatialIndex.query(bgi::intersects(
-			bbox), std::back_inserter(qResult));
-
-		bool isDub = false;
-		for (const auto& [otherBox, faceIndx] : qResult)
-		{
-			const TopoDS_Face& otherFace = inputFaceList[faceIndx];;
-			if (currentFace.IsSame(otherFace)) { continue; }
-			if (!isSame(currentFace, otherFace)) { continue; }
-			isDub = true;
-			break;
-
-		}
-		if (isDub) { continue; }
-		cleanedFaceList.emplace_back(currentFace);
-
-	}
-	return cleanedFaceList;
-}
-
-TopoDS_Face helperFunctions::plane2Face(const Handle(Geom_Plane)& geoPlane, const double& planeSize)
-{
-	const gp_Pln& currentPlane = geoPlane->Pln();
-	const gp_Pnt& currentOrigin = currentPlane.Location();
-	const gp_Dir& currentNormal = currentPlane.Axis().Direction();
-	Handle(Geom_Plane) geomPlane = new Geom_Plane(currentPlane);
-
-	Standard_Real UMin = -planeSize;
-	Standard_Real UMax = planeSize;
-	Standard_Real VMin = -planeSize;
-	Standard_Real VMax = planeSize;
-
-	TopoDS_Face occtFace = BRepBuilderAPI_MakeFace(geomPlane, UMin, UMax, VMin, VMax, Precision::Confusion());
-	return occtFace;
 }
 
 bool helperFunctions::isFlat(const TopoDS_Face& theFace)

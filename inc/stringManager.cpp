@@ -66,6 +66,10 @@ std::string CommunicationStringEnum::getString(CommunicationStringID id)
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Parsing file(s): ";
 	case CommunicationStringID::infoInternalizingGeo:
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Internalizing Geometry of Construction Model";
+	case CommunicationStringID::infoFetchGroundfloorElev:
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Fetching elevation of the footprint from input";	
+	case CommunicationStringID::infoGroundfloorElev:
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Ground floor elevation found: ";
 	case CommunicationStringID::infoCreateSpatialIndex:
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Create Spatial Index";
 	case CommunicationStringID::infoIgnoreVoids:
@@ -290,6 +294,20 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		const std::string coms = "LoD0.2 Storey shape extraction failed";
 		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
 		return coms; }
+
+	case ErrorID::errorNoGroundFLoorFound: {
+		const std::string coms = "No valid ground floor could be found, make sure ground floor name(s) start with '0' or '00'";
+		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
+		return coms; }
+	case ErrorID::errorInconsistentGroundFLoorNumbers: {
+		const std::string coms = "Ground floor could not be found in all input files";
+		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
+		return coms; }
+	case ErrorID::errorInconsistentGroundFloorElevations: {
+		const std::string coms = "Ground floor elevations are inconsisten across input files";
+		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
+		return coms; }
+
 
 	case ErrorID::warningIfcUnableToParse: {
 		const std::string coms = "Unable to parse .ifc file";
@@ -589,6 +607,8 @@ std::string JsonObjectInEnum::getString(JsonObjectInID id)
 		return "Ignore simplification";
 	case JsonObjectInID::IFCCorrentPlacement:
 		return "Correct placement";
+	case JsonObjectInID::IFCDetectFootprintElev:
+		return "Fetch footprint elevation";
 
 	case JsonObjectInID::JSON:
 		return "JSON";

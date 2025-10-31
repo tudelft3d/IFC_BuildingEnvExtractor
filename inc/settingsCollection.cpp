@@ -190,6 +190,7 @@ void SettingsCollection::setIFCRelatedSettings(const nlohmann::json& json)
 		setSimplefyGeo(ifcDataJson);
 		setIgnoreSimplificationList(ifcDataJson);
 		setCorrectPlacement(ifcDataJson);
+		setDetectFootprintElevation(ifcDataJson);
 	}
 	catch (const std::string& errorString)
 	{
@@ -1057,8 +1058,32 @@ void SettingsCollection::setRotation(const nlohmann::json& json)
 	return;
 }
 
+void SettingsCollection::setDetectFootprintElevation(const nlohmann::json& json)
+{
+	const std::string& detectElevOName = JsonObjectInEnum::getString(JsonObjectInID::IFCDetectFootprintElev);
+	if (json.contains(detectElevOName))
+	{
+		try
+		{
+			bool footprintElev = getJsonBoolValue(json[detectElevOName]);
+			setDetectFootprintElevation(footprintElev);
+		}
+		catch (const ErrorID& exceptionId)
+		{
+			ErrorCollection::getInstance().addError(exceptionId, detectElevOName);
+			throw std::string(errorWarningStringEnum::getString(exceptionId) + detectElevOName);
+		}
+	}
+	return;
+}
+
 void SettingsCollection::setFootprintElevation(const nlohmann::json& json)
 {
+	if (detectFootprintElevation())
+	{
+		return;
+	}
+
 	const std::string& footprintElevOName = JsonObjectInEnum::getString(JsonObjectInID::JSONFootprintElev);
 	if (json.contains(footprintElevOName))
 	{

@@ -159,9 +159,11 @@ void DebugUtils::printFaces(const TopoDS_Shape& shape)
 	}
 }
 
-void DebugUtils::WriteToTxt(const std::vector<TopoDS_Face>& shapeList, const std::string& pathString)
+void DebugUtils::WriteToTxt(const std::vector<TopoDS_Face>& shapeList, const std::string& pathString, bool append)
 {
-	std::ofstream outputFile(pathString);
+	int mode = std::ios_base::out;
+	if (append) { mode = std::ios_base::app; }
+	std::ofstream outputFile(pathString, mode);
 
 	for (TopoDS_Face shape : shapeList)
 	{
@@ -170,9 +172,11 @@ void DebugUtils::WriteToTxt(const std::vector<TopoDS_Face>& shapeList, const std
 	outputFile.close();
 }
 
-void DebugUtils::WriteToTxt(const std::vector<TopoDS_Shape>& shapeList, const std::string& pathString)
+void DebugUtils::WriteToTxt(const std::vector<TopoDS_Shape>& shapeList, const std::string& pathString, bool append)
 {
-	std::ofstream outputFile(pathString);
+	int mode = std::ios_base::out;
+	if (append) { mode = std::ios_base::app; }
+	std::ofstream outputFile(pathString, mode);
 
 	for (TopoDS_Shape shape : shapeList)
 	{

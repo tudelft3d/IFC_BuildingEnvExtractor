@@ -113,6 +113,7 @@ private:
     double spatialTolerance_ = 1e-6;
     double angularTolerance_ = 1e-4;
     double areaTolerance_ = 1e-4;
+    double windowBuffer_ = 0.001;
 
     // unexposed settings
     bool addCustomWallAttributes_ = false;
@@ -407,6 +408,8 @@ public:
     double areaTolerance() const { return areaTolerance_; }
     void setAreaTolerance(double value) { areaTolerance_ = value; }
     void setAreaTolerance(const nlohmann::json& json);
+
+    double windowBuffer() const { return windowBuffer_; }
 
     double maxProxyPercentage() const { return maxProxyPercentage_; }
     void setMaxProxyPercentage(double value) { maxProxyPercentage_ = value; }

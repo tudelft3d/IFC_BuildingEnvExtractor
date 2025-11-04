@@ -42,8 +42,8 @@ struct DebugUtils {
 	static void WriteToSTEP(const std::vector<std::vector<T>>& shapeList, const std::string& targetPath);
 
 	/// Ouptu shape to txt file
-	static void WriteToTxt(const std::vector<TopoDS_Face>& shapeList, const std::string& pathString);
-	static void WriteToTxt(const std::vector<TopoDS_Shape>& shapeList, const std::string& pathString);
+	static void WriteToTxt(const std::vector<TopoDS_Face>& shapeList, const std::string& pathString, bool append = false);
+	static void WriteToTxt(const std::vector<TopoDS_Shape>& shapeList, const std::string& pathString, bool append = false);
 
 	/// prints the issues that a face has
 	static void outPutFaceError(const TopoDS_Face& theShape);

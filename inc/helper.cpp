@@ -674,7 +674,7 @@ TopoDS_Shape helperFunctions::boxSimplefyShape(const TopoDS_Shape& shape)
 
 	gp_Pnt lllPoint;
 	gp_Pnt urrPoint;
-	helperFunctions::bBoxDiagonal(pointList, &lllPoint, &urrPoint, 0, angleFlat, angleVert);
+	helperFunctions::bBoxDiagonal(pointList, &lllPoint, &urrPoint, SettingsCollection::getInstance().windowBuffer(), angleFlat, angleVert);
 	if (lllPoint.IsEqual(urrPoint, SettingsCollection::getInstance().spatialTolerance())) { return TopoDS_Shape(); }
 	TopoDS_Shape boxShape = helperFunctions::createBBOXOCCT(lllPoint, urrPoint, 0.0, angleFlat, angleVert);
 	helperFunctions::triangulateShape(boxShape);

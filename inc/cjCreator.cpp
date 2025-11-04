@@ -5012,6 +5012,8 @@ void CJGeoCreator::getOuterRaySurfaces(std::vector<std::pair<TopoDS_Face, IfcSch
 	coreUse -= 1;
 	double targetScore = std::accumulate(scoreList.begin(), scoreList.end(), 0) / coreUse;
 
+	//coreUse = 1;
+
 	std::vector<std::thread> threadList;
 	std::mutex listMutex;
 	std::mutex processedCountMutex;
@@ -5087,7 +5089,7 @@ void CJGeoCreator::getOuterRaySurfaces(
 		{
 			bool faceIsExterior = false;
 			const TopoDS_Face& currentFace = TopoDS::Face(explorer.Current());
-			if (helperFunctions::getPointCount(currentFace) < 3) {continue; }
+			if (helperFunctions::getPointCount(currentFace) < 3) { continue; }
 
 			std::vector<TopoDS_Face> tesselatedFaceList = helperFunctions::TessellateFace(currentFace);
 
@@ -5125,8 +5127,7 @@ void CJGeoCreator::getOuterRaySurfaces(
 
 							if (helperFunctions::pointOnFace(otherFace, gridPoint))
 							{
-								clearLine = false;
-								break;
+								continue;
 							}
 
 							//test for linear intersections

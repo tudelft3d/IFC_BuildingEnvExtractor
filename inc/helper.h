@@ -1,4 +1,4 @@
-#define USE_IFC4
+#define USE_IFC4x3
 #define iterationVersion "0.2.6"
 
 #ifdef USE_IFC2x3
@@ -187,6 +187,8 @@ struct helperFunctions{
 	static bool coplanarOverlapping(const TopoDS_Face& leftFace, const TopoDS_Face& rightFace);
 	/// checks if surface is encapsulated by another shape
 	static bool surfaceIsIncapsulated(const TopoDS_Face& innerSurface, const TopoDS_Face& outerSurface);
+	/// checks if surface is encapsulated by other faces
+	static bool surfaceIsIncapsulated(const TopoDS_Face& innerSurface, const std::vector<TopoDS_Face>& outerSurfaceList, bool ignoreSelf = false);
 
 	/// line surface intersection related code
 

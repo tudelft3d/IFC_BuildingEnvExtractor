@@ -1307,6 +1307,64 @@ bool helperFunctions::surfaceIsIncapsulated(const TopoDS_Face& innerSurface, con
 	return true;
 }
 
+bool helperFunctions::surfaceIsIncapsulated(const TopoDS_Face& innerSurface, const std::vector<TopoDS_Face>& outerSurfaceList, bool ignoreSelf)
+{
+	double precision = SettingsCollection::getInstance().spatialTolerance();
+	for (TopExp_Explorer explorer(innerSurface, TopAbs_VERTEX); explorer.More(); explorer.Next())
+	{
+		const TopoDS_Vertex& vertex = TopoDS::Vertex(explorer.Current());
+		gp_Pnt currentPoint = BRep_Tool::Pnt(vertex);
+
+		bool isOnFace = false;
+		for (const TopoDS_Face& outerSurface : outerSurfaceList)
+		{
+			if (ignoreSelf)
+			{
+				if (outerSurface.IsEqual(innerSurface)) { continue; }
+			}
+
+			if (pointOnFace(outerSurface, currentPoint) || pointOnWire(outerSurface, currentPoint))
+			{
+				isOnFace = true;
+				break;
+			}
+		}
+		if (isOnFace)
+		{
+			continue;
+		}
+		return false;
+	}
+
+	std::vector<gp_Pnt> pointList = getPointGridOnSurface(innerSurface, SettingsCollection::getInstance().surfaceGridSize());
+	std::vector<gp_Pnt> wireGridList = helperFunctions::getPointGridOnWire(innerSurface, SettingsCollection::getInstance().surfaceGridSize());
+	pointList.insert(pointList.end(), wireGridList.begin(), wireGridList.end());
+
+	for (const gp_Pnt& currentPoint : pointList)
+	{
+		bool isOnFace = false;
+		for (const TopoDS_Face& outerSurface : outerSurfaceList)
+		{
+			if (ignoreSelf)
+			{
+				if (outerSurface.IsEqual(innerSurface)) { continue; }
+			}
+
+			if (pointOnFace(outerSurface, currentPoint))
+			{
+				isOnFace = true;
+				break;
+			}
+		}
+		if (isOnFace)
+		{
+			continue;
+		}
+		return false;
+	}
+	return true;
+}
+
 bool helperFunctions::triangleIntersecting(const std::vector<gp_Pnt>& line, const std::vector<gp_Pnt>& triangle)
 {
 	double precision = SettingsCollection::getInstance().spatialTolerance();
@@ -3269,9 +3327,6 @@ void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::
 						vertIdxOffset++;
 					}
 				}
-
-
-
 				nestedTriangleIndx.emplace_back(triangleIndx);
 			}
 		}

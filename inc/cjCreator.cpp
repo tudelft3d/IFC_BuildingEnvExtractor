@@ -1939,18 +1939,29 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<RColl
 		projectedFaceList.emplace_back(currentFace);
 	}
 
+
+
 	if (projectedFaceList.empty()) { return {}; }
+	projectedFaceList = helperFunctions::sortFaces(projectedFaceList);
+	std::reverse(projectedFaceList.begin(), projectedFaceList.end());
+
+	std::vector<TopoDS_Face> cleanProjectedFaceList;
+	for (const TopoDS_Face currentFace : projectedFaceList)
+	{
+		if (helperFunctions::surfaceIsIncapsulated(currentFace, cleanProjectedFaceList)) { continue; }
+		cleanProjectedFaceList.emplace_back(currentFace);
+	}
 
 	// create plane on which the projection has to be made
 	gp_Pnt lll;
 	gp_Pnt urr;
-	helperFunctions::bBoxDiagonal(projectedFaceList, &lll, &urr);
+	helperFunctions::bBoxDiagonal(cleanProjectedFaceList, &lll, &urr);
 
 	gp_Pnt p0 = gp_Pnt(lll.X() - 10, lll.Y() - 10, 0);
 	gp_Pnt p1 = gp_Pnt(urr.X() + 10, urr.Y() + 10, 0);
 
 	TopoDS_Face cuttingPlane = helperFunctions::createHorizontalFace(p0, p1, 0, 0);
-	std::vector<TopoDS_Face> mergedSurfaces = helperFunctions::planarFaces2Outline(projectedFaceList, cuttingPlane);
+	std::vector<TopoDS_Face> mergedSurfaces = helperFunctions::planarFaces2Outline(cleanProjectedFaceList, cuttingPlane);
 	printTime(startTime, std::chrono::steady_clock::now());
 	return mergedSurfaces;
 }

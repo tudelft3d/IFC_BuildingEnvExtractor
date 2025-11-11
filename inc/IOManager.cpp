@@ -1029,27 +1029,7 @@ bool IOManager::write(bool reportOnly)
 	addTimeToJSON(&timeReport, "LoDd.2 generation", timeLoDd2_);
 	addTimeToJSON(&timeReport, "LoDe.0 generation", timeLoDe0_);
 	addTimeToJSON(&timeReport, "LoDe.1 generation", timeLoDe1_);
-	addTimeToJSON(&timeReport, "Total Processing",
-		timeInternalizing_ +
-		timeVoxel_ +
-		timeLoD00_ +
-		timeLoD02_ +
-		timeLoD03_ +
-		timeLoD04_ +
-		timeLoD10_ +
-		timeLoD12_ +
-		timeLoD13_ +
-		timeLoD22_ +
-		timeLoDb0_ +
-		timeLoDc1_ +
-		timeLoDc2_ +
-		timeLoDd1_ +
-		timeLoDd2_ +
-		timeLoDe0_ +
-		timeLoDe1_ +
-		timeLoD32_ +
-		timeV_
-	);
+	addTimeToJSON(&timeReport, "Total Processing", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime_).count());
 
 	report["Duration"] = timeReport;
 	report["Errors"] = ErrorCollection::getInstance().toJson();

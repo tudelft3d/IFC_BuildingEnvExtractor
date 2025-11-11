@@ -877,9 +877,14 @@ bool helperFunctions::pointOnFace(const TopoDS_Face& theFace, const gp_Pnt& theP
 		gp_Vec triangleNormal = v12.Crossed(v13);
 		double maxEdge = std::max(v12.Magnitude(), v13.Magnitude());
 		if (triangleNormal.Magnitude() < precision * maxEdge) { continue; }
-
-		double distancePlanePoint = triangleNormal.Dot(gp_Vec(p1, thePoint));
+		
+		double normalMag = triangleNormal.Magnitude();
+		double distancePlanePoint = triangleNormal.Dot(gp_Vec(p1, thePoint)) / normalMag;
 		if (std::abs(distancePlanePoint) > precision) { continue; }
+
+		gp_Vec unitNormal = triangleNormal / normalMag; // unit normal
+		gp_Pnt projected = thePoint.Translated(-unitNormal * distancePlanePoint);
+
 		if (baryCentricTest(thePoint, { p1, p2, p3 })) { return true; }
 	}
 	return false;

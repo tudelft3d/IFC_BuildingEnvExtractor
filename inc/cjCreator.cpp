@@ -67,6 +67,18 @@ double roundDoubleToPrecision(double value, double precision) {
 	return std::round(value / precision) * precision;
 }
 
+bool PointOnFace(const gp_Pnt& thePoint, const std::vector<std::pair<BoostBox3D, TopoDS_Face>>& theFaceList)
+{
+	for (const std::pair<BoostBox3D, TopoDS_Face>& facePair : theFaceList) //TODO: clean this up
+	{
+		// get the potential faces
+		const TopoDS_Face& otherFace = facePair.second;
+		if (!helperFunctions::pointOnFace(otherFace, thePoint)) { continue; }
+		return true;
+	}
+	return false;
+}
+
 void CJGeoCreator::garbageCollection()
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
@@ -4365,19 +4377,39 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 
 	// remove internal faces
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> splitFaceIndx;
+	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> splitOuterSurfacePairCleanList;
+
 	for (const auto& [currentFace, currentProduct] : splitOuterSurfacePairList)
 	{
 		BoostBox3D currentBox = helperFunctions::createBBox(currentFace);
+
+		std::vector<std::pair<BoostBox3D, TopoDS_Face>>faceQResult;
+		splitFaceIndx.query(bgi::intersects(currentBox), std::back_inserter(faceQResult));
+
+		auto optionalPoint = helperFunctions::getPointOnFace(currentFace);
+		if (optionalPoint == std::nullopt) { continue; }
+		if (PointOnFace(*optionalPoint, faceQResult)) { continue; }
+
 		splitFaceIndx.insert(std::make_pair(currentBox, currentFace));
+		splitOuterSurfacePairCleanList.emplace_back(std::pair(currentFace, currentProduct));
 	}
 	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> finalOuterSurfacePairList;
 	for (const auto& [currentFace, currentProduct] : unSplitOuterSurfacePairList)
 	{
-		finalOuterSurfacePairList.emplace_back(std::pair(currentFace, currentProduct));
 		BoostBox3D currentBox = helperFunctions::createBBox(currentFace);
+
+		std::vector<std::pair<BoostBox3D, TopoDS_Face>>faceQResult;
+		splitFaceIndx.query(bgi::intersects(currentBox), std::back_inserter(faceQResult));
+
+		auto optionalPoint = helperFunctions::getPointOnFace(currentFace);
+		if (optionalPoint == std::nullopt) { continue; }
+		if (PointOnFace(*optionalPoint, faceQResult)) { continue; }
+
 		splitFaceIndx.insert(std::make_pair(currentBox, currentFace));
+		finalOuterSurfacePairList.emplace_back(std::pair(currentFace, currentProduct));
 	}
-	simpleRaySurfaceCast(finalOuterSurfacePairList, splitOuterSurfacePairList, voxelIndex, splitFaceIndx);
+
+	simpleRaySurfaceCast(finalOuterSurfacePairList, splitOuterSurfacePairCleanList, voxelIndex, splitFaceIndx);
 
 	// remove dub and incapsulated surfaces by merging them
 	std::vector<gp_Dir> normalList;

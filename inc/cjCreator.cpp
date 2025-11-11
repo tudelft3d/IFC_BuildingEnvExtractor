@@ -387,62 +387,68 @@ void CJGeoCreator::simpleRaySurfaceCast(
 		c++;
 		std::cout << "\tIsolating outer surfaces - " << c << " of " << surfaceList.size() << "\r";
 
-		std::optional<gp_Pnt> optionalCurrentPoint = helperFunctions::getPointOnFace(currentFace);
-		if (optionalCurrentPoint == std::nullopt) { continue; }
-		gp_Pnt currentPoint = *optionalCurrentPoint;
-		bg::model::box<BoostPoint3D> pointQuerybox(
-			{ currentPoint.X() - searchBuffer, currentPoint.Y() - searchBuffer, currentPoint.Z() - searchBuffer },
-			{ currentPoint.X() + searchBuffer, currentPoint.Y() + searchBuffer, currentPoint.Z() + searchBuffer }
-		);
+		std::vector<gp_Pnt> pointList = helperFunctions::getPointListOnFace(currentFace);
 
-		std::vector<std::pair<BoostBox3D, std::shared_ptr<voxel>>> pointQResult;
-		voxelIndex.query(bgi::intersects(pointQuerybox), std::back_inserter(pointQResult));
-
-		if (pointQResult.empty()) { continue; }
-
-		int score = 0; // the number of clear lines cast from the surface
-		for (const auto& [voxelBbox, voxel] : pointQResult)
+		bool isFound = false;
+		for (const gp_Pnt& currentPoint : pointList)
 		{
-			bool clearLine = true;
-			gp_Pnt voxelCore = voxel->getOCCTCenterPoint();
+			bg::model::box<BoostPoint3D> pointQuerybox(
+				{ currentPoint.X() - searchBuffer, currentPoint.Y() - searchBuffer, currentPoint.Z() - searchBuffer },
+				{ currentPoint.X() + searchBuffer, currentPoint.Y() + searchBuffer, currentPoint.Z() + searchBuffer }
+			);
 
-			bg::model::box<BoostPoint3D> productQuerybox(helperFunctions::createBBox(currentPoint, voxelCore, precision));
-			std::vector<std::pair<BoostBox3D, TopoDS_Face>>faceQResult;
-			surfaceIndx.query(bgi::intersects(productQuerybox), std::back_inserter(faceQResult));
+			std::vector<std::pair<BoostBox3D, std::shared_ptr<voxel>>> pointQResult;
+			voxelIndex.query(bgi::intersects(pointQuerybox), std::back_inserter(pointQResult));
 
-			for (const std::pair<BoostBox3D, TopoDS_Face>& facePair : faceQResult)
+			if (pointQResult.empty()) { continue; }
+
+			int score = 0; // the number of clear lines cast from the surface
+			for (const auto& [voxelBbox, voxel] : pointQResult)
 			{
-				// get the potential faces
-				const TopoDS_Face& otherFace = facePair.second;
-				if (currentFace.IsEqual(otherFace)) { continue; }
+				bool clearLine = true;
+				gp_Pnt voxelCore = voxel->getOCCTCenterPoint();
 
-				if (helperFunctions::LineShapeIntersection(otherFace, currentPoint, voxelCore))
+				bg::model::box<BoostPoint3D> productQuerybox(helperFunctions::createBBox(currentPoint, voxelCore, precision));
+				std::vector<std::pair<BoostBox3D, TopoDS_Face>>faceQResult;
+				surfaceIndx.query(bgi::intersects(productQuerybox), std::back_inserter(faceQResult));
+
+				for (const std::pair<BoostBox3D, TopoDS_Face>& facePair : faceQResult)
 				{
-					clearLine = false;
+					// get the potential faces
+					const TopoDS_Face& otherFace = facePair.second;
+					if (currentFace.IsEqual(otherFace)) { continue; }
+
+					if (helperFunctions::LineShapeIntersection(otherFace, currentPoint, voxelCore))
+					{
+						clearLine = false;
+						break;
+					}
+
+					Handle(Geom_Surface) surface = BRep_Tool::Surface(otherFace);
+					Handle(Geom_Plane) geomPlane = Handle(Geom_Plane)::DownCast(surface);
+					if (geomPlane.IsNull()) { continue; }
+
+					gp_Pln plane = geomPlane->Pln();
+					Standard_Real dist1 = plane.Distance(voxelCore);
+
+					if (dist1 <= angularTolerance) //TODO: check if this can be change to preciion
+					{
+						clearLine = false;
+						break;
+					}
+				}
+				if (clearLine) {
+					score++;
+				}
+				if (score > 1)
+				{
+					outList.emplace_back(std::pair(currentFace, currentProduct));
+					isFound = true;
 					break;
 				}
-
-				Handle(Geom_Surface) surface = BRep_Tool::Surface(otherFace);
-				Handle(Geom_Plane) geomPlane = Handle(Geom_Plane)::DownCast(surface);
-				if (geomPlane.IsNull()) { continue; }
-
-				gp_Pln plane = geomPlane->Pln();
-				Standard_Real dist1 = plane.Distance(voxelCore);
-
-				if (dist1 <= angularTolerance) //TODO: check if this can be change to preciion
-				{
-					clearLine = false;
-					break;
-				}
 			}
-			if (clearLine) {
-				score++; 
-			}
-			if (score > 1) 
-			{ 
-				outList.emplace_back(std::pair(currentFace, currentProduct));
-				break;
-			}
+			if (!isFound) { continue; }
+			break;
 		}
 	}
 
@@ -4379,6 +4385,7 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> splitFaceIndx;
 	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> splitOuterSurfacePairCleanList;
 
+
 	for (const auto& [currentFace, currentProduct] : splitOuterSurfacePairList)
 	{
 		BoostBox3D currentBox = helperFunctions::createBBox(currentFace);
@@ -4410,6 +4417,13 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	}
 
 	simpleRaySurfaceCast(finalOuterSurfacePairList, splitOuterSurfacePairCleanList, voxelIndex, splitFaceIndx);
+
+	std::vector<TopoDS_Face> test;
+	for (const auto& [currentFace, currentProduct] : finalOuterSurfacePairList)
+	{
+		test.emplace_back(currentFace);
+	}
+	DebugUtils::WriteToSTEP(test, "C:/Users/Jasper/Desktop/desk/test.STEP");
 
 	// remove dub and incapsulated surfaces by merging them
 	std::vector<gp_Dir> normalList;

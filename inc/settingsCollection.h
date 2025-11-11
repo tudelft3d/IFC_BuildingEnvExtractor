@@ -118,7 +118,7 @@ private:
     // unexposed settings
     bool addCustomWallAttributes_ = false;
     double maxProxyPercentage_ = 0.3;
-    double searchBufferLoD32_ = 1.5 * voxelSize_;
+    double searchBufferLoD32Multiplier_ = 1.5; //Voxelsize is multiplied by this value
     double thinTriangleAngle_ = 0.1745;
 
 	// \/ generated settings \/
@@ -414,8 +414,7 @@ public:
     double maxProxyPercentage() const { return maxProxyPercentage_; }
     void setMaxProxyPercentage(double value) { maxProxyPercentage_ = value; }
 
-    double searchBufferLod32() const { return searchBufferLoD32_; }
-    void setSearchBufferLoD32(double value) { searchBufferLoD32_ = value; }
+    double searchBufferLod32() const { return searchBufferLoD32Multiplier_ * voxelSize_; }
 
     double thinTriangleAngle() const { return thinTriangleAngle_; }
     void setThinTriangleAngle(double value) { thinTriangleAngle_ = value; }

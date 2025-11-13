@@ -129,6 +129,9 @@ template void helperFunctions::writeToOBJ<TopoDS_Shell>(const std::vector<std::v
 template void helperFunctions::writeToOBJ<TopoDS_Solid>(const std::vector<std::vector<TopoDS_Solid>>& theShapeList, const std::string& targetPath);
 template void helperFunctions::writeToOBJ<TopoDS_Shape>(const std::vector<std::vector<TopoDS_Shape>>& theShapeList, const std::string& targetPath);
 
+template std::vector<TopoDS_Face> helperFunctions::sortShapes(const std::vector<TopoDS_Face>& shapeList, const std::vector<double>& sortingValues);
+template std::vector<TopoDS_Shape> helperFunctions::sortShapes(const std::vector<TopoDS_Shape>& shapeList, const std::vector<double>& sortingValues);
+
 struct gp_XYZ_Hash {
 	std::size_t operator()(const gp_XYZ& p) const {
 		auto round = [](double theVal) -> long long {
@@ -1466,7 +1469,6 @@ bool helperFunctions::LineShapeIntersection(const TopoDS_Face& theFace, const gp
 			if (lP1.Y() > urr.Y() || lP1.Y() < lll.Y()) { continue; }
 		}
 		
-
 		if (helperFunctions::triangleIntersecting({ lP1, lp2 }, {p1, p2, p3}))
 		{
 			return true;
@@ -3804,32 +3806,26 @@ bool helperFunctions::isFlat(const TopoDS_Face& theFace)
 	return true;
 }
 
-std::vector<TopoDS_Face> helperFunctions::sortFaces(const std::vector<TopoDS_Face>& faceList)
+template <typename T>
+std::vector<T> helperFunctions::sortShapes(const std::vector<T>& shapeList, const std::vector<double>& sortingValues)
 {
 	// sort the surfaces 
+	if (shapeList.size() < 2) { return shapeList; }
+	if (sortingValues.size() != shapeList.size()) { return {}; }
 
-	if (faceList.size() < 2) { return faceList; }
-
-	std::vector<double> areaList;
-	for (const TopoDS_Face& currentFace : faceList)
-	{
-		double currentArea = helperFunctions::computeArea(currentFace);
-		areaList.emplace_back(currentArea);
-	}
-
-	std::vector<int> indices(faceList.size());
+	std::vector<int> indices(shapeList.size());
 	std::iota(indices.begin(), indices.end(), 0);
 	std::sort(indices.begin(), indices.end(),
 		[&](int A, int B) -> bool {
-			return areaList[A] < areaList[B];
+			return sortingValues[A] < sortingValues[B];
 		});
 
-	std::vector<TopoDS_Face> sortedFaceColl;
+	std::vector<T> sortedShapeColl;
 	for (int currentIndx : indices)
 	{
-		sortedFaceColl.emplace_back(faceList[currentIndx]);
+		sortedShapeColl.emplace_back(shapeList[currentIndx]);
 	}
-	return sortedFaceColl;
+	return sortedShapeColl;
 }
 
 void helperFunctions::devideFaces(const TopoDS_Shape& inputShape, std::vector<TopoDS_Face>* horizontalFaces, std::vector<TopoDS_Face>* verticalFaces)

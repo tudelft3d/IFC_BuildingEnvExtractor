@@ -158,9 +158,9 @@ bool SurfaceGridPair::testIsVisable(const std::vector<std::shared_ptr<SurfaceGri
 
 			// check if the projection line falls withing the bbox of the surface
 			gp_Pnt evalPoint = currentEvalPoint->getPoint();
-			if (evalPoint.X() - otherLLLPoint.X() < -0.1 || evalPoint.X() - otherURRPoint.X() > 0.1) { continue; }
-			if (evalPoint.Y() - otherLLLPoint.Y() < -0.1 || evalPoint.Y() - otherURRPoint.Y() > 0.1) { continue; }
-			if (evalPoint.Z() - urrPoint_.Z() > 0.1) { continue; }
+			if (evalPoint.X() - otherLLLPoint.X() < - 5 * precision || evalPoint.X() - otherURRPoint.X() > 5 * precision) { continue; }
+			if (evalPoint.Y() - otherLLLPoint.Y() < - 5 * precision || evalPoint.Y() - otherURRPoint.Y() > 5 * precision) { continue; }
+			if (evalPoint.Z() - urrPoint_.Z() > 5 * precision) { continue; }
 
 			gp_Pnt offsetPoint = currentEvalPoint->getPoint();
 			offsetPoint.SetZ(offsetPoint.Z() + 1000);
@@ -171,7 +171,7 @@ bool SurfaceGridPair::testIsVisable(const std::vector<std::shared_ptr<SurfaceGri
 				continue;
 			}
 
-			gp_Pnt projectedPoint = currentEvalPoint->getPoint();
+			/*gp_Pnt projectedPoint = currentEvalPoint->getPoint();
 			projectedPoint.SetZ(0);
 			for (TopExp_Explorer expl(otherFace, TopAbs_EDGE); expl.More(); expl.Next())
 			{
@@ -187,7 +187,7 @@ bool SurfaceGridPair::testIsVisable(const std::vector<std::shared_ptr<SurfaceGri
 					currentEvalPoint->setInvisible();
 					break;
 				}
-			}
+			}*/
 		}
 	}
 

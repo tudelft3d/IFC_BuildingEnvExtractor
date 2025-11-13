@@ -1957,10 +1957,16 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<RColl
 		projectedFaceList.emplace_back(currentFace);
 	}
 
-
-
 	if (projectedFaceList.empty()) { return {}; }
-	projectedFaceList = helperFunctions::sortFaces(projectedFaceList);
+
+	std::vector<double> areaList;
+	for (const TopoDS_Face& currentFace : projectedFaceList)
+	{
+		double currentArea = helperFunctions::computeArea(currentFace);
+		areaList.emplace_back(currentArea);
+	}
+
+	projectedFaceList = helperFunctions::sortShapes(projectedFaceList, areaList);
 	std::reverse(projectedFaceList.begin(), projectedFaceList.end());
 
 	std::vector<TopoDS_Face> cleanProjectedFaceList;
@@ -1988,13 +1994,13 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<RColl
 void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, bgi::rtree<Value, bgi::rstar<treeDepth_>>* shapeIdx, std::vector<std::shared_ptr<SurfaceGridPair>>* shapeList)
 {
 	auto startTime = std::chrono::steady_clock::now();
+
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount();
 	if (coreUse > inputShapes.size())
 	{
 		while (coreUse > inputShapes.size()) { coreUse /= 2; }
 	}
-
 	int splitListSize = static_cast<int>(floor(inputShapes.size() / coreUse));
 
 	std::vector<std::thread> threadList;
@@ -2137,6 +2143,7 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::getObjectTopSurfaces
 
 	double precision = SettingsCollection::getInstance().spatialTolerance();
 	// index the valid surfaces
+
 	for (TopExp_Explorer expl(shape, TopAbs_FACE); expl.More(); expl.Next()) {
 		TopoDS_Face face = TopoDS::Face(expl.Current());
 		gp_Pnt centerPoint;
@@ -2177,9 +2184,9 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::getObjectTopSurfaces
 			if (i == otherIdx) { continue; }
 
 			std::shared_ptr<SurfaceGridPair> otherGroup = gridPairList[otherIdx];
+			if (!otherGroup->isVisible()) { continue; }
 			double otherHeight = otherGroup->getAvHeight();
 			if (height > otherHeight) { continue; }
-			if (!otherGroup->isVisible()) { continue; }
 			if (!currentCenter.IsEqual(centerpointHList[otherIdx], precision)) { continue; }
 
 			TopoDS_Face otherFace = otherGroup->getFace();
@@ -4211,47 +4218,69 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe0(DataManager* h, CJT::Kernel*
 	std::vector< CJT::GeoObject> geoObjectList; // final output collection
 	auto spatialIndx = h->getIndexPointer();
 
-	std::vector<TopoDS_Shape> collectionShape;
-
-	int counter = 0;
-	for (auto it = spatialIndx->begin(); it != spatialIndx->end(); ++ it) //TODO: multithread this
+	int coreUse = SettingsCollection::getInstance().threadcount();
+	if (coreUse > spatialIndx->size())
 	{
-		counter++;
+		while (coreUse > spatialIndx->size()) { coreUse /= 2; }
+	}
+	coreUse -= 1;
 
-		std::cout.flush();
-		std::cout << "\t" << counter << " of " << spatialIndx->size() << "\r";
-
-		Value test = *it;
-		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(test.second);
+	std::vector<int> scoreList;
+	int totalScore = 0;
+	std::vector<Value> allEntries(spatialIndx->begin(), spatialIndx->end());
+	for (const Value& value : allEntries)
+	{
+		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(value.second);
 		TopoDS_Shape currentShape = lookup->getProductShape();
-		if (currentShape.IsNull()) { continue; }
+		int localScore = helperFunctions::getPointCount(currentShape);
 
-		TopoDS_Shape cleanShape =  helperFunctions::TesselateShape(currentShape);
-		if (cleanShape.IsNull()) {  continue; }
+		totalScore += localScore;
+		scoreList.emplace_back(localScore);
+	}
+	int targetScore = static_cast<int>(std::floor(totalScore / coreUse));
 
-		cleanShape.Move(localRotationTrsf);
-		IfcSchema::IfcProduct* currentProduct = lookup->getProductPtr();
+	std::vector<std::vector<Value>> sublists;
 
-		nlohmann::json attributeMap;
-		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->data().type()->name();
-		nlohmann::json attributeList = h->collectPropertyValues(currentProduct->GlobalId());
-		for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
-			attributeMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();
+	{
+		std::vector<Value> currentSubList;
+		int currentScore = 0;
+		for (size_t i = 0; i < allEntries.size(); i++)
+		{
+			int score = scoreList[i];
+
+			if (currentScore + score > targetScore && !currentSubList.empty())
+			{
+				sublists.push_back(std::move(currentSubList));
+				currentSubList.clear();
+				currentScore = 0;
+			}
+
+			currentSubList.push_back(allEntries[i]);
+			currentScore += score;
 		}
 
-		int faceCount = 0;
-		for (TopExp_Explorer explorer(cleanShape, TopAbs_FACE); explorer.More(); explorer.Next())
-		{ 
-			faceCount++;
+		if (!currentSubList.empty())
+			sublists.push_back(std::move(currentSubList));
+	}
+
+
+	std::vector<TopoDS_Shape> collectionShape;
+	int counter = 0;
+	std::vector<std::thread> threadList;
+	std::mutex countMutex;
+	std::mutex listMutex;
+	auto lastStart = allEntries.begin();
+	for (size_t i = 0; i < sublists.size(); i++)
+	{
+		threadList.emplace_back([&, i] {makeLoDe0(h, kernel, sublists[i], localRotationTrsf, listMutex, countMutex, counter, geoObjectList, collectionShape, i); });
+	}
+
+	threadList.emplace_back([&] {updateCounter("", allEntries.size(), counter, listMutex); });
+
+	for (auto& thread : threadList) {
+		if (thread.joinable()) {
+			thread.join();
 		}
-		std::vector<int>TypeValueList(faceCount, 0);
-
-		CJT::GeoObject geoObject = kernel->convertToJSON(cleanShape, "4.0");
-		geoObject.setSurfaceTypeValues(TypeValueList);
-		geoObject.appendSurfaceData(attributeMap);
-		geoObjectList.emplace_back(geoObject);
-
-		collectionShape.emplace_back(cleanShape);
 	}
 
 	if (settingsCollection.createOBJ())
@@ -4417,13 +4446,6 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	}
 
 	simpleRaySurfaceCast(finalOuterSurfacePairList, splitOuterSurfacePairCleanList, voxelIndex, splitFaceIndx);
-
-	std::vector<TopoDS_Face> test;
-	for (const auto& [currentFace, currentProduct] : finalOuterSurfacePairList)
-	{
-		test.emplace_back(currentFace);
-	}
-	DebugUtils::WriteToSTEP(test, "C:/Users/Jasper/Desktop/desk/test.STEP");
 
 	// remove dub and incapsulated surfaces by merging them
 	std::vector<gp_Dir> normalList;
@@ -5710,6 +5732,59 @@ std::vector<TopoDS_Face> CJGeoCreator::intersectionSplitting(const std::vector<T
 		}
 	}
 	return trimmedFaceList;
+}
+
+void CJGeoCreator::makeLoDe0(
+	DataManager* h, 
+	CJT::Kernel* kernel, 
+	const std::vector<Value>& valueList, 
+	const gp_Trsf& localTrans,
+	std::mutex& listMutex, 
+	std::mutex& countMutex,
+	int& totalObjectsProcessed, 
+	std::vector<CJT::GeoObject>& geoObjectListOut, 
+	std::vector<TopoDS_Shape>& collectionShapeOut,
+	const int num
+)
+{
+	for (auto it = valueList.begin(); it != valueList.end(); ++it) 
+	{
+		countMutex.lock();
+		totalObjectsProcessed++;
+		countMutex.unlock();
+
+		Value valueObject = *it;
+		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(valueObject.second);
+
+		TopoDS_Shape currentShape = lookup->getProductShape();
+		if (currentShape.IsNull()) { continue; }
+
+		TopoDS_Shape cleanShape = helperFunctions::TesselateShape(currentShape);
+		if (cleanShape.IsNull()) { continue; }
+
+		cleanShape.Move(localTrans);
+		IfcSchema::IfcProduct* currentProduct = lookup->getProductPtr();
+
+		nlohmann::json attributeMap;
+		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->data().type()->name();
+		nlohmann::json attributeList = h->collectPropertyValues(currentProduct->GlobalId());
+		for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
+			attributeMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();
+		}
+
+		int faceCount = 0;
+		for (TopExp_Explorer explorer(cleanShape, TopAbs_FACE); explorer.More(); explorer.Next()) { faceCount++; }
+		std::vector<int>TypeValueList(faceCount, 0);
+
+		CJT::GeoObject geoObject = kernel->convertToJSON(cleanShape, "4.0");
+		geoObject.setSurfaceTypeValues(TypeValueList);
+		geoObject.appendSurfaceData(attributeMap);
+
+		std::lock_guard<std::mutex> listGuard(listMutex);
+		geoObjectListOut.emplace_back(geoObject);
+		collectionShapeOut.emplace_back(cleanShape);
+	}
+	return;
 }
 
 

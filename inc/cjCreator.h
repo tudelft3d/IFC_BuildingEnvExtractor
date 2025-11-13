@@ -338,6 +338,19 @@ private:
 	// splits surfaces by actual intersection between surfaces
 	std::vector<TopoDS_Face> intersectionSplitting(const std::vector<TopoDS_Face>& inputFaceList, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx);
 
+	/// generates a sublist of LoDe.0 objects
+	void makeLoDe0(
+		DataManager* h,
+		CJT::Kernel* kernel, 
+		const std::vector<Value>& valueList, 
+		const gp_Trsf& localTrans,
+		std::mutex& listMutex,
+		std::mutex& countMutex,
+		int& totalObjectsProcessed, 
+		std::vector<CJT::GeoObject>& geoObjectListOut, 
+		std::vector<TopoDS_Shape>& collectionShapeOut,
+		const int num);
+
 public:
 	explicit CJGeoCreator(DataManager* h, double vSize);
 

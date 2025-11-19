@@ -206,7 +206,7 @@ bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, std::
 		gp_Pnt basePoint = currentEvalPoint->getPoint();
 		gp_Pnt topPoint = basePoint;
 		topPoint.SetZ(basePoint.Z() + 1000);
-		basePoint.X();
+
 		bg::model::segment<BoostPoint3D> queryRay{
 			{basePoint.X() ,basePoint.Y(), basePoint.Z()},
 			{basePoint.X() ,basePoint.Y(), basePoint.Z() + 1000}
@@ -219,7 +219,10 @@ bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, std::
 
 		for (const auto& [otherbbox, otherSurfacePair] : qResult)
 		{
-			if (helperFunctions::LineShapeIntersection(otherSurfacePair->getFace(), basePoint, topPoint, true))
+			const TopoDS_Face& otherFace = otherSurfacePair->getFace();
+
+			if (getFace().IsEqual(otherFace)) { continue; }
+			if (helperFunctions::LineShapeIntersection(otherFace, basePoint, topPoint, true))
 			{
 				currentEvalPoint->setInvisible();
 				break;

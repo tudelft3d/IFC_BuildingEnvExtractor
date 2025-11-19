@@ -316,7 +316,6 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 		{
 			continue;
 		}
-
 		std::vector<TopoDS_Face> currentCleanFaceList = helperFunctions::TessellateFace(currentFace); //tODO: should be more central
 		for (const TopoDS_Face& currentCleanFace: currentCleanFaceList)
 		{

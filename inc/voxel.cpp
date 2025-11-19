@@ -81,14 +81,17 @@ bool voxel::productEdgeIntersectsVoxel(const std::vector<gp_Pnt>& voxelPoints, c
 	if (intersectionLogic == 2) { triangleVoxels = getplaneTriangles(); }
 	else if (intersectionLogic == 3) { triangleVoxels = getVoxelTriangles(); }
 
-	double voxelLowZ = voxelPoints[0].Z();
-	double voxelTopZ = voxelPoints[4].Z();
+	const gp_Pnt& lll = voxelPoints[0];
+	const gp_Pnt& urr = voxelPoints[4];
 
-	double voxelLowX = voxelPoints[0].X();
-	double voxelMaxX = voxelPoints[4].X();
+	double voxelLowZ = lll.Z();
+	double voxelTopZ = urr.Z();
 
-	double voxelLowY = voxelPoints[0].Y();
-	double voxelMaxY = voxelPoints[4].Y();
+	double voxelLowX = lll.X();
+	double voxelMaxX = urr.X();
+
+	double voxelLowY = lll.Y();
+	double voxelMaxY = urr.Y();
 
 	for (const auto& boxel : triangleVoxels)
 	{
@@ -97,9 +100,9 @@ bool voxel::productEdgeIntersectsVoxel(const std::vector<gp_Pnt>& voxelPoints, c
 		for (size_t i = 0; i < productPoints.size(); i += 3)
 		{
 			// first check if voxel falls within the bounding box of the edge
-			gp_Pnt p1 = productPoints[i + 0];
-			gp_Pnt p2 = productPoints[i + 1];
-			gp_Pnt p3 = productPoints[i + 2];
+			const gp_Pnt& p1 = productPoints[i + 0];
+			const gp_Pnt& p2 = productPoints[i + 1];
+			const gp_Pnt& p3 = productPoints[i + 2];
 			double p1z = p1.Z();
 			double p2z = p2.Z();
 			double p3z = p3.Z();
@@ -155,11 +158,12 @@ bool voxel::voxelEdgeIntersectsProduct(const std::vector<gp_Pnt>& voxelPoints, c
 
 	for (size_t i = 0; i < productPoints.size(); i += 3)
 	{
+		const gp_Pnt& p1 = productPoints[i + 0];
+		const gp_Pnt& p2 = productPoints[i + 1];
+		const gp_Pnt& p3 = productPoints[i + 2];
+
 		for (size_t j = 0; j < vets.size(); j++)
 		{
-			gp_Pnt p1 = productPoints[i + 0];
-			gp_Pnt p2 = productPoints[i + 1];
-			gp_Pnt p3 = productPoints[i + 2];
 			if (helperFunctions::triangleIntersecting(
 				{ voxelPoints[vets[j][0]], voxelPoints[vets[j][1]] },
 				{ p1, p2, p3 })

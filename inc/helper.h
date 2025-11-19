@@ -1,4 +1,4 @@
-#define USE_IFC2x3
+#define USE_IFC4
 #define iterationVersion "0.3.0"
 
 #ifdef USE_IFC2x3
@@ -103,13 +103,13 @@ struct helperFunctions{
 	/// construct the smallest orientated bounding box
 	static void bBoxOrientated(const std::vector<gp_Pnt>& pointList, gp_Pnt* lllPoint, gp_Pnt* urrPoint, double* rotationAngle, const double buffer = 0);
 	/// construct a bbox from a shape 
-	static bg::model::box <BoostPoint3D> createBBox(const TopoDS_Shape& shape, double buffer = 0.05);
+	static bg::model::box <BoostPoint3D> createBBox(const TopoDS_Shape& shape, double buffer = 0.0);
 	/// construct a bbox from a list of shapes
-	static bg::model::box <BoostPoint3D> createBBox(const std::vector<TopoDS_Shape>& shape, double buffer = 0.05);
+	static bg::model::box <BoostPoint3D> createBBox(const std::vector<TopoDS_Shape>& shape, double buffer = 0.0);
 	/// construct a bbox from a list of points
-	static bg::model::box <BoostPoint3D> createBBox(const std::vector<gp_Pnt>& pointList, double buffer = 0.05);
+	static bg::model::box <BoostPoint3D> createBBox(const std::vector<gp_Pnt>& pointList, double buffer = 0.0);
 	/// construct a bbox from the urr and lll points
-	static bg::model::box <BoostPoint3D> createBBox(const gp_Pnt& p1, const gp_Pnt& p2, double buffer = 0.05);
+	static bg::model::box <BoostPoint3D> createBBox(const gp_Pnt& p1, const gp_Pnt& p2, double buffer = 0.0);
 	/// construct a OCCTbbox from the urr and lll points
 	static TopoDS_Shape createBBOXOCCT(const gp_Pnt& p1, const gp_Pnt& p2, double buffer = 0.0, double horizontalAngle = 0.0, double verticalAngle = 0.0);
 	/// construct a Boostbbox from the urr and lll points (can not be rotated)

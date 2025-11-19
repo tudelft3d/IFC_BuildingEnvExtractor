@@ -158,6 +158,10 @@ gp_Pnt helperFunctions::Point3DBTO(const BoostPoint3D& oP) {
 	return gp_Pnt(bg::get<0>(oP), bg::get<1>(oP), bg::get<2>(oP));
 }
 
+double triangleArea2D(const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3) {
+	return abs((p1.X() * (p2.Y() - p3.Y()) + p2.X() * (p3.X() - p1.Y()) + p3.X() * (p1.Y() - p2.Y())) / 2.0);
+}
+
 std::vector<gp_Pnt> helperFunctions::getUniquePoints(const std::vector<gp_Pnt>& pointList)  //TODO: check where used
 {
 	std::cout << pointList.size() << std::endl;
@@ -1441,6 +1445,7 @@ bool helperFunctions::LineShapeIntersection(const TopoDS_Shape& theShape, const 
 
 bool helperFunctions::LineShapeIntersection(const TopoDS_Face& theFace, const gp_Pnt& lP1, const gp_Pnt& lp2, bool inZdir)
 {
+	double areaTol = SettingsCollection::getInstance().areaTolerance();
 	TopLoc_Location loc;
 	auto mesh = BRep_Tool::Triangulation(theFace, loc);
 
@@ -1459,15 +1464,19 @@ bool helperFunctions::LineShapeIntersection(const TopoDS_Face& theFace, const gp
 		gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
 		gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
 
-		if (inZdir)
+		/*if (inZdir)
 		{
-			gp_Pnt lll;
-			gp_Pnt urr;
-			bBoxDiagonal({ p1, p2, p3 }, &lll, &urr);
+			double baseArea = triangleArea2D(p1, p2, p3);
+			double areaSum = triangleArea2D(p1, p2, lP1);
+			if (baseArea + areaTol < areaSum) { return false; }
+			  
+			areaSum += triangleArea2D(p1, lP1, p3);
+			if (baseArea + areaTol < areaSum) { return false; }
 
-			if (lP1.X() > urr.X() || lP1.X() < lll.X()) { continue; }
-			if (lP1.Y() > urr.Y() || lP1.Y() < lll.Y()) { continue; }
-		}
+			areaSum = triangleArea2D(lP1, p2, p3);
+			if (baseArea + areaTol < areaSum) { return false; }
+			return true;
+		}*/
 		
 		if (helperFunctions::triangleIntersecting({ lP1, lp2 }, {p1, p2, p3}))
 		{

@@ -136,58 +136,94 @@ void SurfaceGridPair::populateGrid(double distance)
 
 bool SurfaceGridPair::testIsVisable(const std::vector<std::shared_ptr<SurfaceGridPair>>& otherSurfaces, bool preFilter)
 {
+	if (otherSurfaces.empty()) { return visibility_; }
+
 	double precision = SettingsCollection::getInstance().spatialTolerance();
 	
 	if (!pointGrid_.size()) { populateGrid(SettingsCollection::getInstance().surfaceGridSize()); }
 
-	for (const std::shared_ptr<SurfaceGridPair>& otherGroup : otherSurfaces)
+	bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>> shapeIdx;
+	for (const std::shared_ptr<SurfaceGridPair>& surfGridPair : otherSurfaces)
 	{
-		if (preFilter) //TODO: spacial q
+		bg::model::box <BoostPoint3D> bbox = bg::model::box < BoostPoint3D >(
+			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair->getLLLPoint())),
+			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair->getURRPoint()))
+			);
+		shapeIdx.insert(std::make_pair(bbox, surfGridPair));
+	}
+
+	for (const std::shared_ptr<EvaluationPoint>& currentEvalPoint : pointGrid_)
+	{
+		if (!currentEvalPoint->isVisible()) { continue; }
+
+		gp_Pnt basePoint = currentEvalPoint->getPoint();
+		gp_Pnt topPoint = basePoint;
+		topPoint.SetZ(basePoint.Z() + 1000);
+		basePoint.X();
+		bg::model::segment<BoostPoint3D> queryRay{
+			{basePoint.X() ,basePoint.Y(), basePoint.Z()},
+			{basePoint.X() ,basePoint.Y(), basePoint.Z() + 1000} 
+		};
+
+		std::vector<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>> qResult;
+		qResult.clear();
+		shapeIdx.query(bgi::intersects(
+			queryRay), std::back_inserter(qResult));
+
+		for (const auto& [otherbbox, otherSurfacePair] : qResult)
 		{
-			if (!overlap(*otherGroup)) { continue; }
-		}
-
-		TopoDS_Face otherFace = otherGroup->getFace();
-		gp_Pnt otherLLLPoint = otherGroup->getLLLPoint();
-		gp_Pnt otherURRPoint = otherGroup->getURRPoint();
-
-		if (theFace_.IsEqual(otherFace)) { continue; }
-		for (const std::shared_ptr<EvaluationPoint>& currentEvalPoint: pointGrid_)
-		{
-			if (!currentEvalPoint->isVisible()) { continue; }
-
-			// check if the projection line falls withing the bbox of the surface
-			gp_Pnt evalPoint = currentEvalPoint->getPoint();
-			if (evalPoint.X() - otherLLLPoint.X() < - 5 * precision || evalPoint.X() - otherURRPoint.X() > 5 * precision) { continue; }
-			if (evalPoint.Y() - otherLLLPoint.Y() < - 5 * precision || evalPoint.Y() - otherURRPoint.Y() > 5 * precision) { continue; }
-			if (evalPoint.Z() - urrPoint_.Z() > 5 * precision) { continue; }
-
-			gp_Pnt offsetPoint = currentEvalPoint->getPoint();
-			offsetPoint.SetZ(offsetPoint.Z() + 1000);
-			
-			if (helperFunctions::LineShapeIntersection(otherFace, currentEvalPoint->getPoint(), offsetPoint))
+			if (helperFunctions::LineShapeIntersection(otherSurfacePair->getFace(), basePoint, topPoint, true))
 			{
 				currentEvalPoint->setInvisible();
-				continue;
+				break;
 			}
+		}
+	}
 
-			/*gp_Pnt projectedPoint = currentEvalPoint->getPoint();
-			projectedPoint.SetZ(0);
-			for (TopExp_Explorer expl(otherFace, TopAbs_EDGE); expl.More(); expl.Next())
+	for (const std::shared_ptr<EvaluationPoint>& currentPoint : pointGrid_)
+	{
+		if (currentPoint->isVisible())
+		{
+			return true;
+		}
+	}
+
+	visibility_ = false;
+	return false;
+}
+
+bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>>& otherSurfacesIndx, bool preFilter)
+{
+	if (otherSurfacesIndx.empty()) { return visibility_; }
+
+	double precision = SettingsCollection::getInstance().spatialTolerance();
+
+	if (!pointGrid_.size()) { populateGrid(SettingsCollection::getInstance().surfaceGridSize()); }
+	for (const std::shared_ptr<EvaluationPoint>& currentEvalPoint : pointGrid_)
+	{
+		if (!currentEvalPoint->isVisible()) { continue; }
+
+		gp_Pnt basePoint = currentEvalPoint->getPoint();
+		gp_Pnt topPoint = basePoint;
+		topPoint.SetZ(basePoint.Z() + 1000);
+		basePoint.X();
+		bg::model::segment<BoostPoint3D> queryRay{
+			{basePoint.X() ,basePoint.Y(), basePoint.Z()},
+			{basePoint.X() ,basePoint.Y(), basePoint.Z() + 1000}
+		};
+
+		std::vector<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>> qResult;
+		qResult.clear();
+		otherSurfacesIndx.query(bgi::intersects(
+			queryRay), std::back_inserter(qResult));
+
+		for (const auto& [otherbbox, otherSurfacePair] : qResult)
+		{
+			if (helperFunctions::LineShapeIntersection(otherSurfacePair->getFace(), basePoint, topPoint, true))
 			{
-				TopoDS_Edge otherEdge = TopoDS::Edge(expl.Current());
-				gp_Pnt p0 = helperFunctions::getFirstPointShape(otherEdge);
-				gp_Pnt p1 = helperFunctions::getLastPointShape(otherEdge);
-				p0.SetZ(0);
-				p1.SetZ(0);
-
-				if (p0.Distance(p1) < precision) { continue; }
-				if (helperFunctions::pointOnEdge(BRepBuilderAPI_MakeEdge(p0, p1), projectedPoint))
-				{
-					currentEvalPoint->setInvisible();
-					break;
-				}
-			}*/
+				currentEvalPoint->setInvisible();
+				break;
+			}
 		}
 	}
 

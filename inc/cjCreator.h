@@ -121,8 +121,10 @@ private:
 	void reduceSurface(
 		const std::vector<TopoDS_Shape>& inputShapes,
 		std::mutex& processMutex,
+		std::mutex& listMutex,
 		bgi::rtree<Value, bgi::rstar<treeDepth_>>* shapeIdx,
-		std::vector<std::shared_ptr<SurfaceGridPair>>* shapeList
+		std::vector<std::shared_ptr<SurfaceGridPair>>* shapeList,
+		int& counter
 	);
 	/// @brief reduce the surfaces in the facelist for roof extraction by z-ray casting on itself and others
 	std::vector<std::shared_ptr<SurfaceGridPair>> FinefilterSurfaces(const std::vector<std::shared_ptr<SurfaceGridPair>>& shapeList);
@@ -131,7 +133,9 @@ private:
 		const std::vector<std::shared_ptr<SurfaceGridPair>>& shapeList,
 		const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>>& shapeIdx,
 		std::mutex& processMutex,
-		std::vector<std::shared_ptr<SurfaceGridPair>>* fineFilteredShapeList
+		std::mutex& listMutex,
+		std::vector<std::shared_ptr<SurfaceGridPair>>* fineFilteredShapeList,
+		int& counter
 	);
 	/// @brief get the surfaces that are not covered by other surfaces within the objects 
 	std::vector<std::shared_ptr<SurfaceGridPair>> getObjectTopSurfaces(const TopoDS_Shape& shape);

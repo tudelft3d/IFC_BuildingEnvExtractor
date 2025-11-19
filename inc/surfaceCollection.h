@@ -1,3 +1,9 @@
+
+#ifndef SURFACECOLLECTION_SURFACECOLLECTION_H
+#define SURFACECOLLECTION_SURFACECOLLECTION_H
+
+#include "helper.h"
+
 #include <vector>
 
 #include <gp_Pnt.hxx>
@@ -9,9 +15,6 @@
 #include <TopoDS_Wire.hxx>
 #include <memory>
 
-
-#ifndef EVALUATIONPOINT_EVALUATIONPOINT_H
-#define EVALUATIONPOINT_EVALUATIONPOINT_H
 
 class EvaluationPoint {
 private:
@@ -31,11 +34,7 @@ public:
 	const TopoDS_Edge& getEvalEdge() { return evalEdge_; }
 	const gp_Lin& getEvalLine() { return evalLin_; }
 };
-#endif // EVALUATIONPOINT_EVALUATIONPOINT_H
 
-
-#ifndef SURFACEGROUP_SURFACEGROUP_H
-#define SURFACEGROUP_SURFACEGROUP_H
 
 // contains the data of a single TopoDS_Face with its matching grid
 class SurfaceGridPair {
@@ -81,6 +80,7 @@ public:
 	void populateGrid(double distance);
 
 	bool testIsVisable(const std::vector<std::shared_ptr<SurfaceGridPair>>& otherSurfaces, bool preFilter = false);
+	bool testIsVisable(const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>>& otherSurfacesIndx, bool preFilter = false);
 };
 
 
@@ -106,11 +106,6 @@ public:
 	const gp_Pnt getLLLPoint() { return lllPoint_; }
 	const gp_Pnt getURRPoint() { return urrPoint_; }
 };
-#endif // SURFACEGROUP_SURFACEGROUP_H
-
-
-#ifndef EDGE_EDGE_H
-#define EDGE_EDGE_H
 
 class Edge {
 private:
@@ -132,4 +127,4 @@ public:
 
 	gp_Pnt getEnd(bool projected) const;
 };
-#endif // EDGE_EDGE_H
+#endif // SURFACECOLLECTION_SURFACECOLLECTION_H

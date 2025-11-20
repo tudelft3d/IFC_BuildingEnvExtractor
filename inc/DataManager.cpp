@@ -435,7 +435,7 @@ void DataManager::addObjectListToIndex(const T& objectList, bool addToRoomIndx)
 	std::vector<std::thread> threadList;
 
 	if (splitListSize == 0) { coreUse = 1; } //if less objects than threads are present just use 1 thread
-	coreUse = 1;
+	//coreUse = 1;
 
 	for (size_t i = 0; i < coreUse; i++)
 	{
@@ -534,9 +534,11 @@ void DataManager::addObjectToIndex(IfcSchema::IfcProduct* product, bool addToRoo
 	std::shared_ptr<IfcProductSpatialData> lookup = std::make_shared<IfcProductSpatialData>(product, shape);
 	if (addToRoomIndx)
 	{
+		indexMutex_.lock();
 		std::lock_guard<std::mutex> spaceLock(spaceIndexMutex_);
 		spaceIndex_.insert(std::make_pair(box, (int)spaceIndex_.size()));
 		SpaceLookup_.emplace_back(lookup);
+		indexMutex_.unlock();
 		return;
 	}
 
@@ -579,7 +581,7 @@ IfcGeom::Kernel* DataManager::getKernelObject(const std::string& productGuid)
 int DataManager::getObjectShapeLocation(IfcSchema::IfcProduct* product)
 {
 	std::string objectType = product->data().type()->name();
-	std::shared_lock<std::shared_mutex> lock(indexMutex_);
+	const std::shared_lock<std::shared_mutex> lock(indexMutex_);
 	auto typeSearch = productIndxLookup_.find(objectType);
 	if (typeSearch == productIndxLookup_.end()) { return -1; }
 
@@ -673,19 +675,13 @@ void DataManager::updateShapeMemory(IfcSchema::IfcProduct* product, TopoDS_Shape
 	std::string objectType = product->data().type()->name();
 
 	// filter with lookup
-	std::shared_lock<std::shared_mutex> lock(indexMutex_);
-	if (productIndxLookup_.find(objectType) == productIndxLookup_.end())
-	{
-		return;
-	}
-
-	if (productIndxLookup_[objectType].find(product->GlobalId()) == productIndxLookup_[objectType].end())
-	{
-		return;
-	}
+	std::lock_guard<std::shared_mutex> lock(indexMutex_);
+	if (productIndxLookup_.find(objectType) == productIndxLookup_.end()) { return; }
+	if (productIndxLookup_[objectType].find(product->GlobalId()) == productIndxLookup_[objectType].end()) { return; }
 
 	std::shared_ptr<IfcProductSpatialData> currentLookupvalue = productLookup_[productIndxLookup_[objectType][product->GlobalId()]];
 	currentLookupvalue->setProductShape(shape);
+	return;
 }
 
 
@@ -1574,9 +1570,9 @@ TopoDS_Shape DataManager::getObjectShapeFromMem(IfcSchema::IfcProduct* product, 
 	int obbjectShapeLocation = getObjectShapeLocation(product);
 
 	if (obbjectShapeLocation == -1) { return {}; }
-	std::shared_ptr<IfcProductSpatialData> currentProductData = productLookup_[obbjectShapeLocation];
 
-	std::shared_lock<std::shared_mutex> lock(indexMutex_);
+	std::shared_lock<std::shared_mutex> lookupMutex(indexMutex_);
+	std::shared_ptr<IfcProductSpatialData> currentProductData = productLookup_[obbjectShapeLocation];
 	return currentProductData->getProductShape();
 }
 
@@ -1585,7 +1581,7 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 {
 	// filter with lookup
 	std::string objectType = product->data().type()->name();
-	std::unordered_set<std::string> openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();
+	const std::unordered_set<std::string>& openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();
 
 	int simplefyGeoGrade = SettingsCollection::getInstance().ignoreVoidGrade();
 
@@ -1594,7 +1590,7 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 	else if (openingObjects.find(objectType) == openingObjects.end()) { isSimple = false; }
 
 	// get the object from memory if available
-	TopoDS_Shape potentialShape = getObjectShapeFromMem(product, isSimple);
+	const TopoDS_Shape& potentialShape = getObjectShapeFromMem(product, isSimple);
 	if (!potentialShape.IsNull()) { return potentialShape; }
 
 	IfcSchema::IfcRepresentation* ifc_representation = getProductRepPtr(product);
@@ -1635,7 +1631,7 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 
 	IfcGeom::IteratorSettings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(isSimple);
 
-	convertMutex_.lock();
+
 	IfcGeom::BRepElement* brep = nullptr;
 	try
 	{
@@ -1646,7 +1642,6 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 		//TODO: add error
 	}
 
-	convertMutex_.unlock();
 	if (brep == nullptr) { 
 		//TODO: add error
 		return {}; 

@@ -3884,6 +3884,9 @@ TopoDS_Shape helperFunctions::addSolidSemantic(const TopoDS_Shape& assumedSolid)
 		TopoDS_Solid solidrep;
 		builder.MakeSolid(solidrep);
 		builder.Add(solidrep, shell);
+		if (!solidrep.Closed()) { return assumedSolid; }
+		if (solidrep.IsNull()) { return assumedSolid; }
+
 		BRepLib::OrientClosedSolid(solidrep);
 		return solidrep;
 	}

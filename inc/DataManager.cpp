@@ -1619,15 +1619,14 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 	}
 
 	IfcGeom::Kernel* kernelObject = getKernelObject(product->GlobalId());
+
 	if (kernelObject == nullptr) {
 		//TODO: add error
 		return {}; 
 	}
 
 	gp_Trsf trsf;
-	convertMutex_.lock();
 	kernelObject->convert_placement(product->ObjectPlacement(), trsf);
-	convertMutex_.unlock();
 
 	IfcGeom::IteratorSettings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(isSimple);
 
@@ -1635,7 +1634,9 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 	IfcGeom::BRepElement* brep = nullptr;
 	try
 	{
+		convertMutex_.lock(); //TODO: I want those removed in update
 		brep = kernelObject->convert(iteratorSettings, ifc_representation, product);
+		convertMutex_.unlock();
 	}
 	catch (const std::exception&)
 	{
@@ -1651,13 +1652,10 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 	gp_Trsf trs;
 
 	trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
-	
-	convertMutex_.lock();
 	kernelObject->convert_placement(ifc_representation, placement);
-	convertMutex_.unlock();
 
 	auto shapeCollection = brep->geometry().shapes();
-	
+
 	int collectionSize = shapeCollection.size();
 
 	BRep_Builder builder;
@@ -1671,12 +1669,15 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 		{
 			currentShape = helperFunctions::addSolidSemantic(currentShape);
 		}
+
 		helperFunctions::triangulateShape(currentShape);
+
 		//if (collectionSize < 2) { return currentShape; }
 		builder.Add(collection, currentShape);	
 	}
 	collection.Move(trsf * placement); // location in global space
 	collection.Move(objectTranslation_);
 	collection.Move(trs);
+
 	return collection;
 }

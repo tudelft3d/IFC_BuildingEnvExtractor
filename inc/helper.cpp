@@ -3385,6 +3385,7 @@ double helperFunctions::computeArea(const TopoDS_Face& theFace)
 
 void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 {
+	std::mutex* triangleMutex = SettingsCollection::getInstance().getTriangleMutex();
 	for (TopExp_Explorer faceExpl(shape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 	{
 		TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
@@ -3439,7 +3440,11 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 			}
 
 			BRepTools::Clean(currentFace);
+
+			triangleMutex->lock();
 			BRepMesh_IncrementalMesh(currentFace, deflection, Standard_False, 0.5 * refinement, Standard_True);
+			triangleMutex->unlock();
+
 			TopLoc_Location locLocal;
 			Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(currentFace, loc);
 			if (!BRep_Tool::Triangulation(currentFace, locLocal).IsNull()) {

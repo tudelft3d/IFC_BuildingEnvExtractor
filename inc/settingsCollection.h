@@ -160,6 +160,7 @@ private:
 
     //  \/ global mutex \/
     std::mutex wireOffSetterMutex_;
+    std::mutex triangleMutex_;
 
 public:
 	static SettingsCollection& getInstance() {
@@ -451,5 +452,6 @@ public:
 
 
     std::mutex* getWireOffsetterMutex() { return &wireOffSetterMutex_; }
+    std::mutex* getTriangleMutex() { return &triangleMutex_; }
 };
 #endif // SETTINGSCOLLECTION_SETTINGSCOLLECTION_H

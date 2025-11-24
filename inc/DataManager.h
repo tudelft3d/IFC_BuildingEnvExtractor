@@ -78,6 +78,7 @@ class fileKernelCollection
 {
 private:
 	IfcParse::IfcFile* file_; //TODO: find out why memory needs to be leaked
+
 	std::unique_ptr<IfcGeom::Kernel> kernel_;
 
 	// The unit multipliers found

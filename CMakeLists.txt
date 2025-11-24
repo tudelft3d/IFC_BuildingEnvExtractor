@@ -72,6 +72,10 @@ else()
     message(STATUS "Looking for IFCOpenShell lib files in: ${IFC_LIBRARY_DIR}")
 endif()
 
+foreach(LIB ${IFC_INCLUDE_DIR})
+    message(STATUS ${IFC_LIBRARY_DIR})
+endforeach()
+
 if(WIN32)
     file(GLOB IFC_LIBRARY_FILES "${IFC_LIBRARY_DIR}/*.lib")
 elseif(UNIX)

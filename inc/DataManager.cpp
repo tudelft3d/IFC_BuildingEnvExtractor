@@ -10,6 +10,9 @@
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 
+#include <ifcgeom_schema_agnostic/IfcGeomFilter.h>
+#include <ifcgeom_schema_agnostic/IfcGeomIterator.h>
+
 #include <thread>
 #include <shared_mutex> 
 #include <mutex> 
@@ -384,13 +387,97 @@ gp_Vec DataManager::computeObjectTranslation(const std::string& objectType)
 template<typename IfcType>
 void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool addToRoomIndx)
 {
-	std::cout << "\t" + typeName + " objects ";
 	auto startTime = std::chrono::high_resolution_clock::now();
-	for (size_t i = 0; i < dataCollectionSize_; i++)
-	{
-		typename IfcType::list::ptr objectList = datacollection_[i]->getFilePtr()->instances_by_type<IfcType>();
-		addObjectListToIndex<typename IfcType::list::ptr>(objectList, addToRoomIndx);
+	std::cout << "\t" + typeName + " objects ";
+
+	std::unordered_set<std::string> openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();
+
+	bool isSimple = false;
+	if (openingObjects.find(typeName) != openingObjects.end()) {
+		isSimple = true;
 	}
+
+	std::vector<IfcGeom::filter_t> filterFuncs;
+	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { typeName }));
+	IfcGeom::Iterator it(
+		SettingsCollection::getInstance().iteratorSettings(isSimple),
+		datacollection_[0]->getFilePtr(),
+		filterFuncs,
+		24
+	);
+	
+	if (!it.initialize()) { return; }
+
+	do {
+		IfcGeom::BRepElement* boundaryRepElem = it.get_native();
+		if (!boundaryRepElem) continue;
+		TopoDS_Shape shape = boundaryRepElem->geometry().as_compound();
+		gp_Trsf ifcPlacement = boundaryRepElem->transformation().data();
+		shape = shape.Moved(ifcPlacement);
+
+
+
+		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
+
+		std::string productType = product->data().type()->name();
+
+		if (SettingsCollection::getInstance().simplefyGeo())
+		{
+			if (productType == "IfcDoor" || productType == "IfcWindow")
+			{
+				const std::vector<std::string>& ignoreList = SettingsCollection::getInstance().getIgnoreSimplificationList();
+				if (std::find(ignoreList.begin(), ignoreList.end(), product->GlobalId()) == ignoreList.end())
+				{
+					shape = helperFunctions::boxSimplefyShape(shape);
+					if (shape.IsNull())
+					{
+						ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
+						continue;
+					}
+				}
+			}
+		}
+		bg::model::box <BoostPoint3D> box;
+		try
+		{
+			box = helperFunctions::createBBox(shape, 0);
+		}
+		catch (const ErrorID&)
+		{
+			ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
+			continue;
+		}
+		if (!helperFunctions::hasVolume(box))
+		{
+			ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
+			continue;
+		}
+
+		for (TopExp_Explorer expl(shape, TopAbs_FACE); expl.More(); expl.Next())
+		{
+			TopoDS_Face currentFace = TopoDS::Face(expl.Current());
+			helperFunctions::triangulateShape(currentFace);
+		}
+
+		std::shared_ptr<IfcProductSpatialData> lookup = std::make_shared<IfcProductSpatialData>(product, shape);
+
+		int locationIdx = (int)index_.size();
+		index_.insert(std::make_pair(box, locationIdx));
+		productLookup_.emplace_back(lookup);
+
+		updateBoudingData(box);
+
+		auto typeSearch = productIndxLookup_.find(productType);
+		if (typeSearch == productIndxLookup_.end())
+		{
+			productIndxLookup_.insert({ productType, std::unordered_map < std::string, int >() });
+		}
+		productIndxLookup_[productType].insert({ product->GlobalId(), locationIdx });
+
+	} while (it.next());
+
+	//TODO: get rotation and translation working properly
+	//TODO: get materials working
 
 	std::cout << "finished in: " <<
 		std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<
@@ -530,7 +617,7 @@ void DataManager::addObjectToIndex(IfcSchema::IfcProduct* product, bool addToRoo
 		ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
 		return;
 	}
-
+	 
 	std::shared_ptr<IfcProductSpatialData> lookup = std::make_shared<IfcProductSpatialData>(product, shape);
 	if (addToRoomIndx)
 	{

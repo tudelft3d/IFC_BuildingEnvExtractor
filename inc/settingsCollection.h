@@ -450,7 +450,6 @@ public:
     void setIterator(const IfcGeom::IteratorSettings& settingsObject) { iteratorSettings_ = settingsObject; }
     void setSimpleIterator(const IfcGeom::IteratorSettings& settingsObject) { simpleIteratorSettings_ = settingsObject; }
 
-
     std::mutex* getWireOffsetterMutex() { return &wireOffSetterMutex_; }
     std::mutex* getTriangleMutex() { return &triangleMutex_; }
 };

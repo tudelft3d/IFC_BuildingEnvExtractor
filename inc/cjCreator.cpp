@@ -2413,7 +2413,7 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeRoomObjects(Data
 #endif
 				IfcSchema::IfcObjectDefinition* potentialStorey = ifcRelAggregate->RelatingObject();
 
-				if (potentialStorey->Class().name() != "IfcBuildingStorey")
+				if (potentialStorey->data().type()->name() != "IfcBuildingStorey")
 				{
 					continue;
 				}
@@ -2474,7 +2474,7 @@ void CJGeoCreator::setLoD32SurfaceAttributes(
 		c++;
 		std::cout << "\tCopying Attribute data - " << c << " of " << surfacePairList.size() << "\r";
 		const  IfcSchema::IfcProduct* product = currentFacePair.second;
-		std::string productType = product->Class().name();
+		std::string productType = product->data().type()->name();
 		const TopoDS_Face& currentFace = currentFacePair.first;
 
 		if (productType == "IfcPlate")
@@ -5091,7 +5091,7 @@ std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> CJGeoCreator::getE1F
 	for (size_t i = 0; i < productLookupValues.size(); i++)
 	{
 		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(productLookupValues[i].second);
-		std::string lookupType = lookup->getProductPtr()->Class().name();
+		std::string lookupType = lookup->getProductPtr()->data().type()->name();
 		TopoDS_Shape currentShape = lookup->getProductShape();
 
 		BoostBox3D totalBox = helperFunctions::createBBox(currentShape, searchBuffer);
@@ -5198,7 +5198,7 @@ void CJGeoCreator::getOuterRaySurfaces(
 		processCountLock.unlock();
 
 		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(currentValue.second);
-		const std::string& lookupType = lookup->getProductPtr()->Class().name();
+		const std::string& lookupType = lookup->getProductPtr()->data().type()->name();
 		const TopoDS_Shape& currentShape = lookup->getProductShape(); 
 		for (TopExp_Explorer explorer(currentShape, TopAbs_FACE); explorer.More(); explorer.Next())
 		{
@@ -5802,7 +5802,7 @@ void CJGeoCreator::makeLoDe0(
 		IfcSchema::IfcProduct* currentProduct = lookup->getProductPtr();
 
 		nlohmann::json attributeMap;
-		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->Class().name();
+		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->data().type()->name();
 		nlohmann::json attributeList = h->collectPropertyValues(currentProduct->GlobalId());
 		for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
 			attributeMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();

@@ -390,12 +390,12 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool ad
 	auto startTime = std::chrono::high_resolution_clock::now();
 	std::cout << "\t" + typeName + " objects ";
 
+	bool isSimple = true;
+	int simplefyGeoGrade = SettingsCollection::getInstance().ignoreVoidGrade();
 	std::unordered_set<std::string> openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();
-
-	bool isSimple = false;
-	if (openingObjects.find(typeName) != openingObjects.end()) {
-		isSimple = true;
-	}
+	if (simplefyGeoGrade == 0) { isSimple = false; }
+	else if (simplefyGeoGrade == 2) { isSimple = true; }
+	else if (openingObjects.find(typeName) == openingObjects.end()) { isSimple = false; }
 
 	std::vector<IfcGeom::filter_t> filterFuncs;
 	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { typeName }));
@@ -425,7 +425,6 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool ad
 		shape.Move(trs);
 
 		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
-
 		std::string productType = product->data().type()->name();
 
 		if (SettingsCollection::getInstance().simplefyGeo())
@@ -482,9 +481,6 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool ad
 		productIndxLookup_[productType].insert({ product->GlobalId(), locationIdx });
 
 	} while (it.next());
-
-	//TODO: get rotation and translation working properly
-	//TODO: get materials working
 
 	std::cout << "finished in: " <<
 		std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<

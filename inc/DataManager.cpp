@@ -326,7 +326,7 @@ gp_Vec DataManager::computeObjectTranslation()
 {
 	double precision = SettingsCollection::getInstance().spatialTolerance();
 	gp_Vec translationVec = computeObjectTranslation("IfcSlab");
-	if (translationVec.Magnitude() > precision) { return translationVec; }
+	if (translationVec.Magnitude() > precision) { return translationVec; } 
 	translationVec = computeObjectTranslation("IfcRoof");
 	if (translationVec.Magnitude() > precision) { return translationVec; }
 
@@ -406,7 +406,12 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool ad
 		24
 	);
 	
-	if (!it.initialize()) { return; }
+	if (!it.initialize()) {
+		std::cout << "finished in: " <<
+			std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<
+			UnitStringEnum::getString(UnitStringID::seconds) << std::endl;
+		return;
+	}
 
 	do {
 		IfcGeom::BRepElement* boundaryRepElem = it.get_native();
@@ -414,8 +419,10 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool ad
 		TopoDS_Shape shape = boundaryRepElem->geometry().as_compound();
 		gp_Trsf ifcPlacement = boundaryRepElem->transformation().data();
 		shape = shape.Moved(ifcPlacement);
-
-
+		shape.Move(objectTranslation_);
+		gp_Trsf trs;
+		trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
+		shape.Move(trs);
 
 		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
 

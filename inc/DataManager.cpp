@@ -389,99 +389,51 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool ad
 {
 	auto startTime = std::chrono::high_resolution_clock::now();
 	std::cout << "\t" + typeName + " objects ";
+	SettingsCollection& settings = SettingsCollection::getInstance();
 
 	bool isSimple = true;
 	int simplefyGeoGrade = SettingsCollection::getInstance().ignoreVoidGrade();
-	std::unordered_set<std::string> openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();
+	std::unordered_set<std::string> openingObjects = settings.getOpeningObjectsList();
 	if (simplefyGeoGrade == 0) { isSimple = false; }
 	else if (simplefyGeoGrade == 2) { isSimple = true; }
 	else if (openingObjects.find(typeName) == openingObjects.end()) { isSimple = false; }
 
 	std::vector<IfcGeom::filter_t> filterFuncs;
+
 	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { typeName }));
-	IfcGeom::Iterator it(
-		SettingsCollection::getInstance().iteratorSettings(isSimple),
-		datacollection_[0]->getFilePtr(),
-		filterFuncs,
-		24
-	);
-	
-	if (!it.initialize()) {
-		std::cout << "finished in: " <<
-			std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<
-			UnitStringEnum::getString(UnitStringID::seconds) << std::endl;
-		return;
-	}
+	for (const std::unique_ptr<fileKernelCollection>& collectionItem : datacollection_)
+	{
+		IfcGeom::Iterator it(
+			settings.iteratorSettings(isSimple),
+			collectionItem->getFilePtr(),
+			filterFuncs,
+			settings.threadcount()
+		);
+		if (!it.initialize()) { continue; }
 
-	do {
-		IfcGeom::BRepElement* boundaryRepElem = it.get_native();
-		if (!boundaryRepElem) continue;
-		TopoDS_Shape shape = boundaryRepElem->geometry().as_compound();
-		gp_Trsf ifcPlacement = boundaryRepElem->transformation().data();
-		shape = shape.Moved(ifcPlacement);
-		shape.Move(objectTranslation_);
-		gp_Trsf trs;
-		trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
-		shape.Move(trs);
+		std::vector<IfcGeom::BRepElement*> shapeList;
+		shapeList.reserve(collectionItem->getFilePtr()->instances_by_type(typeName)->size()); //TODO: optimize this
+		do { shapeList.emplace_back(it.get_native()); } while (it.next());
 
-		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
-		std::string productType = product->data().type()->name();
+		int coreUse = settings.threadcount();
+		if (shapeList.size() < coreUse) { coreUse = shapeList.size(); }
+		int splitListSize = static_cast<int>(std::floor(shapeList.size() / coreUse));
 
-		if (SettingsCollection::getInstance().simplefyGeo())
+		std::vector<std::thread> threadList;
+		for (size_t i = 0; i < coreUse; i++)
 		{
-			if (productType == "IfcDoor" || productType == "IfcWindow")
-			{
-				const std::vector<std::string>& ignoreList = SettingsCollection::getInstance().getIgnoreSimplificationList();
-				if (std::find(ignoreList.begin(), ignoreList.end(), product->GlobalId()) == ignoreList.end())
-				{
-					shape = helperFunctions::boxSimplefyShape(shape);
-					if (shape.IsNull())
-					{
-						ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
-						continue;
-					}
-				}
+			auto startIdx = shapeList.begin() + i * splitListSize;
+			auto endIdx = (i == coreUse - 1) ? shapeList.end() : startIdx + splitListSize;
+			std::vector<IfcGeom::BRepElement*> sublist(startIdx, endIdx);
+			threadList.emplace_back([=]() { AddBRepElementToIndex(sublist, addToRoomIndx); });
+		}
+
+		for (auto& thread : threadList) {
+			if (thread.joinable()) {
+				thread.join();
 			}
 		}
-		bg::model::box <BoostPoint3D> box;
-		try
-		{
-			box = helperFunctions::createBBox(shape, 0);
-		}
-		catch (const ErrorID&)
-		{
-			ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
-			continue;
-		}
-		if (!helperFunctions::hasVolume(box))
-		{
-			ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
-			continue;
-		}
-
-		for (TopExp_Explorer expl(shape, TopAbs_FACE); expl.More(); expl.Next())
-		{
-			TopoDS_Face currentFace = TopoDS::Face(expl.Current());
-			helperFunctions::triangulateShape(currentFace);
-		}
-
-		std::shared_ptr<IfcProductSpatialData> lookup = std::make_shared<IfcProductSpatialData>(product, shape);
-
-		int locationIdx = (int)index_.size();
-		index_.insert(std::make_pair(box, locationIdx));
-		productLookup_.emplace_back(lookup);
-
-		updateBoudingData(box);
-
-		auto typeSearch = productIndxLookup_.find(productType);
-		if (typeSearch == productIndxLookup_.end())
-		{
-			productIndxLookup_.insert({ productType, std::unordered_map < std::string, int >() });
-		}
-		productIndxLookup_[productType].insert({ product->GlobalId(), locationIdx });
-
-	} while (it.next());
-
+	}
 	std::cout << "finished in: " <<
 		std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<
 		UnitStringEnum::getString(UnitStringID::seconds) << std::endl;
@@ -1083,6 +1035,91 @@ void DataManager::populateAttributeLookup()
 				attributeLookup_.emplace(std::make_pair(currentGuid, propertySetList));
 			}
 		}
+	}
+	return;
+}
+
+void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, bool isRoom)
+{
+	productLookup_.reserve(productLookup_.size() + shapeList.size());
+
+	for (IfcGeom::BRepElement* boundaryRepElem : shapeList)
+	{
+		if (!boundaryRepElem) continue;
+		TopoDS_Shape shape = boundaryRepElem->geometry().as_compound();
+		gp_Trsf ifcPlacement = boundaryRepElem->transformation().data();
+		shape = shape.Moved(ifcPlacement);
+		shape.Move(objectTranslation_);
+		gp_Trsf trs;
+		trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
+		shape.Move(trs);
+
+		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
+		std::string productType = product->data().type()->name();
+
+		if (SettingsCollection::getInstance().simplefyGeo())
+		{
+			if (productType == "IfcDoor" || productType == "IfcWindow")
+			{
+				const std::vector<std::string>& ignoreList = SettingsCollection::getInstance().getIgnoreSimplificationList();
+				if (std::find(ignoreList.begin(), ignoreList.end(), product->GlobalId()) == ignoreList.end())
+				{
+					shape = helperFunctions::boxSimplefyShape(shape);
+					if (shape.IsNull())
+					{
+						ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
+						continue;
+					}
+				}
+			}
+		}
+		bg::model::box <BoostPoint3D> box;
+		try
+		{
+			box = helperFunctions::createBBox(shape, 0);
+		}
+		catch (const ErrorID&)
+		{
+			ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
+			continue;
+		}
+		if (!helperFunctions::hasVolume(box))
+		{
+			ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
+			continue;
+		}
+
+		for (TopExp_Explorer expl(shape, TopAbs_FACE); expl.More(); expl.Next())
+		{
+			TopoDS_Face currentFace = TopoDS::Face(expl.Current());
+			helperFunctions::triangulateShape(currentFace);
+		}
+
+		std::shared_ptr<IfcProductSpatialData> lookup = std::make_shared<IfcProductSpatialData>(product, shape);
+
+		if (isRoom)
+		{
+			indexMutex_.lock();
+			std::lock_guard<std::mutex> spaceLock(spaceIndexMutex_);
+			spaceIndex_.insert(std::make_pair(box, (int)spaceIndex_.size()));
+			SpaceLookup_.emplace_back(lookup);
+			indexMutex_.unlock();
+			continue;
+		}
+
+		indexMutex_.lock();
+		int locationIdx = (int)index_.size();
+		index_.insert(std::make_pair(box, locationIdx));
+		productLookup_.emplace_back(lookup);
+		updateBoudingData(box);
+
+		auto typeSearch = productIndxLookup_.find(productType);
+		if (typeSearch == productIndxLookup_.end())
+		{
+			productIndxLookup_.insert({ productType, std::unordered_map < std::string, int >() });
+		}
+		productIndxLookup_[productType].insert({ product->GlobalId(), locationIdx });
+		indexMutex_.unlock();
 	}
 	return;
 }

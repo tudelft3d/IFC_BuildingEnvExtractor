@@ -204,6 +204,8 @@ private:
 	// populate a map that has all the guid related propertysets 
 	void populateAttributeLookup();
 
+	void AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList);
+
 public:
 	/*
 	construct and populate a helper

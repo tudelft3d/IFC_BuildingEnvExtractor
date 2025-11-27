@@ -1,4 +1,4 @@
-#define USE_IFC4x3
+#define USE_IFC2x3
 #define iterationVersion "0.3.0"
 
 #ifdef USE_IFC2x3
@@ -155,6 +155,12 @@ struct helperFunctions{
 	static bool pointOnFace(const TopoDS_Face& theFace, const gp_Pnt& thePoint, double precision = 0.0);
 	/// check if point is on face
 	static bool pointOnFace(const std::vector<TopoDS_Face>& theFace, const gp_Pnt& thePoint, double precision = 0.0);
+	/// check if point is on triangle p1p2p3
+	static bool pointOnTriangle(const gp_Pnt& thePoint, const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3);
+	/// check if 2D point is on 2D triangle p1p2p3
+	static bool pointOnTriangle(const gp_Pnt2d& thePoint, const gp_Pnt2d& p1, const gp_Pnt2d& p2, const gp_Pnt2d& p3);
+	/// check if uv/2D point is on uv range of mesh
+	static bool uvPointOnMesh(const gp_Pnt2d& thePoint, const TColgp_Array1OfPnt2d& uvNodes, const Poly_Array1OfTriangle& triangles);
 	/// check if point is on any edge of face
 	static bool pointOnWire(const TopoDS_Face& theFace, const gp_Pnt& thePoint, double precision = 0.0);
 	/// check if point is on any edge of wire

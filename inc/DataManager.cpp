@@ -379,12 +379,8 @@ gp_Vec DataManager::computeObjectTranslation(const std::string& objectType)
 	ErrorCollection::getInstance().addError(ErrorID::warningIfcNoSlab);
 	std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcNoSlab) << std::endl;
 	return gp_Vec();
-
-
 }
 
-
-template<typename IfcType>
 void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool addToRoomIndx)
 {
 	auto startTime = std::chrono::high_resolution_clock::now();
@@ -399,8 +395,8 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool ad
 	else if (openingObjects.find(typeName) == openingObjects.end()) { isSimple = false; }
 
 	std::vector<IfcGeom::filter_t> filterFuncs;
-
 	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { typeName }));
+
 	for (const std::unique_ptr<fileKernelCollection>& collectionItem : datacollection_)
 	{
 		IfcGeom::Iterator it(
@@ -438,169 +434,6 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool ad
 		std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<
 		UnitStringEnum::getString(UnitStringID::seconds) << std::endl;
 }
-
-void DataManager::timedAddObjectListToIndex(const std::string& typeName)
-{
-	std::cout << "\t" + typeName + " objects ";
-	IfcSchema::IfcProduct::list::ptr selectedlist = boost::make_shared<IfcSchema::IfcProduct::list>();
-	for (size_t i = 0; i < dataCollectionSize_; i++)
-	{
-		aggregate_of_instance::ptr productList = datacollection_[i]->getFilePtr()->instances_by_type(typeName);
-
-		if (productList == nullptr) { continue; }
-		if (!productList->size()) { continue; }
-
-		for (auto et = productList->begin(); et != productList->end(); ++et)
-		{
-			IfcUtil::IfcBaseClass* test = *et;
-			IfcSchema::IfcProduct* product = (*et)->as<IfcSchema::IfcProduct>();
-			selectedlist.get()->push(product);
-		}
-	}
-
-	auto startTime = std::chrono::high_resolution_clock::now();
-	addObjectListToIndex<IfcSchema::IfcProduct::list::ptr>(selectedlist);
-	std::cout << "finished in: " <<
-		std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<
-		UnitStringEnum::getString(UnitStringID::seconds) << std::endl;
-}
-
-template <typename T>
-void DataManager::addObjectListToIndex(const T& objectList, bool addToRoomIndx)
-{
-	if (!objectList->size()) { return; }
-
-	int coreCount = SettingsCollection::getInstance().threadcount();
-	int coreUse = coreCount;
-	int splitListSize = static_cast<int>(floor(objectList->size() / coreUse));
-
-	std::vector<std::thread> threadList;
-
-	if (splitListSize == 0) { coreUse = 1; } //if less objects than threads are present just use 1 thread
-	//coreUse = 1;
-
-	for (size_t i = 0; i < coreUse; i++)
-	{
-		auto startIdx = objectList->begin() + i * splitListSize;
-		auto endIdx = (i == coreUse - 1) ? objectList->end() : startIdx + splitListSize;
-
-		IfcSchema::IfcProduct::list::ptr subList = boost::make_shared<IfcSchema::IfcProduct::list>();
-
-		for (auto subIterator = startIdx; subIterator != endIdx; ++subIterator)
-		{
-			subList->push(*subIterator);
-		}
-		threadList.emplace_back([=]() { addObjectToIndex(subList, addToRoomIndx); });
-	}
-
-	for (auto& thread : threadList) {
-		if (thread.joinable()) {
-			thread.join();
-		}
-	}
-}
-
-void DataManager::addObjectToIndex(const IfcSchema::IfcProduct::list::ptr objectList, bool addToRoomIndx) {
-	for (auto it = objectList->begin(); it != objectList->end(); ++it)
-	{
-		addObjectToIndex(*it, addToRoomIndx);
-	}
-}
-
-void DataManager::addObjectToIndex(IfcSchema::IfcProduct* product, bool addToRoomIndx)
-{
-	// pass over if dub
-	if (getObjectShapeLocation(product) != -1) { return; }
-
-	IfcSchema::IfcProduct::list::ptr productList = getNestedProductList(product);
-	if (productList->size())
-	{
-		for (auto it = productList->begin(); it != productList->end(); ++it)
-		{
-			addObjectToIndex(*it, addToRoomIndx);
-		}
-	}
-
-	std::string productType = product->data().type()->name();
-	std::unordered_set<std::string> openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();
-
-	TopoDS_Shape shape;
-	if (openingObjects.find(productType) != openingObjects.end())
-	{
-		shape = getObjectShape(product, false, true); //TODO: fix bool, rn vague
-	}
-	else
-	{
-		shape = getObjectShape(product, false);
-	}
-
-	if (shape.IsNull())
-	{
-		ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectConversion, product->GlobalId());
-		return;
-	}
-
-	if (SettingsCollection::getInstance().simplefyGeo())
-	{
-		if (productType == "IfcDoor" || productType == "IfcWindow")
-		{
-			const std::vector<std::string>& ignoreList = SettingsCollection::getInstance().getIgnoreSimplificationList();
-			if (std::find(ignoreList.begin(), ignoreList.end(), product->GlobalId()) == ignoreList.end())
-			{
-				shape = helperFunctions::boxSimplefyShape(shape);
-				if (shape.IsNull())
-				{
-					ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
-					return;
-				}
-			}
-		}
-	}
-
-	bg::model::box <BoostPoint3D> box;
-	try
-	{
-		box = helperFunctions::createBBox(shape, 0);
-	}
-	catch (const ErrorID&)
-	{
-		ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
-		return;
-	}
-	if (!helperFunctions::hasVolume(box))
-	{
-		ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, product->GlobalId());
-		return;
-	}
-	 
-	std::shared_ptr<IfcProductSpatialData> lookup = std::make_shared<IfcProductSpatialData>(product, shape);
-	if (addToRoomIndx)
-	{
-		indexMutex_.lock();
-		std::lock_guard<std::mutex> spaceLock(spaceIndexMutex_);
-		spaceIndex_.insert(std::make_pair(box, (int)spaceIndex_.size()));
-		SpaceLookup_.emplace_back(lookup);
-		indexMutex_.unlock();
-		return;
-	}
-
-	indexMutex_.lock();
-	int locationIdx = (int)index_.size();
-	index_.insert(std::make_pair(box, locationIdx));
-	productLookup_.emplace_back(lookup);
-
-	updateBoudingData(box);
-
-	auto typeSearch = productIndxLookup_.find(productType);
-	if (typeSearch == productIndxLookup_.end())
-	{
-		productIndxLookup_.insert({ productType, std::unordered_map < std::string, int >() });
-	}
-	productIndxLookup_[productType].insert({ product->GlobalId(), locationIdx });
-	indexMutex_.unlock();
-	return;
-}
-
 
 IfcGeom::Kernel* DataManager::getKernelObject(const std::string& productGuid)
 {
@@ -1054,6 +887,8 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
 		shape.Move(trs);
 
+		shape = helperFunctions::addSolidSemantic(shape);
+
 		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
 		std::string productType = product->data().type()->name();
 
@@ -1298,22 +1133,22 @@ void DataManager::indexGeo()
 	if (settingsCollection.useDefaultDiv())
 	{
 		bool addToRoomIndex = false;
-		timedAddObjectListToIndex<IfcSchema::IfcSlab>("IfcSlab", addToRoomIndex);
-		timedAddObjectListToIndex<IfcSchema::IfcRoof>("IfcRoof", addToRoomIndex);
-		timedAddObjectListToIndex<IfcSchema::IfcWall>("IfcWall", addToRoomIndex);
-		timedAddObjectListToIndex<IfcSchema::IfcCovering>("IfcCovering", addToRoomIndex);
-		timedAddObjectListToIndex<IfcSchema::IfcBeam>("IfcBeam", addToRoomIndex);
-		timedAddObjectListToIndex<IfcSchema::IfcColumn>("IfcColumn", addToRoomIndex);
-		timedAddObjectListToIndex<IfcSchema::IfcPlate>("IfcPlate", addToRoomIndex);
-		timedAddObjectListToIndex<IfcSchema::IfcMember>("IfcMember", addToRoomIndex);
-		timedAddObjectListToIndex<IfcSchema::IfcWindow>("IfcWindow", addToRoomIndex);
-		timedAddObjectListToIndex<IfcSchema::IfcDoor>("IfcDoor", addToRoomIndex);
+		timedAddObjectListToIndex("IfcSlab", addToRoomIndex);
+		timedAddObjectListToIndex("IfcRoof", addToRoomIndex);
+		timedAddObjectListToIndex("IfcWall", addToRoomIndex);
+		timedAddObjectListToIndex("IfcCovering", addToRoomIndex);
+		timedAddObjectListToIndex("IfcBeam", addToRoomIndex);
+		timedAddObjectListToIndex("IfcColumn", addToRoomIndex);
+		timedAddObjectListToIndex("IfcPlate", addToRoomIndex);
+		timedAddObjectListToIndex("IfcMember", addToRoomIndex);
+		timedAddObjectListToIndex("IfcWindow", addToRoomIndex);
+		timedAddObjectListToIndex("IfcDoor", addToRoomIndex);
 		//addObjectListToIndex<IfcSchema::IfcCurtainWall>("IfcCurtainWall", addToRoomIndex);
 
 		if (settingsCollection.useProxy())
 		{
 			bool addToRoomIndex = false;
-			timedAddObjectListToIndex<IfcSchema::IfcBuildingElementProxy>("IfcBuildingElementProxy", addToRoomIndex);
+			timedAddObjectListToIndex("IfcBuildingElementProxy", addToRoomIndex);
 		}
 	}
 	else // add custom set div objects
@@ -1328,7 +1163,7 @@ void DataManager::indexGeo()
 	if (settingsCollection.makeInterior())
 	{
 		bool addToRoomIndex = true;
-		timedAddObjectListToIndex<IfcSchema::IfcSpace>("IfcSpace", addToRoomIndex);
+		timedAddObjectListToIndex("IfcSpace", addToRoomIndex);
 	}
 	std::cout << std::endl;
 	// find valid voids

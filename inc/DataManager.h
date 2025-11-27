@@ -152,18 +152,8 @@ private:
 	/// compute vector from the lll corner to the originpoint based on the first object of the input type
 	gp_Vec computeObjectTranslation(const std::string& objectType);
 
-	/// adds all instances of the template type to the index and reports to user
-	template <typename IfcType>
+	/// adds all instances of the type to the index and reports to user
 	void timedAddObjectListToIndex(const std::string& typeName, bool addToRoomIndx = false);
-	/// adds all instances of the string type to the index and reports to user
-	void timedAddObjectListToIndex(const std::string& typeName);
-	/// splits the object list over the available threads and adds all instances of an objectype to the spatial index
-	template <typename T>
-	void addObjectListToIndex(const T& objectList, bool addToRoomIndx = false);
-	/// adds all instances of an objecttype to the spatial index
-	void addObjectToIndex(IfcSchema::IfcProduct::list::ptr productList, bool addToRoomIndx = false);
-	/// adds the product to the spatial index
-	void addObjectToIndex(IfcSchema::IfcProduct* product, bool addToRoomIndx = false);
 	
 	/// get the kernel which contains the product with the supplied product guid
 	IfcGeom::Kernel* getKernelObject(const std::string& productGuid);
@@ -204,7 +194,7 @@ private:
 	// populate a map that has all the guid related propertysets 
 	void populateAttributeLookup();
 
-	void AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList);
+	void AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, bool isRoom = false);
 
 public:
 	/*

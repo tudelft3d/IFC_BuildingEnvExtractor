@@ -39,7 +39,6 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <ShapeAnalysis_Shell.hxx>
 
-
 #include <TopExp_Explorer.hxx>
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
@@ -109,6 +108,84 @@ std::vector<std::vector<T>> subListScore(const std::vector<T>& inputList, const 
 
 	if (!currentSubList.empty()) { sublists.push_back(std::move(currentSubList)); }
 	return sublists;
+}
+
+bool surfaceGridVisibilityTest(
+	const std::vector<gp_Pnt>& surfaceGridList, 
+	const TopoDS_Face& currentFace, 
+	double searchBuffer, 
+	double voxelSize,
+	const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx,
+	const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<voxel>>, bgi::rstar<25>>& voxelIndex
+) {
+	// cast a line from the grid to surrounding voxels
+	for (const gp_Pnt& gridPoint : surfaceGridList)
+	{
+		bg::model::box<BoostPoint3D> pointQuerybox(
+			{ gridPoint.X() - searchBuffer, gridPoint.Y() - searchBuffer, gridPoint.Z() - searchBuffer },
+			{ gridPoint.X() + searchBuffer, gridPoint.Y() + searchBuffer, gridPoint.Z() + searchBuffer }
+		);
+
+		std::vector<std::pair<BoostBox3D, std::shared_ptr<voxel>>> pointQResult;
+		voxelIndex.query(bgi::intersects(pointQuerybox), std::back_inserter(pointQResult));
+		//check if ray castline cleared
+		for (const auto& [voxelBBox, targetVoxel] : pointQResult)
+		{
+			const gp_Pnt& targetPoint = targetVoxel->getOCCTCenterPoint();
+			double distance = targetPoint.Distance(gridPoint);
+			if (distance > searchBuffer + voxelSize / 2) { continue; }
+			bool clearLine = true;
+
+			bg::model::segment<BoostPoint3D> queryRay{
+				{gridPoint.X() ,gridPoint.Y(), gridPoint.Z()},
+				{targetPoint.X() ,targetPoint.Y(), targetPoint.Z()}
+			};
+
+			std::vector<std::pair<BoostBox3D, TopoDS_Face>>faceQResult;
+			faceIdx.query(bgi::intersects(queryRay), std::back_inserter(faceQResult));
+
+			for (const std::pair<BoostBox3D, TopoDS_Face>& facePair : faceQResult)
+			{
+				// get the potential faces
+				const TopoDS_Face& otherFace = facePair.second;
+				if (currentFace.IsEqual(otherFace)) { continue; }
+
+				if (helperFunctions::pointOnFace(otherFace, gridPoint)) { continue; }
+
+				//test for linear intersections
+				TopLoc_Location loc;
+				auto mesh = BRep_Tool::Triangulation(otherFace, loc);
+
+				if (mesh.IsNull()) {
+					//TODO: add error
+					continue;
+				}
+
+				for (int j = 1; j <= mesh.get()->NbTriangles(); j++) //TODO: index this?
+				{
+					const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
+
+					std::vector<gp_Pnt> trianglePoints{
+						mesh->Node(theTriangle(1)).Transformed(loc),
+						mesh->Node(theTriangle(2)).Transformed(loc),
+						mesh->Node(theTriangle(3)).Transformed(loc)
+					};
+
+					if (helperFunctions::triangleIntersecting({ gridPoint, targetPoint }, trianglePoints))
+					{
+						clearLine = false;
+						break;
+					}
+				}
+				if (!clearLine) { break; }
+			}
+			if (clearLine)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 void CJGeoCreator::garbageCollection()
@@ -1559,7 +1636,9 @@ TopoDS_Shape CJGeoCreator::simplefySolid(const TopoDS_Shape& solidShape, bool ev
 	TopoDS_Shape sewedShape = brepSewer.SewedShape();
 	if (sewedShape.IsNull()) { return{}; }
 	if (sewedShape.ShapeType() == TopAbs_COMPOUND) { return sewedShape; }
+	std::cout << "in" << std::endl;
 	brepBuilder.Add(simpleBuilding, sewedShape);
+	std::cout << "out" << std::endl;
 	return simpleBuilding;
 }
 
@@ -5125,6 +5204,8 @@ void CJGeoCreator::getOuterRaySurfaces(std::vector<std::pair<TopoDS_Face, IfcSch
 		while (coreUse > totalValueObjectList.size()) { coreUse /= 2; }
 	}
 	coreUse -= 1;
+
+	//coreUse = 1;
 	double targetScore = std::accumulate(scoreList.begin(), scoreList.end(), 0) / coreUse;
 
 	//coreUse = 1;
@@ -5191,6 +5272,7 @@ void CJGeoCreator::getOuterRaySurfaces(
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	double precision = settingsCollection.spatialTolerance();
 	double searchBuffer = settingsCollection.searchBufferLod32();
+	double voxelSize = settingsCollection.voxelSize();
 	for (const Value& currentValue : valueObjectList)
 	{
 		std::unique_lock<std::mutex> processCountLock(processedObjectmutex);
@@ -5207,83 +5289,18 @@ void CJGeoCreator::getOuterRaySurfaces(
 			if (helperFunctions::getPointCount(currentFace) < 3) { continue; }
 
 			std::vector<TopoDS_Face> tesselatedFaceList = helperFunctions::TessellateFace(currentFace);
-
 			for (const TopoDS_Face& currentTesselatedFace : tesselatedFaceList)
 			{
 				//Create a grid over the surface and the offsetted wire
-				std::vector<gp_Pnt> surfaceGridList = helperFunctions::getPointGridOnSurface(currentTesselatedFace, SettingsCollection::getInstance().surfaceGridSize());
-				std::vector<gp_Pnt> wireGridList = helperFunctions::getPointGridOnWire(currentTesselatedFace, SettingsCollection::getInstance().surfaceGridSize());
-				surfaceGridList.insert(surfaceGridList.end(), wireGridList.begin(), wireGridList.end());
-
-				// cast a line from the grid to surrounding voxels
-				for (const gp_Pnt& gridPoint : surfaceGridList)
+				std::vector<gp_Pnt> surfaceGridList = helperFunctions::getPointGridOnSurface(currentTesselatedFace, settingsCollection.surfaceGridSize());
+				if (!surfaceGridVisibilityTest(surfaceGridList, currentFace, searchBuffer, voxelSize, faceIdx, voxelIndex))
 				{
-					bg::model::box<BoostPoint3D> pointQuerybox(
-						{ gridPoint.X() - searchBuffer, gridPoint.Y() - searchBuffer, gridPoint.Z() - searchBuffer },
-						{ gridPoint.X() + searchBuffer, gridPoint.Y() + searchBuffer, gridPoint.Z() + searchBuffer }
-					);
-
-					std::vector<std::pair<BoostBox3D, std::shared_ptr<voxel>>> pointQResult;
-					voxelIndex.query(bgi::intersects(pointQuerybox), std::back_inserter(pointQResult));
-					//check if ray castline cleared
-					for (const auto& [voxelBBox, targetVoxel] : pointQResult)
+					std::vector<gp_Pnt> wireGridList = helperFunctions::getPointGridOnWire(currentTesselatedFace, settingsCollection.surfaceGridSize());
+					if (!surfaceGridVisibilityTest(wireGridList, currentFace, searchBuffer, voxelSize, faceIdx, voxelIndex))
 					{
-						bool clearLine = true;
-						const gp_Pnt& targetPoint = targetVoxel->getOCCTCenterPoint();
-						bg::model::box<BoostPoint3D> productQuerybox(helperFunctions::createBBox(gridPoint, targetPoint, precision));
-						std::vector<std::pair<BoostBox3D, TopoDS_Face>>faceQResult;
-						faceIdx.query(bgi::intersects(productQuerybox), std::back_inserter(faceQResult));
-
-						for (const std::pair<BoostBox3D, TopoDS_Face>& facePair : faceQResult)
-						{
-							// get the potential faces
-							const TopoDS_Face& otherFace = facePair.second;
-							if (currentFace.IsEqual(otherFace)) { continue; }
-
-							if (helperFunctions::pointOnFace(otherFace, gridPoint))
-							{
-								continue;
-							}
-
-							//test for linear intersections
-							TopLoc_Location loc;
-							auto mesh = BRep_Tool::Triangulation(otherFace, loc);
-
-							if (mesh.IsNull()) {
-								//TODO: add error
-								continue;
-							}
-
-							for (int j = 1; j <= mesh.get()->NbTriangles(); j++) //TODO: index this?
-							{
-								const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
-
-								std::vector<gp_Pnt> trianglePoints{
-									mesh->Node(theTriangle(1)).Transformed(loc),
-									mesh->Node(theTriangle(2)).Transformed(loc),
-									mesh->Node(theTriangle(3)).Transformed(loc)
-								};
-
-								if (helperFunctions::triangleIntersecting({ gridPoint, targetPoint }, trianglePoints))
-								{
-									clearLine = false;
-									break;
-								}
-							}
-							if (!clearLine) { break; }
-						}
-						if (clearLine)
-						{
-							faceIsExterior = true;
-							break;
-						}
-					}
-					if (faceIsExterior)
-					{
-						break;
+						continue;
 					}
 				}
-				if (!faceIsExterior) { continue; }
 
 				std::unique_lock<std::mutex> listLock(listmutex);
 				outerSurfacePairList.emplace_back(std::make_pair(currentTesselatedFace, lookup->getProductPtr()));
@@ -5753,7 +5770,7 @@ std::vector<TopoDS_Face> CJGeoCreator::intersectionSplitting(const std::vector<T
 
 		BOPAlgo_Splitter divider;
 		divider.SetFuzzyValue(precision);
-		divider.SetRunParallel(Standard_False);
+		divider.SetRunParallel(Standard_True);
 		divider.AddArgument(currentTopFace);
 		divider.SetTools(trimFaces);
 		divider.Perform();
@@ -5796,7 +5813,9 @@ void CJGeoCreator::makeLoDe0(
 		if (currentShape.IsNull()) { continue; }
 
 		TopoDS_Shape cleanShape = helperFunctions::TesselateShape(currentShape);
-		if (cleanShape.IsNull()) { continue; }
+		if (cleanShape.IsNull()) {
+			cleanShape = currentShape;
+		}
 
 		cleanShape.Move(localTrans);
 		IfcSchema::IfcProduct* currentProduct = lookup->getProductPtr();
@@ -5819,6 +5838,7 @@ void CJGeoCreator::makeLoDe0(
 		std::lock_guard<std::mutex> listGuard(listMutex);
 		geoObjectListOut.emplace_back(geoObject);
 		collectionShapeOut.emplace_back(cleanShape);
+
 	}
 	return;
 }

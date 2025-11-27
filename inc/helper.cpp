@@ -296,10 +296,8 @@ std::vector<gp_Pnt> helperFunctions::getPointGridOnSurface(const TopoDS_Face& th
 		{
 			std::vector<gp_Pnt> uniquePointList = helperFunctions::getUniquePoints(theface);
 
-			for (size_t i = 0; i < uniquePointList.size(); i++)
+			for (const gp_Pnt& legPoint : uniquePointList)
 			{
-				gp_Pnt legPoint = uniquePointList[i];
-
 				if (numUPoints == 1) { numUPoints = 2; } //TODO: finetune
 
 				gp_Vec translationVec = gp_Vec(
@@ -319,22 +317,36 @@ std::vector<gp_Pnt> helperFunctions::getPointGridOnSurface(const TopoDS_Face& th
 	}
 
 	// create grid
-	int currentStep = 0;
+	std::vector<TopoDS_Wire> wires;
+	for (TopExp_Explorer expl(theface, TopAbs_WIRE); expl.More(); expl.Next())
+	{
+		wires.push_back(TopoDS::Wire(expl.Current()));
+	}
+
+	triangulateShape(theface);
+	TopLoc_Location loc;
+	Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(theface, loc);
+	if (tri.IsNull()) { return {}; }
+	if (!tri->HasUVNodes()) { return {}; }
+
+	BRepClass_FaceClassifier faceClassifier;
+	const TColgp_Array1OfPnt2d& uvNodes = tri->UVNodes();
+	const Poly_Array1OfTriangle& triangles = tri->Triangles();
+
 	for (int i = 0; i < numUPoints; ++i)
 	{
 		double u = uMin + i * uStep;
 		for (int j = 0; j < numVPoints; ++j)
 		{
 			double v = vMin + j * vStep;
+			gp_Pnt2d uvCoord(u, v);
+			if (!uvPointOnMesh(uvCoord, uvNodes, triangles)) { continue; }
+
 			gp_Pnt point;
 			surface->D0(u, v, point);
-			BRepClass_FaceClassifier faceClassifier(theface, point, precision);
-			if (faceClassifier.State() != TopAbs_ON && faceClassifier.State() != TopAbs_IN) { continue; }
-
 			bool notOnWire = true;
-			for (TopExp_Explorer expl(theface, TopAbs_WIRE); expl.More(); expl.Next())
+			for (const TopoDS_Wire& currentWire : wires)
 			{
-				TopoDS_Wire currentWire = TopoDS::Wire(expl.Current());
 				if (helperFunctions::pointOnWire(currentWire, point, precision * 10))
 				{
 					notOnWire = false;
@@ -876,23 +888,7 @@ bool helperFunctions::pointOnFace(const TopoDS_Face& theFace, const gp_Pnt& theP
 		gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
 		gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
 
-		gp_Vec v12 = gp_Vec(p1, p2);
-		if (v12.Magnitude() < precision) { continue; }
-		gp_Vec v13 = gp_Vec(p1, p3);
-		if (v13.Magnitude() < precision) { continue; }
-
-		gp_Vec triangleNormal = v12.Crossed(v13);
-		double maxEdge = std::max(v12.Magnitude(), v13.Magnitude());
-		if (triangleNormal.Magnitude() < precision * maxEdge) { continue; }
-		
-		double normalMag = triangleNormal.Magnitude();
-		double distancePlanePoint = triangleNormal.Dot(gp_Vec(p1, thePoint)) / normalMag;
-		if (std::abs(distancePlanePoint) > precision) { continue; }
-
-		gp_Vec unitNormal = triangleNormal / normalMag; // unit normal
-		gp_Pnt projected = thePoint.Translated(-unitNormal * distancePlanePoint);
-
-		if (baryCentricTest(thePoint, { p1, p2, p3 })) { return true; }
+		if (pointOnTriangle(thePoint, p1,p2,p3)) { return true; }
 	}
 	return false;
 }
@@ -903,6 +899,59 @@ bool helperFunctions::pointOnFace(const std::vector<TopoDS_Face>& theFace, const
 	{
 		if (pointOnFace(currentFace, thePoint, precision))
 		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool helperFunctions::pointOnTriangle(const gp_Pnt& thePoint, const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3)
+{
+	double precision = SettingsCollection::getInstance().spatialTolerance();
+	gp_Vec v12 = gp_Vec(p1, p2);
+	if (v12.Magnitude() < precision) { return false; }
+	gp_Vec v13 = gp_Vec(p1, p3);
+	if (v13.Magnitude() < precision) { return false; }
+
+	gp_Vec triangleNormal = v12.Crossed(v13);
+	double maxEdge = std::max(v12.Magnitude(), v13.Magnitude());
+	if (triangleNormal.Magnitude() < precision * maxEdge) { return false; }
+
+	double normalMag = triangleNormal.Magnitude();
+	double distancePlanePoint = triangleNormal.Dot(gp_Vec(p1, thePoint)) / normalMag;
+	if (std::abs(distancePlanePoint) > precision) { return false; }
+
+	gp_Vec unitNormal = triangleNormal / normalMag; // unit normal
+	gp_Pnt projected = thePoint.Translated(-unitNormal * distancePlanePoint);
+
+	if (baryCentricTest(thePoint, { p1, p2, p3 })) { return true; }
+	return false;
+}
+
+bool helperFunctions::pointOnTriangle(const gp_Pnt2d& thePoint, const gp_Pnt2d& p1, const gp_Pnt2d& p2, const gp_Pnt2d& p3)
+{
+	gp_Pnt thePoint3D(thePoint.X(), thePoint.Y(), 0);
+	gp_Pnt p13D(p1.X(), p1.Y(), 0);
+	gp_Pnt p23D(p2.X(), p2.Y(), 0);
+	gp_Pnt p33D(p3.X(), p3.Y(), 0);
+
+	return baryCentricTest(thePoint3D, { p13D, p23D, p33D });
+}
+
+bool helperFunctions::uvPointOnMesh(const gp_Pnt2d& thePoint, const TColgp_Array1OfPnt2d& uvNodes, const Poly_Array1OfTriangle& triangles)
+{
+	for (Standard_Integer i = triangles.Lower(); i <= triangles.Upper(); ++i)
+	{
+		const Poly_Triangle& thePolyTriangle = triangles(i);
+
+		Standard_Integer n1, n2, n3;
+		thePolyTriangle.Get(n1, n2, n3);
+
+		const gp_Pnt2d& p1 = uvNodes(n1);
+		const gp_Pnt2d& p2 = uvNodes(n2);
+		const gp_Pnt2d& p3 = uvNodes(n3);
+
+		if (helperFunctions::pointOnTriangle(thePoint, p1, p2, p3)) {
 			return true;
 		}
 	}
@@ -2046,7 +2095,6 @@ TopoDS_Shape helperFunctions::TesselateShape(const TopoDS_Shape& theShape)
 			continue;
 		}
 	}
-
 	if (collection.NbChildren())
 	{
 		return collection;

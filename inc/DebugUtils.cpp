@@ -159,6 +159,43 @@ void DebugUtils::printFaces(const TopoDS_Shape& shape)
 	}
 }
 
+void DebugUtils::printMesh(const TopoDS_Shape& shape)
+{
+	std::string currentString = "";
+	TopExp_Explorer expl;
+	for (expl.Init(shape, TopAbs_FACE); expl.More(); expl.Next())
+	{
+		TopoDS_Face currentFace = TopoDS::Face(expl.Current());
+
+		TopLoc_Location loc;
+		auto mesh = BRep_Tool::Triangulation(currentFace, loc);
+
+		if (mesh.IsNull()) { 
+			std::cout << "no triangulation found" << std::endl; 
+			continue;
+		}
+
+		for (int i = 1; i <= mesh.get()->NbTriangles(); i++)
+		{
+
+			const Poly_Triangle& theTriangle = mesh->Triangles().Value(i);
+			gp_Pnt p1 = mesh->Nodes().Value(theTriangle(1)).Transformed(loc);
+			gp_Pnt p2 = mesh->Nodes().Value(theTriangle(2)).Transformed(loc);
+			gp_Pnt p3 = mesh->Nodes().Value(theTriangle(3)).Transformed(loc);
+			currentString += "new\n";
+			currentString += pointToString3D(p1);
+			currentString += pointToString3D(p2);
+			currentString += pointToString3D(p2);
+			currentString += pointToString3D(p3);
+			currentString += pointToString3D(p3);
+			currentString += pointToString3D(p1);
+		}
+	}
+
+	std::cout << currentString << "\n";
+	return;
+}
+
 void DebugUtils::WriteToTxt(const std::vector<TopoDS_Face>& shapeList, const std::string& pathString, bool append)
 {
 	int mode = std::ios_base::out;

@@ -3777,7 +3777,7 @@ std::vector<TopoDS_Face> helperFunctions::removeDubFaces(const std::vector<TopoD
 		cleanedFaceList.emplace_back(currentFace);
 		areaList.emplace_back(computeArea(currentFace));
 	}
-	if (!fullProcessing) { return cleanedFaceList; }
+	if (!fullProcessing) {return cleanedFaceList; }
 
 	std::vector<TopoDS_Face> filteredFaceList;
 	for (size_t i = 0; i < cleanedFaceList.size(); i++)
@@ -3810,9 +3810,18 @@ std::vector<TopoDS_Face> helperFunctions::removeDubFaces(const std::vector<TopoD
 					break;
 				}
 			}
-			if (isSurrounded) { 
-				break; 
+
+			if (!isSurrounded) { continue; }
+
+			std::vector<gp_Pnt> pointFaceList = helperFunctions::getPointListOnFace(currentFace);
+			for (const gp_Pnt& currentPoint : pointFaceList)
+			{
+				if (pointOnShape(otherFace, currentPoint)) { continue; }
+				isSurrounded = false;
+				break;
 			}
+
+			if (isSurrounded) { break; }
 		}
 		if (isSurrounded) { continue; }
 		filteredFaceList.emplace_back(currentFace);

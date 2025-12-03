@@ -395,7 +395,7 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool ad
 	else if (openingObjects.find(typeName) == openingObjects.end()) { isSimple = false; }
 
 	std::vector<IfcGeom::filter_t> filterFuncs;
-	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { typeName }));
+	filterFuncs.emplace_back(IfcGeom::entity_filter(true, false, { typeName }));
 
 	for (const std::unique_ptr<fileKernelCollection>& collectionItem : datacollection_)
 	{
@@ -874,8 +874,6 @@ void DataManager::populateAttributeLookup()
 
 void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, bool isRoom)
 {
-	productLookup_.reserve(productLookup_.size() + shapeList.size());
-
 	for (IfcGeom::BRepElement* boundaryRepElem : shapeList)
 	{
 		if (!boundaryRepElem) continue;

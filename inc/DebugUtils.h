@@ -31,6 +31,8 @@ struct DebugUtils {
 	static void printFaces(const std::vector<T>& shape);
 	static void printFaces(const TopoDS_Shape& shape);
 
+	static void printMesh(const TopoDS_Shape& shape);
+
 	/// Output shape to step file
 	template<typename T>
 	static void WriteToSTEP(const T& shape, const std::string& targetPath);

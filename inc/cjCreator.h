@@ -338,9 +338,13 @@ private:
 
 	// splits surfaces by projecting them and the tools flat to the cplane. After splitting te turning face list is projected to the original plane
 	std::vector<TopoDS_Face> projectionSplitting(const std::vector<TopoDS_Face>& inputFaceList, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx);
+	// splits surfaces by projecting them and the tools flat to the cplane. After splitting te turning face list is projected to the original plane
+	void projectionSplitting(const std::vector<TopoDS_Face>& inputFaceList, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, std::mutex& processMutex, std::vector<TopoDS_Face>& splitFaceListOut);
 
 	// splits surfaces by actual intersection between surfaces
 	std::vector<TopoDS_Face> intersectionSplitting(const std::vector<TopoDS_Face>& inputFaceList, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx);
+	// splits surfaces by projecting them and the tools flat to the cplane. After splitting te turning face list is projected to the original plane
+	void intersectionSplitting(const std::vector<TopoDS_Face>& inputFaceList, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, std::mutex& processMutex, std::vector<TopoDS_Face>& splitFaceListOut);
 
 	/// generates a sublist of LoDe.0 objects
 	void makeLoDe0(

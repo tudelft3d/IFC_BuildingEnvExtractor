@@ -381,7 +381,7 @@ gp_Vec DataManager::computeObjectTranslation(const std::string& objectType)
 	return gp_Vec();
 }
 
-void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool addToRoomIndx)
+void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::set<std::string>& uniqueKeySet, bool addToRoomIndx)
 {
 	auto startTime = std::chrono::high_resolution_clock::now();
 	std::cout << "\t" + typeName + " objects ";
@@ -395,7 +395,7 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool ad
 	else if (openingObjects.find(typeName) == openingObjects.end()) { isSimple = false; }
 
 	std::vector<IfcGeom::filter_t> filterFuncs;
-	filterFuncs.emplace_back(IfcGeom::entity_filter(true, false, { typeName }));
+	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { typeName }));
 
 	for (const std::unique_ptr<fileKernelCollection>& collectionItem : datacollection_)
 	{
@@ -421,7 +421,7 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, bool ad
 			auto startIdx = shapeList.begin() + i * splitListSize;
 			auto endIdx = (i == coreUse - 1) ? shapeList.end() : startIdx + splitListSize;
 			std::vector<IfcGeom::BRepElement*> sublist(startIdx, endIdx);
-			threadList.emplace_back([=]() { AddBRepElementToIndex(sublist, addToRoomIndx); });
+			threadList.emplace_back([=, &uniqueKeySet]() { AddBRepElementToIndex(sublist, uniqueKeySet, addToRoomIndx); });
 		}
 
 		for (auto& thread : threadList) {
@@ -872,7 +872,7 @@ void DataManager::populateAttributeLookup()
 	return;
 }
 
-void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, bool isRoom)
+void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::set<std::string>& uniqueKeySet, bool isRoom)
 {
 	for (IfcGeom::BRepElement* boundaryRepElem : shapeList)
 	{
@@ -889,6 +889,16 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 
 		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
 		std::string productType = product->data().type()->name();
+		std::string productGuid = product->GlobalId();
+
+		indexMutex_.lock();
+		if (uniqueKeySet.find(productGuid) != uniqueKeySet.end()) 
+		{ 
+			indexMutex_.unlock();
+			continue;
+		}
+		uniqueKeySet.emplace(productGuid);
+		indexMutex_.unlock();
 
 		if (SettingsCollection::getInstance().simplefyGeo())
 		{
@@ -1128,25 +1138,26 @@ void DataManager::indexGeo()
 	if (index_.size() > 0) { return; }
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoCreateSpatialIndex) << std::endl;
 
+	std::set<std::string> uniqueKeySet;
 	if (settingsCollection.useDefaultDiv())
 	{
 		bool addToRoomIndex = false;
-		timedAddObjectListToIndex("IfcSlab", addToRoomIndex);
-		timedAddObjectListToIndex("IfcRoof", addToRoomIndex);
-		timedAddObjectListToIndex("IfcWall", addToRoomIndex);
-		timedAddObjectListToIndex("IfcCovering", addToRoomIndex);
-		timedAddObjectListToIndex("IfcBeam", addToRoomIndex);
-		timedAddObjectListToIndex("IfcColumn", addToRoomIndex);
-		timedAddObjectListToIndex("IfcPlate", addToRoomIndex);
-		timedAddObjectListToIndex("IfcMember", addToRoomIndex);
-		timedAddObjectListToIndex("IfcWindow", addToRoomIndex);
-		timedAddObjectListToIndex("IfcDoor", addToRoomIndex);
+		timedAddObjectListToIndex("IfcSlab", uniqueKeySet);
+		timedAddObjectListToIndex("IfcRoof", uniqueKeySet);
+		timedAddObjectListToIndex("IfcWall", uniqueKeySet);
+		timedAddObjectListToIndex("IfcCovering", uniqueKeySet);
+		timedAddObjectListToIndex("IfcBeam", uniqueKeySet);
+		timedAddObjectListToIndex("IfcColumn", uniqueKeySet);
+		timedAddObjectListToIndex("IfcPlate", uniqueKeySet);
+		timedAddObjectListToIndex("IfcMember", uniqueKeySet);
+		timedAddObjectListToIndex("IfcWindow", uniqueKeySet);
+		timedAddObjectListToIndex("IfcDoor", uniqueKeySet);
 		//addObjectListToIndex<IfcSchema::IfcCurtainWall>("IfcCurtainWall", addToRoomIndex);
 
 		if (settingsCollection.useProxy())
 		{
 			bool addToRoomIndex = false;
-			timedAddObjectListToIndex("IfcBuildingElementProxy", addToRoomIndex);
+			timedAddObjectListToIndex("IfcBuildingElementProxy", uniqueKeySet, addToRoomIndex);
 		}
 	}
 	else // add custom set div objects
@@ -1154,14 +1165,14 @@ void DataManager::indexGeo()
 		std::vector<std::string> customDivTypeList = settingsCollection.getCustomDivList();
 		for (const std::string& customDivType : customDivTypeList)
 		{
-			timedAddObjectListToIndex(customDivType);
+			timedAddObjectListToIndex(customDivType, uniqueKeySet);
 		}
 	}
 
 	if (settingsCollection.makeInterior())
 	{
 		bool addToRoomIndex = true;
-		timedAddObjectListToIndex("IfcSpace", addToRoomIndex);
+		timedAddObjectListToIndex("IfcSpace", uniqueKeySet, addToRoomIndex);
 	}
 	std::cout << std::endl;
 	// find valid voids

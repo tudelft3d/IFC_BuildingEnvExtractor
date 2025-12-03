@@ -1487,8 +1487,17 @@ std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_F
 			BRep_Builder brepBuilder;
 			TopoDS_Solid sewedSolid;
 			brepBuilder.MakeSolid(sewedSolid);
-			brepBuilder.Add(sewedSolid, sewedShape);
-			sewedShape = sewedSolid;
+			try
+			{
+				brepBuilder.Add(sewedSolid, sewedShape);
+				sewedShape = sewedSolid;
+
+			}
+			catch (...)
+			{
+				return{};
+			}
+
 		}
 
 		prismList.emplace_back(sewedShape);
@@ -5196,11 +5205,7 @@ void CJGeoCreator::getOuterRaySurfaces(std::vector<std::pair<TopoDS_Face, IfcSch
 		while (coreUse > totalValueObjectList.size()) { coreUse /= 2; }
 	}
 	coreUse -= 1;
-
-	//coreUse = 1;
 	double targetScore = std::accumulate(scoreList.begin(), scoreList.end(), 0) / coreUse;
-
-	//coreUse = 1;
 
 	std::vector<std::thread> threadList;
 	std::mutex listMutex;

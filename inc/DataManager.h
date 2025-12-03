@@ -153,7 +153,7 @@ private:
 	gp_Vec computeObjectTranslation(const std::string& objectType);
 
 	/// adds all instances of the type to the index and reports to user
-	void timedAddObjectListToIndex(const std::string& typeName, bool addToRoomIndx = false);
+	void timedAddObjectListToIndex(const std::string& typeName, std::set<std::string>& uniqueKeySet, bool addToRoomIndx = false);
 	
 	/// get the kernel which contains the product with the supplied product guid
 	IfcGeom::Kernel* getKernelObject(const std::string& productGuid);
@@ -194,7 +194,7 @@ private:
 	// populate a map that has all the guid related propertysets 
 	void populateAttributeLookup();
 
-	void AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, bool isRoom = false);
+	void AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::set<std::string>& uniqueKeySet, bool isRoom = false);
 
 public:
 	/*

@@ -876,15 +876,16 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 {
 	for (IfcGeom::BRepElement* boundaryRepElem : shapeList)
 	{
-		if (!boundaryRepElem) continue;
+		if (!boundaryRepElem) { continue; }
+		
 		TopoDS_Shape shape = boundaryRepElem->geometry().as_compound();
 		gp_Trsf ifcPlacement = boundaryRepElem->transformation().data();
 		shape = shape.Moved(ifcPlacement);
 		shape.Move(objectTranslation_);
+		
 		gp_Trsf trs;
 		trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
 		shape.Move(trs);
-
 		shape = helperFunctions::addSolidSemantic(shape);
 
 		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();

@@ -1201,7 +1201,7 @@ void CJGeoCreator::getSplitFaces(std::vector<TopoDS_Face>& outFaceList, std::mut
 	{
 		if (currentRoofSurface.IsNull()) { continue; }
 		std::vector<std::pair<BoostBox3D, TopoDS_Face>> qResult;
-		bg::model::box <BoostPoint3D> searchBox = helperFunctions::createBBox(currentRoofSurface);
+		bg::model::box <BoostPoint3D> searchBox = helperFunctions::createBBox(currentRoofSurface, 0.001); //TODO: does this have to scale?
 		cuttingFaceIdx.query(bgi::intersects(searchBox), std::back_inserter(qResult));
 
 		if (qResult.size() <= 1)
@@ -1215,6 +1215,7 @@ void CJGeoCreator::getSplitFaces(std::vector<TopoDS_Face>& outFaceList, std::mut
 		//rotate to xy plane
 		gp_Vec currentNormal = helperFunctions::computeFaceNormal(currentRoofSurface);
 		gp_Vec horizontalNormal = gp_Vec(0, 0, 1);
+		double faceHeight = helperFunctions::getFirstPointShape(currentRoofSurface).Z();
 
 		gp_Trsf transform;
 		std::vector<TopoDS_Face> mergingFaces;
@@ -1238,11 +1239,12 @@ void CJGeoCreator::getSplitFaces(std::vector<TopoDS_Face>& outFaceList, std::mut
 		divider.SetRunParallel(Standard_False);
 
 		BRepBuilderAPI_Transform transformer(currentRoofSurface, transform);
-		if (transformer.IsDone()) {
-			TopoDS_Face transFace = TopoDS::Face(transformer.Shape());
-			divider.AddArgument(transFace);
-		}
-
+		if (!transformer.IsDone()) { continue; }
+		
+		TopoDS_Face transFace = TopoDS::Face(transformer.Shape());
+		faceHeight = helperFunctions::getFirstPointShape(transFace).Z();
+		divider.AddArgument(transFace);
+		
 		for (const auto& [cuttingBox, cuttingFace] : qResult)
 		{
 			gp_Vec otherNormal = helperFunctions::computeFaceNormal(cuttingFace);
@@ -1252,6 +1254,7 @@ void CJGeoCreator::getSplitFaces(std::vector<TopoDS_Face>& outFaceList, std::mut
 			BRepBuilderAPI_Transform transformer2(cuttingFace, transform);
 			if (transformer2.IsDone()) {
 				TopoDS_Face transSplitterFace = TopoDS::Face(transformer2.Shape());
+				transSplitterFace = helperFunctions::projectFaceFlat(transSplitterFace, faceHeight);
 				divider.AddTool(transSplitterFace);
 			}
 		}
@@ -1284,6 +1287,7 @@ void CJGeoCreator::getSplitFaces(std::vector<TopoDS_Face>& outFaceList, std::mut
 			listMutex.unlock();
 		}
 	}
+
 	return;
 }
 
@@ -4530,7 +4534,6 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> splitFaceIndx;
 	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> splitOuterSurfacePairCleanList;
 
-
 	for (const auto& [currentFace, currentProduct] : splitOuterSurfacePairList)
 	{
 		BoostBox3D currentBox = helperFunctions::createBBox(currentFace);
@@ -6052,6 +6055,7 @@ void CJGeoCreator::splitOuterSurfaces(
 
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount();
+	coreUse = 1;
 	if (coreUse > outerSurfacePairList.size())
 	{
 		while (coreUse > outerSurfacePairList.size()) { coreUse /= 2; }
@@ -6077,7 +6081,7 @@ void CJGeoCreator::splitOuterSurfaces(
 	}
 
 
-	threadList.emplace_back([&] {updateCounter("Splitting outer surfaces", outerSurfacePairList.size(), processedCount, processedCountMutex);  });
+	//threadList.emplace_back([&] {updateCounter("Splitting outer surfaces", outerSurfacePairList.size(), processedCount, processedCountMutex);  });
 
 
 	for (auto& thread : threadList) {
@@ -6085,7 +6089,6 @@ void CJGeoCreator::splitOuterSurfaces(
 			thread.join();
 		}
 	}
-	//TODO: process indicator
 	return;
 }
 
@@ -6114,12 +6117,12 @@ void CJGeoCreator::splitOuterSurfaces(
 		divider.SetRunParallel(Standard_False);
 		divider.AddArgument(currentFace);
 
+		gp_Vec currentNormal = helperFunctions::computeFaceNormal(currentFace);
+		if (currentNormal.Magnitude() < precision) { continue; }
+
 		std::vector<std::pair<BoostBox3D, TopoDS_Face>> qResult;
 		qResult.clear();
 		faceIndx.query(bgi::intersects(helperFunctions::createBBox(currentFace)), std::back_inserter(qResult));
-
-		gp_Vec currentNormal = helperFunctions::computeFaceNormal(currentFace);
-		if (currentNormal.Magnitude() < precision) { continue; }
 
 		int toolCount = 0;
 		for (const auto& [otherBox, otherFace] : qResult)

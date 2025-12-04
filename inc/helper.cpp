@@ -3831,50 +3831,15 @@ std::vector<TopoDS_Face> helperFunctions::removeDubFaces(const std::vector<TopoD
 
 bool helperFunctions::isFlat(const TopoDS_Face& theFace)
 {
-	TopLoc_Location loc;
-	auto mesh = BRep_Tool::Triangulation(theFace, loc);
-
-	if (mesh.IsNull())
-	{
-		helperFunctions::triangulateShape(theFace);
-		mesh = BRep_Tool::Triangulation(theFace, loc);
-	}
-	if (mesh.IsNull())
+	BRepAdaptor_Surface surface = BRepAdaptor_Surface(theFace);
+	if (surface.GetType() == GeomAbs_Plane)
 	{
 		return true;
 	}
-
-	gp_Vec tstNormal(0, 0, 0);
-	double precision = SettingsCollection::getInstance().spatialTolerance();
-	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
-	for (int i = 1; i <= mesh.get()->NbTriangles(); i++)
+	else
 	{
-		const Poly_Triangle& theTriangle = mesh->Triangles().Value(i);
-		gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
-		gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
-		gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
-
-		gp_Vec v1(p1, p2);
-		gp_Vec v2(p1, p3);
-
-		gp_Vec localNormal = v1.Crossed(v2);
-		if (localNormal.Magnitude() < precision)
-		{
-			continue; 
-		}
-
-		if (tstNormal.Magnitude() < precision)
-		{
-			tstNormal = v1.Crossed(v2);
-			continue;
-		}
-
-		if (!tstNormal.IsParallel(localNormal, angularTolerance))
-		{
-			return false;
-		}
+		return false;
 	}
-	return true;
 }
 
 template <typename T>

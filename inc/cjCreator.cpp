@@ -1415,7 +1415,7 @@ std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_F
 	for (const TopoDS_Face& currentFace : splitFaceList)
 	{
 		gp_Vec currentVec = helperFunctions::computeFaceNormal(currentFace);
-		if (currentVec.Magnitude() < precision) { continue; }
+		if (currentVec.Magnitude() < precision) {continue; }
 		BoostBox3D faceBox = helperFunctions::createBBox(currentFace);
 		SplitfaceIdx.insert(std::make_pair(faceBox, currentFace));
 	}
@@ -1445,7 +1445,7 @@ std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_F
 				isSameCount++;
 				continue;
 			}
-			if (!currentNormal.IsParallel(helperFunctions::computeFaceNormal(otherFace), precision)) { continue; }
+			if (!currentNormal.IsParallel(helperFunctions::computeFaceNormal(otherFace), angularTolerance)) { continue; }
 			if (!helperFunctions::pointOnShape(otherFace, currentPoint)) { continue; }
 			isDub = true;
 			break;

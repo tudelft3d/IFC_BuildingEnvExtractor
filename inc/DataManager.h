@@ -123,7 +123,6 @@ private:
 	gp_Trsf objectIfcTranslation_;
 
 	std::vector<std::unique_ptr<fileKernelCollection>> datacollection_;
-	int dataCollectionSize_ = 0;
 
 	static const int treeDepth = 5;
 	
@@ -214,7 +213,7 @@ public:
 	/// returns a vector of pointers to the sourcefiles
 	std::vector<IfcParse::IfcFile*> getSourceFiles() const;
 	/// get the total amount of items in the datacollection
-	int getSourceFileCount() { return dataCollectionSize_; }
+	int getSourceFileCount() const { return datacollection_.size(); }
 	/// get the length multiplier of a sourcefile
 	double getScaler(int i) const { return datacollection_[i].get()->getLengthMultiplier(); }
 	/// get the lll point of the ifc bbox
@@ -271,6 +270,9 @@ public:
 
 	/// get the shape of an ifcproduct
 	TopoDS_Shape getObjectShape(IfcSchema::IfcProduct* product, bool getNested = false, bool isSimple = false, bool fromMemOnly = false);
+
+	/// gets all the objects stored in the ifc file, does not cache
+	std::vector<IfcGeom::BRepElement*> getAllObjects();
 
 };
 

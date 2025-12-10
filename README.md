@@ -193,7 +193,7 @@ CityJSON File
 └── Building Object*
     ├── Outer Shell
     ├── Inner Shell*
-    i   └── Storey**
+    |   └── Storey**
     |     └── Space/Room**
     └── Complex
 ```
@@ -337,7 +337,7 @@ Mandatory:
   * The output CityJSON filepath. The folder structure is required to be existing. The file name should end with .json or .city.json
 * :white_check_mark: "LoD output" :white_check_mark:
   * Array filled with floats/double and/or string values, size 1 to ∞
-  * The desired LoD output. The options are 0.0, 0.2, 0.3, 0.4, 1.0, 1.2, 1.3, 2.2, 3.2, 5.0 (for a voxel shape), b.0, c.1, c.2, d.1, d.2, e.0 and e.1.
+  * The desired LoD output. The options are 0.0, 0.2, 0.3, 0.4, 1.0, 1.2, 1.3, 2.2, 3.2, 4.0, 4.1, 4.2, 5.0 (for a voxel shape), b.0, c.1, c.2, d.1, d.2, e.1.
 
 Optional:
 

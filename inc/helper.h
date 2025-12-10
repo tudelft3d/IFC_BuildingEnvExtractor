@@ -1,4 +1,4 @@
-#define USE_IFC4
+#define USE_IFC4x3
 #define iterationVersion "0.3.0"
 
 #ifdef USE_IFC2x3
@@ -38,6 +38,7 @@
 #include <gp_Vec2d.hxx>
 #include <gp_Vec.hxx>
 #include <TopoDS.hxx>
+#include <Poly_Triangulation.hxx>
 
 #include <CJT.h>
 #include <CJToKernel.h>

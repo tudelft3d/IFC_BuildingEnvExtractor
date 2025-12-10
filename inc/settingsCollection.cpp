@@ -275,12 +275,9 @@ void SettingsCollection::generateGeneralSettings()
 
 	// set ifcGeomsettings
 	IfcGeom::IteratorSettings iteratorSettings;
-	//iteratorSettings.set(iteratorSettings.USE_WORLD_COORDS, true);
-
 
 	IfcGeom::IteratorSettings simpleIteratorSettings;
 	simpleIteratorSettings.set(simpleIteratorSettings.DISABLE_OPENING_SUBTRACTIONS, true);
-	//iteratorSettings.set(simpleIteratorSettings.USE_WORLD_COORDS, true);
 
 	setIterator(iteratorSettings);
 	setSimpleIterator(simpleIteratorSettings);

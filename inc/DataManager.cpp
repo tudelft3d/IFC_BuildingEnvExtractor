@@ -200,7 +200,6 @@ DataManager::DataManager(const std::vector<std::string>& pathList) {
 		std::cout << std::endl;
 
 		datacollection_.emplace_back(std::move(dataCollection));
-		dataCollectionSize_++;
 		isPopulated_ = true;
 	}
 	return;
@@ -269,7 +268,7 @@ void DataManager::elementCountSummary()
 	int proxyCount = 0;
 	int objectCount = 0;
 
-	for (size_t i = 0; i < dataCollectionSize_; i++)
+	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
 		IfcParse::IfcFile* fileObject = datacollection_[i]->getFilePtr();
 		IfcSchema::IfcProduct::list::ptr products = fileObject->instances_by_type<IfcSchema::IfcProduct>();
@@ -356,7 +355,7 @@ gp_Vec DataManager::computeObjectTranslation()
 
 gp_Vec DataManager::computeObjectTranslation(const std::string& objectType)
 {
-	for (size_t i = 0; i < dataCollectionSize_; i++)
+	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
 		aggregate_of_instance::ptr productList = datacollection_[i]->getFilePtr()->instances_by_type(objectType);
 		if (productList == nullptr) { continue; }
@@ -437,12 +436,12 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::se
 
 IfcGeom::Kernel* DataManager::getKernelObject(const std::string& productGuid)
 {
-	if (dataCollectionSize_ == 1)
+	if (getSourceFileCount() == 1)
 	{
 		return datacollection_[0]->getKernelPtr();
 	}
 	else {
-		for (size_t i = 0; i < dataCollectionSize_; i++)
+		for (size_t i = 0; i < getSourceFileCount(); i++)
 		{
 			try { datacollection_[i]->getFilePtr()->instance_by_guid(productGuid)->data().toString(); }
 			catch (const std::exception&) { continue; }
@@ -576,7 +575,7 @@ void DataManager::timedVoidShapeAdjust(const std::string& typeName)
 	std::cout << "\t" + typeName + " objects ";
 	auto startTime = std::chrono::high_resolution_clock::now();
 
-	for (size_t i = 0; i < dataCollectionSize_; i++) //TODO: multithread
+	for (size_t i = 0; i < getSourceFileCount(); i++) //TODO: multithread
 	{
 		IfcParse::IfcFile* fileObject = datacollection_[i]->getFilePtr();
 		voidShapeAdjust(datacollection_[i]->getFilePtr()->instances_by_type<T>());
@@ -828,7 +827,7 @@ bool DataManager::validateProjectionData(const nlohmann::json& sitePropertySetDa
 
 void DataManager::populateAttributeLookup()
 {
-	for (size_t i = 0; i < dataCollectionSize_; i++)
+	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
 		IfcSchema::IfcRelDefinesByProperties::list::ptr relDefList = datacollection_[i]->getFilePtr()->instances_by_type <IfcSchema::IfcRelDefinesByProperties>();
 		for (auto reldefIt = relDefList->begin(); reldefIt != relDefList->end(); reldefIt++)
@@ -970,7 +969,7 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 
 
 bool DataManager::hasSetUnits() {
-	for (size_t i = 0; i < dataCollectionSize_; i++)
+	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
 		if (!datacollection_[i]->getLengthMultiplier()) { return false; }
 	}
@@ -980,8 +979,9 @@ bool DataManager::hasSetUnits() {
 std::vector<IfcParse::IfcFile*> DataManager::getSourceFiles() const
 {
 	std::vector<IfcParse::IfcFile*> ptrList;
-	ptrList.reserve(dataCollectionSize_);
-	for (int i = 0; 1 < dataCollectionSize_; i ++) { ptrList.emplace_back(datacollection_[i].get()->getFilePtr()); }
+	int sourceFileCount = getSourceFileCount();
+	ptrList.reserve(sourceFileCount);
+	for (int i = 0; 1 < sourceFileCount; i ++) { ptrList.emplace_back(datacollection_[i].get()->getFilePtr()); }
 	return ptrList;
 }
 
@@ -1104,7 +1104,7 @@ void DataManager::fetchGroundFloorElevation()
 		throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoGroundFLoorFound));
 	}
 
-	if (groundfloorElevationList.size() != dataCollectionSize_)
+	if (groundfloorElevationList.size() != getSourceFileCount())
 	{
 		ErrorCollection::getInstance().addError(ErrorID::errorInconsistentGroundFLoorNumbers);
 		throw std::string(errorWarningStringEnum::getString(ErrorID::errorInconsistentGroundFLoorNumbers));
@@ -1316,7 +1316,7 @@ nlohmann::json DataManager::getBuildingInformation()
 {
 	nlohmann::json dictionary;
 
-	for (size_t i = 0; i < dataCollectionSize_; i++)
+	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
 		IfcParse::IfcFile* fileObject = datacollection_[i]->getFilePtr();
 
@@ -1344,7 +1344,7 @@ template <typename T>
 std::string DataManager::getIfcObjectName(const std::string& objectTypeName, bool isLong)
 {
 	std::vector<std::string> stringList;
-	for (size_t i = 0; i < dataCollectionSize_; i++)
+	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
 		IfcParse::IfcFile* fileObject = datacollection_[i]->getFilePtr();
 		std::string nameString = getIfcObjectName<T>(objectTypeName, fileObject, isLong);
@@ -1354,7 +1354,7 @@ std::string DataManager::getIfcObjectName(const std::string& objectTypeName, boo
 
 	if (stringList.size() == 0) { return ""; }
 	std::string baseString = stringList[0];
-	for (size_t i = 1; i < dataCollectionSize_; i++)
+	for (size_t i = 1; i < getSourceFileCount(); i++)
 	{
 		if (baseString != stringList[i])
 		{
@@ -1399,7 +1399,7 @@ std::string DataManager::getIfcObjectName(const std::string& objectTypeName, Ifc
 
 nlohmann::json DataManager::collectPropertyValues(const std::string& objectId, const std::string& psetName)
 {
-	for (size_t i = 0; i < dataCollectionSize_; i++)
+	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
 		try
 		{

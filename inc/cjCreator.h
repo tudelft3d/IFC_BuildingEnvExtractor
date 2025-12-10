@@ -361,6 +361,8 @@ private:
 		std::vector<TopoDS_Shape>& collectionShapeOut,
 		const int num);
 
+	void brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, const std::vector<IfcGeom::BRepElement*>& brepElemList, std::mutex& countMutex, int& counter, std::mutex& listMutex, std::vector< CJT::GeoObject>& geoObjectList, std::vector<TopoDS_Shape>& collectionShape);
+
 public:
 	explicit CJGeoCreator(DataManager* h, double vSize);
 

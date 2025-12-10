@@ -3895,6 +3895,7 @@ TopoDS_Shape helperFunctions::addSolidSemantic(const TopoDS_Shape& assumedSolid)
 	for (TopExp_Explorer faceExpl(assumedSolid, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 	{
 		TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
+		if (currentFace.IsNull()) { continue; }
 		brepSewer.Add(currentFace);
 	}
 	brepSewer.Perform();

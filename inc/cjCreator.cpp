@@ -57,6 +57,8 @@
 
 #include <STEPControl_Writer.hxx>
 #include <STEPControl_StepModelType.hxx>
+#include <ifcgeom_schema_agnostic/IfcGeomFilter.h>
+#include <ifcgeom_schema_agnostic/IfcGeomIterator.h>
 
 #include <execution>
 #include <algorithm>
@@ -4364,7 +4366,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingLoD41) << std::endl;
 
-	if (storeyObjects_.empty()) { makeStoreyObjects(h); }
+	//if (storeyObjects_.empty()) { makeStoreyObjects(h); }
 
 	std::cout << "\tprocessing IFC objects\r";
 
@@ -4374,7 +4376,6 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 	gp_Trsf localRotationTrsf;
 	localRotationTrsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
 
-	std::vector< CJT::GeoObject> geoObjectList; // final output collection
 	auto spatialIndx = h->getIndexPointer();
 
 	int coreUse = SettingsCollection::getInstance().threadcount();
@@ -4398,6 +4399,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 	int targetScore = static_cast<int>(std::floor(totalScore / coreUse));
 
 	std::vector<std::vector<Value>> sublists = subListScore(allEntries, scoreList, targetScore);
+	std::vector< CJT::GeoObject> geoObjectList; // final output collection
 	std::vector<TopoDS_Shape> collectionShape;
 	int counter = 0;
 	std::vector<std::thread> threadList;
@@ -4409,7 +4411,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 		threadList.emplace_back([&, i] {makeLoD41(h, kernel, sublists[i], localRotationTrsf, listMutex, countMutex, counter, geoObjectList, collectionShape, i); });
 	}
 
-	threadList.emplace_back([&] {updateCounter("processing IFC objects", allEntries.size(), counter, listMutex); });
+	threadList.emplace_back([&] {updateCounter("processing IFC objects", allEntries.size(), counter, countMutex); });
 
 	for (auto& thread : threadList) {
 		if (thread.joinable()) {
@@ -4435,10 +4437,72 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 std::vector<CJT::GeoObject> CJGeoCreator::makeLoD42(DataManager* h, CJT::Kernel* kernel, int unitScale)
 {
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingLoD42) << std::endl;
-	//TODO: implement
 	finishedLoD42_ = true;
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+
+	std::vector<IfcGeom::filter_t> filterFuncs;
+	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, {"IfcProduct"}));
+
+	std::vector< CJT::GeoObject> geoObjectList; // final output collection
+	std::vector<TopoDS_Shape> collectionShape;
+
+	for (size_t i = 0; i < h->getSourceFileCount(); i++)
+	{
+		std::vector<IfcGeom::BRepElement*> shapeList;
+
+		IfcGeom::Iterator it(
+			settingsCollection.iteratorSettings(),
+			h->getSourceFile(i),
+			filterFuncs,
+			settingsCollection.threadcount()
+		);
+		if (!it.initialize()) { continue; }
+
+		do { shapeList.emplace_back(it.get_native()); } while (it.next());
+
+		gp_Trsf localRotationTrsf;
+		localRotationTrsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
+
+		int coreUse = settingsCollection.threadcount();
+		if (shapeList.size() < coreUse) { coreUse = shapeList.size(); }
+		int splitListSize = static_cast<int>(std::floor(shapeList.size() / coreUse));
+
+		std::vector<std::thread> threadList;
+		int counter = 0;
+		std::mutex countMutex;
+		std::mutex listMutex;
+		for (size_t j = 0; j < coreUse; j++)
+		{
+			auto startIdx = shapeList.begin() + j * splitListSize;
+			auto endIdx = (j == coreUse - 1) ? shapeList.end() : startIdx + splitListSize;
+			std::vector<IfcGeom::BRepElement*> sublist(startIdx, endIdx);
+			threadList.emplace_back([&, sublist]() { brepIFcElemToGeoObject(h, kernel, sublist, countMutex, counter, listMutex, geoObjectList, collectionShape); });
+		}
+
+		std::string communicationString = "File: " + std::to_string((int)i + 1) + std::string(" - processing IFC objects");
+		threadList.emplace_back([&] {updateCounter(communicationString, shapeList.size(), counter, countMutex); });
+
+		for (auto& thread : threadList) {
+			if (thread.joinable()) {
+				thread.join();
+			}
+		}
+	}
+	if (settingsCollection.createOBJ())
+	{
+	//	helperFunctions::writeToOBJ(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoDe0));
+	}
+
+	if (settingsCollection.createSTEP())
+	{
+	//	helperFunctions::writeToSTEP(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDe0));
+	}
+
 	garbageCollection();
-	return std::vector<CJT::GeoObject>();
+
+
+
+	return geoObjectList;
 }
 
 std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel* kernel, int unitScale)
@@ -5932,6 +5996,74 @@ void CJGeoCreator::makeLoD41(
 		geoObjectListOut.emplace_back(geoObject);
 		collectionShapeOut.emplace_back(cleanShape);
 
+	}
+	return;
+}
+
+void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, const std::vector<IfcGeom::BRepElement*>& brepElemList, std::mutex& countMutex, int& counter, std::mutex& listMutex, std::vector< CJT::GeoObject>& geoObjectListOut, std::vector<TopoDS_Shape>& collectionShapeOut)
+{
+	gp_Trsf objectTranslation = h->getObjectTranslation();
+	gp_Trsf localTrans;
+	localTrans.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -SettingsCollection::getInstance().gridRotation());
+
+	for (IfcGeom::BRepElement* brepElem : brepElemList)
+	{
+		countMutex.lock();
+		counter++;
+		countMutex.unlock();
+
+		if (!brepElem) { continue; }
+		auto product = brepElem->product()->as<IfcSchema::IfcProduct>();
+		TopoDS_Shape shape = brepElem->geometry().as_compound();
+		gp_Trsf ifcPlacement = brepElem->transformation().data();
+		shape = shape.Moved(ifcPlacement);
+		shape.Move(objectTranslation);
+
+		gp_Trsf trs;
+		trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
+		shape.Move(trs);
+		shape = helperFunctions::addSolidSemantic(shape);
+
+
+		std::string productType = product->data().type()->name();
+		std::string productGuid = product->GlobalId();
+
+		if (productType == "IfcOpeningElement") { continue; }
+
+		//indexMutex_.lock();
+		//if (uniqueKeySet.find(productGuid) != uniqueKeySet.end())
+		//{
+		//	indexMutex_.unlock();
+		//	continue;
+		//}
+		//uniqueKeySet.emplace(productGuid);
+		//indexMutex_.unlock();
+
+		TopoDS_Shape cleanShape = helperFunctions::TesselateShape(shape);
+		if (cleanShape.IsNull()) {
+			cleanShape = shape;
+		}
+
+		cleanShape.Move(localTrans);
+
+		nlohmann::json attributeMap;
+		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + product->data().type()->name();
+		nlohmann::json attributeList = h->collectPropertyValues(product->GlobalId());
+		for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
+			attributeMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();
+		}
+
+		int faceCount = 0;
+		for (TopExp_Explorer explorer(cleanShape, TopAbs_FACE); explorer.More(); explorer.Next()) { faceCount++; }
+		std::vector<int>TypeValueList(faceCount, 0);
+
+		CJT::GeoObject geoObject = kernel->convertToJSON(cleanShape, "4.2");
+		geoObject.setSurfaceTypeValues(TypeValueList);
+		geoObject.appendSurfaceData(attributeMap);
+
+		std::lock_guard<std::mutex> listGuard(listMutex);
+		geoObjectListOut.emplace_back(geoObject);
+		collectionShapeOut.emplace_back(cleanShape);
 	}
 	return;
 }

@@ -1415,7 +1415,6 @@ std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_F
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> cuttingFaceIdx = indexUniqueFaces(splittingfaceIdx);
 	for (const auto& [currentBox, currentFace] : cuttingFaceIdx) { toBesSplitFaceList.emplace_back(currentFace);}
 	std::vector<TopoDS_Face> splitFaceList = getSplitFaces(toBesSplitFaceList, cuttingFaceIdx);
-	DebugUtils::WriteToSTEP(splitFaceList, "C:/Users/Jasper/Desktop/desk/test.STEP");
 
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> SplitfaceIdx;
 	for (const TopoDS_Face& currentFace : splitFaceList)
@@ -4428,7 +4427,6 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 		helperFunctions::writeToSTEP(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDe0));
 	}
 
-	std::cout << "\t" << std::endl;
 	printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;

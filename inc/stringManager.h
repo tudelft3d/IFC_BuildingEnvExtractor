@@ -110,6 +110,7 @@ enum class CommunicationStringID {
 
 	infoComputingInterior,
 	infoComputingExterior,
+	infoComputingComplex,
 
 	infoComputingLoD50Rooms,
 	infoExtractingSite,

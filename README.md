@@ -184,7 +184,7 @@ Performance of the tool is depending on the complexity of the input model. The t
 
 ## Output file structure
 
-The output files are CityJSON format compliant but might follow a different structure than is usually encountered. Every object that represents a building is split up in 2 building parts: The "Outer Shell" and the "Inner Shell". The "Outer Shell" follows the regular structure that is often seen in established city scale models. It is populated with the different exterior LoD shells. The "Inner Shell" is, depending on the process settings and input file quality, split further over storeys, apartments and rooms.
+The output files are CityJSON format compliant but might follow a different structure than is usually encountered. Every object that represents a building is split up in 2 building parts: The "Outer Shell" and the "Inner Shell". The "Outer Shell" follows the regular structure that is often seen in established city scale models. It is populated with the different exterior LoD shells. The "Inner Shell" is, depending on the process settings and input file quality, split further over storeys, apartments and rooms. If LoD4 is converted the objects will be placed under the "Complex" sub-group.
 
 Below the structure of the file can be seen.
 
@@ -192,9 +192,10 @@ Below the structure of the file can be seen.
 CityJSON File
 └── Building Object*
     ├── Outer Shell
-    └── Inner Shell*
-        └── Storey**
-            └── Space/Room**
+    ├── Inner Shell*
+    i   └── Storey**
+    |     └── Space/Room**
+    └── Complex
 ```
 
 *Object that does not directly store any geometry.

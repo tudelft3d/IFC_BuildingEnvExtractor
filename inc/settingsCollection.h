@@ -295,7 +295,8 @@ public:
     void setMakeInterior(bool value) { makeInterior_ = value; }
     void setMakeInterior(const nlohmann::json& json);
 
-    bool requiresInteriorCityObjects() const;
+    bool requiresInterior() const;
+    bool makeComplex() const;
 
     bool makeExterior() const { return makeExterior_; }
     void setMakeExterior(bool value) { makeExterior_ = value; }

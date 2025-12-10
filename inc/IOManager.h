@@ -73,7 +73,7 @@ private:
 	// sets up metadata and transformation object for CJT and adds them to the collection
 	void setMetaData(std::shared_ptr<CJT::CityCollection> collection);
 	// set the relationships between CJ objects, copy the default attributes from the IFC file and adds them to respective cityobject
-	void setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::CityObject& cityOuterShellObject, CJT::CityObject& cityInnerShellObject);
+	void setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::CityObject& cityComplexObject, CJT::CityObject& cityOuterShellObject, CJT::CityObject& cityInnerShellObject);
 	// set, compute additional attributes and adds them to respective cityobject
 	void setComputedSemantic(CJGeoCreator* geoCreator, CJT::CityObject& cityBuildingObject, CJT::CityObject& cityOuterShellObject, CJT::CityObject& cityInnerShellObject);
 	/// compute the storeys that are equal or above ground level and the storeys that are below ground level
@@ -92,11 +92,16 @@ private:
 		CJT::CityObject& cityOuterShellObject,
 		ErrorID errorID,
 		long long& timeRecord);
+	/// process, collect errors and clock the complex (1:1) geocreating functions
+	void processComplexlLoD(
+		CJGeoCreator* geoCreator,
+		CJT::CityObject& cityComplexObject,
+		CJT::Kernel* kernel);
 	/// process, collect errors and clock the interior geocreating functions
 	void processInteriorLod(
 		CJGeoCreator* geoCreator, 
 		std::shared_ptr<CJT::CityCollection> collection, 
-		std::vector<std::shared_ptr<CJT::CityObject>>& storeyObjects,
+		CJT::CityObject* cityInnerShellObject, 
 		CJT::Kernel* kernel);
 	/// process, collect errors and clock the site geometry functions
 	void processSitelod(CJGeoCreator* geoCreator, std::shared_ptr<CJT::CityCollection> collection, CJT::CityObject* cityBuildingObject, CJT::Kernel* kernel);

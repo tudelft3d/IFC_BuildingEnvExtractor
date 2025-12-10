@@ -539,10 +539,9 @@ void IOManager::setMetaData(std::shared_ptr<CJT::CityCollection> collection)
 	return;
 }
 
-void IOManager::setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::CityObject& cityOuterShellObject, CJT::CityObject& cityInnerShellObject)
+void IOManager::setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::CityObject& cityComplexObject, CJT::CityObject& cityOuterShellObject, CJT::CityObject& cityInnerShellObject)
 {
 	// Set up objects and their relationships
-	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	std::string BuildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
 	if (BuildingName == "") { BuildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcSite>("IfcSite", false); }
 	nlohmann::json buildingAttributes = internalDataManager_.get()->getBuildingInformation();
@@ -550,6 +549,9 @@ void IOManager::setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::Cit
 
 	cityBuildingObject.setName(BuildingName);
 	cityBuildingObject.setType(CJT::Building_Type::Building);
+
+	cityComplexObject.setName("Complex");
+	cityComplexObject.setType(CJT::Building_Type::BuildingPart);
 
 	cityOuterShellObject.setName(CJObjectEnum::getString(CJObjectID::outerShell));
 	cityOuterShellObject.setType(CJT::Building_Type::BuildingPart);
@@ -559,9 +561,14 @@ void IOManager::setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::Cit
 
 	cityBuildingObject.addChild(&cityOuterShellObject);
 
-	if (settingsCollection.requiresInteriorCityObjects())
+	if (SettingsCollection::getInstance().makeInterior())
 	{
 		cityBuildingObject.addChild(&cityInnerShellObject);
+	}
+
+	if (SettingsCollection::getInstance().makeComplex())
+	{
+		cityBuildingObject.addChild(&cityComplexObject);
 	}
 
 	return;
@@ -780,24 +787,6 @@ void IOManager::processExternalLoD(CJGeoCreator* geoCreator, CJT::CityObject& ci
 			return std::vector<CJT::GeoObject>{geoCreator->makeLoDd2(internalDataManager_.get(), kernel, 1)};
 			}, cityOuterShellObject, ErrorID::failedLoDd2, timeLoDd2_);
 	}
-	if (settingsCollection.make40())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD40(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD40, timeLoD40_);
-	}
-	if (settingsCollection.make41())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD41(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD41, timeLoD41_);
-	}
-	if (settingsCollection.make42())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD42(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD42, timeLoD42_);
-	}
 	if (settingsCollection.makee1())
 	{
 		processExternalLoD([&]() {
@@ -842,15 +831,41 @@ void IOManager::processExternalLoD(
 	return;
 }
 
+void IOManager::processComplexlLoD(CJGeoCreator* geoCreator, CJT::CityObject& cityComplexObject, CJT::Kernel* kernel)
+{
+	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingComplex) << std::endl;
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
-void IOManager::processInteriorLod(CJGeoCreator* geoCreator, std::shared_ptr<CJT::CityCollection> collection, std::vector<std::shared_ptr<CJT::CityObject>>& storeyObjects, CJT::Kernel* kernel)
+	if (settingsCollection.make40())
+	{
+		processExternalLoD([&]() {
+			return std::vector<CJT::GeoObject>{geoCreator->makeLoD40(internalDataManager_.get(), kernel, 1)};
+			}, cityComplexObject, ErrorID::failedLoD40, timeLoD40_);
+	}
+	if (settingsCollection.make41())
+	{
+		processExternalLoD([&]() {
+			return std::vector<CJT::GeoObject>{geoCreator->makeLoD41(internalDataManager_.get(), kernel, 1)};
+			}, cityComplexObject, ErrorID::failedLoD41, timeLoD41_);
+	}
+	if (settingsCollection.make42())
+	{
+		processExternalLoD([&]() {
+			return std::vector<CJT::GeoObject>{geoCreator->makeLoD42(internalDataManager_.get(), kernel, 1)};
+			}, cityComplexObject, ErrorID::failedLoD42, timeLoD42_);
+	}
+	return;
+}
+
+
+void IOManager::processInteriorLod(CJGeoCreator* geoCreator, std::shared_ptr<CJT::CityCollection> collection, CJT::CityObject* cityInnerShellObject, CJT::Kernel* kernel)
 {
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingInterior) << std::endl;
 
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	// get storey semantic objects
-
+	std::vector<std::shared_ptr<CJT::CityObject>> storeyObjects = geoCreator->makeStoreyObjects(internalDataManager_.get());
 	std::vector<std::shared_ptr<CJT::CityObject>> roomObjects = {};
 
 	if (settingsCollection.make02() || settingsCollection.make12() || 
@@ -860,7 +875,7 @@ void IOManager::processInteriorLod(CJGeoCreator* geoCreator, std::shared_ptr<CJT
 		roomObjects = geoCreator->makeRoomObjects(internalDataManager_.get(), storeyObjects);
 	}
 
-
+	// storeys
 	if (settingsCollection.make02())
 	{
 		geoCreator->make2DStoreys(internalDataManager_.get(), kernel, storeyObjects, 1, false);
@@ -883,6 +898,12 @@ void IOManager::processInteriorLod(CJGeoCreator* geoCreator, std::shared_ptr<CJT
 	if (settingsCollection.makeV())
 	{
 		geoCreator->makeVRooms(internalDataManager_.get(), kernel, storeyObjects, roomObjects, 1);
+	}
+
+	for (size_t i = 0; i < storeyObjects.size(); i++)
+	{
+		storeyObjects[i]->addParent(cityInnerShellObject);
+		collection->addCityObject(*storeyObjects[i].get());
 	}
 
 	for (size_t i = 0; i < roomObjects.size(); i++)
@@ -952,9 +973,10 @@ bool IOManager::run()
 	std::shared_ptr<CJT::CityCollection> collection = std::make_shared<CJT::CityCollection>();
 	CJT::CityObject cityBuildingObject; //the overarching city object
 	CJT::CityObject cityOuterShellObject; //container of outer shell geo objects
+	CJT::CityObject cityComplexObject; // container of the ifc conversion objects
 	CJT::CityObject cityInnerShellObject; //container of storey objects
 
-	setDefaultSemantic(cityBuildingObject, cityOuterShellObject, cityInnerShellObject);
+	setDefaultSemantic(cityBuildingObject, cityComplexObject, cityOuterShellObject, cityInnerShellObject);
 	setMetaData(collection);
 
 	// make the geometrycreator and voxelgrid
@@ -972,31 +994,19 @@ bool IOManager::run()
 		return false;
 	}
 
-	// create storey semantics
-	std::vector<std::shared_ptr<CJT::CityObject>> storeyObjects;
-	if (settingsCollection.requiresInteriorCityObjects())
-	{
-		storeyObjects = geoCreator.makeStoreyObjects(internalDataManager_.get());
-		for (size_t i = 0; i < storeyObjects.size(); i++)
-		{
-			storeyObjects[i]->addParent(&cityInnerShellObject);
-			collection->addCityObject(*storeyObjects[i].get());
-		}
-	}
-
-
 	// create the actual geometry
 	CJT::Kernel kernel = CJT::Kernel(collection);
 	if (settingsCollection.makeInterior())
 	{
-		if (!storeyObjects.empty())
-		{
-			processInteriorLod(&geoCreator, collection, storeyObjects, &kernel);
-		}
+		processInteriorLod(&geoCreator, collection, &cityInnerShellObject, &kernel);
 	}
 	if (settingsCollection.makeExterior())
 	{
 		processExternalLoD(&geoCreator, cityOuterShellObject, &kernel);
+	}
+	if (settingsCollection.make40() || settingsCollection.make41() || settingsCollection.make42())
+	{
+		processComplexlLoD(&geoCreator, cityComplexObject, &kernel);
 	}
 	if (settingsCollection.makeSite())
 	{
@@ -1006,14 +1016,13 @@ bool IOManager::run()
 	setComputedSemantic(&geoCreator, cityBuildingObject, cityOuterShellObject, cityInnerShellObject);
 
 	collection->addCityObject(cityBuildingObject);
-	collection->addCityObject(cityOuterShellObject);
-	if (settingsCollection.requiresInteriorCityObjects())
-	{
-		collection->addCityObject(cityInnerShellObject);
-	}
+
+	if (settingsCollection.makeExterior()) { collection->addCityObject(cityOuterShellObject); }
+	if (settingsCollection.makeComplex()) { collection->addCityObject(cityComplexObject); }
+	if (settingsCollection.makeInterior()) { collection->addCityObject(cityInnerShellObject); }
+
 	collection->CleanVertices();
 	cityCollection_ = collection;
-
 	printErrors();
 
 	return succesfullExit_;

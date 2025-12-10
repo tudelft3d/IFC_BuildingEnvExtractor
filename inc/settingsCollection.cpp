@@ -241,7 +241,7 @@ void SettingsCollection::setTolerances(const nlohmann::json& json)
 void SettingsCollection::generateGeneralSettings()
 {
 	// set generated settings
-	if (make00() || make10())
+	if (make00() || make10() || make41() || make42())
 	{
 		if (!make02() &&
 			!make03() &&
@@ -623,9 +623,14 @@ void SettingsCollection::setMakeInterior(const nlohmann::json& json)
 	return;
 }
 
-bool SettingsCollection::requiresInteriorCityObjects() const
+bool SettingsCollection::requiresInterior() const
 {
-	return (makeInterior_ || make40_ || make41_ || make42_);
+	return (makeInterior_);
+}
+
+bool SettingsCollection::makeComplex() const
+{
+	return (make40_ || make41_ || make42_);
 }
 
 void SettingsCollection::setMakeExterior(const nlohmann::json& json)
@@ -644,6 +649,15 @@ void SettingsCollection::setMakeExterior(const nlohmann::json& json)
 			throw std::string(errorWarningStringEnum::getString(exceptionId) + generateExteriorOName);
 		}
 	}
+
+	if (!make00_ && !make02_ && !make03_ && !make04_ &&
+		!make10_ && !make12_ && !make13_ && !make22_ &&
+		!make32_ && !makeb0_ && !makec1_ && !makec2_ && 
+		!maked1_ && !maked2_ && !makee1_ )
+	{
+		setMakeExterior(false);
+	}
+
 	return;
 }
 

@@ -135,12 +135,16 @@ std::string CommunicationStringEnum::getString(CommunicationStringID id)
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD d.1 Model";
 	case CommunicationStringID::infoComputingLoDd2:
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD d.2 Model";
-	case CommunicationStringID::infoComputingLoDe0:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD e.0 Model";
 	case CommunicationStringID::infoComputingLoDe1:
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD e.1 Model";
 	case CommunicationStringID::infoComputingLoD32:
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 3.2 Model";
+	case CommunicationStringID::infoComputingLoD40:
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 4.0 Model";
+	case CommunicationStringID::infoComputingLoD41:
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 4.1 Model";
+	case CommunicationStringID::infoComputingLoD42:
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 4.2 Model";
 	case CommunicationStringID::infoComputingLoD50:
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 5.0 Model";
 

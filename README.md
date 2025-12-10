@@ -24,13 +24,15 @@ Current possible output shells (*non-standard LoD in Italic type*):
 * LoD1.3 - exterior only
 * LoD2.2 - exterior and rooms
 * LoD3.2 - exterior and rooms (WIP)
+* *LoD4.0 - exterior (All external space bounding objects)*
+* *LoD4.1 - exterior and interior (All space bounding objects)*
+* *LoD4.2 - exterior and interior (All objects with a spacial representation)*
 * *LoD5.0 - exterior and interior rooms (voxelized representation)*
 * *LoDb.0 - exterior only (footprint extruded upwards to roof structure but retaining overhang from roofs)*
 * *LoDc.1 - exterior only (extruded LoD0.2 surfaces)*
 * *LoDc.2 - exterior only (WIP) (extruded LoD0.2 surfaces with LoD0.4 roofs)*
 * *LoDd.1 - exterior only (WIP) (extruded LoD0.3 internal surfaces)*
 * *LoDd.2 - exterior only (planned) (extruded LoD0.3 internal surfaces with LoD0.4 roofs)*
-* *LoDe.0 - all relevant geometry (WIP) (full 1:1 conversion of geometry)*
 * *LoDe.1 - exterior unrefined LoD3.2*
 
 Current supported IFC versions:

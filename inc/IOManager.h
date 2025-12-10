@@ -33,7 +33,9 @@ private:
 	long long timeLoDc2_ = 0;
 	long long timeLoDd1_ = 0;
 	long long timeLoDd2_ = 0;
-	long long timeLoDe0_ = 0;
+	long long timeLoD40_ = 0;
+	long long timeLoD41_ = 0;
+	long long timeLoD42_ = 0;
 	long long timeLoDe1_ = 0;
 	long long timeV_ = 0;
 
@@ -94,7 +96,7 @@ private:
 	void processInteriorLod(
 		CJGeoCreator* geoCreator, 
 		std::shared_ptr<CJT::CityCollection> collection, 
-		CJT::CityObject* cityInnerShellObject, 
+		std::vector<std::shared_ptr<CJT::CityObject>>& storeyObjects,
 		CJT::Kernel* kernel);
 	/// process, collect errors and clock the site geometry functions
 	void processSitelod(CJGeoCreator* geoCreator, std::shared_ptr<CJT::CityCollection> collection, CJT::CityObject* cityBuildingObject, CJT::Kernel* kernel);

@@ -19,8 +19,10 @@ class LoDSettings:
         self.lod12 = tkinter.IntVar(value=1)
         self.lod13 = tkinter.IntVar(value=1)
         self.lod22 = tkinter.IntVar(value=1)
-        self.translate = tkinter.IntVar(value=0)
-        self.lod32r = tkinter.IntVar(value=0)
+        self.lod40 = tkinter.IntVar(value=0)
+        self.lod41 = tkinter.IntVar(value=0)
+        self.lod42 = tkinter.IntVar(value=0)
+        self.lode1 = tkinter.IntVar(value=0)
         self.lod32 = tkinter.IntVar(value=0)
         self.lod50 = tkinter.IntVar(value=0)
 
@@ -28,7 +30,8 @@ class LoDSettings:
         return any(lod.get() for lod in [
             self.lod00, self.lod02, self.lod03, self.lod04,
             self.lod10, self.lod12, self.lod13, self.lod22,
-            self.translate, self.lod32r, self.lod32, self.lod50
+            self.lod32, self.lode1, self.lod40, self.lod41,
+            self.lod42, self.lod50
         ])
 
 class voxelSettings:
@@ -322,14 +325,18 @@ def runCode(input_path,
     if (lod_settings.lod22).get():
         lod_list.append(2.2)
         json_dictionary["JSON"]["Footprint based"] = footprint_settings.footprint_based.get()
-    if (lod_settings.translate.get()):
-        lod_list.append("e.0")
-    if (lod_settings.lod32r.get()):
+    if (lod_settings.lode1.get()):
         lod_list.append("e.1")
     if (lod_settings.lod32.get()):
         lod_list.append(3.2)
     if (lod_settings.lod50.get()):
         lod_list.append(5.0)
+    if (lod_settings.lod40.get()):
+        lod_list.append("4.0")
+    if (lod_settings.lod41.get()):
+        lod_list.append("4.1")
+    if (lod_settings.lod42.get()):
+        lod_list.append("4.2")
     json_dictionary["LoD output"] = lod_list
 
     with open(json_path, "w") as outfile:
@@ -541,7 +548,7 @@ size_button_normal = 8
 
 # setup the window and the grid
 main_window = tkinter.Tk()
-main_window.geometry('500x585')
+main_window.geometry('500x590')
 main_window.resizable(1,0)
 main_window.title("IfcEnvExtactor GUI")
 
@@ -597,6 +604,8 @@ frame_lod_settings2 = tkinter.Frame(frame_lod_settings_gen)
 frame_lod_settings2.pack()
 frame_lod_settings3 = tkinter.Frame(frame_lod_settings_gen)
 frame_lod_settings3.pack()
+frame_lod_settings4 = tkinter.Frame(frame_lod_settings_gen)
+frame_lod_settings4.pack()
 
 toggle_makelod00 = ttk.Checkbutton(frame_lod_settings1, text="LoD0.0", variable=lod_settings.lod00,
                                    command=lambda: [
@@ -656,15 +665,7 @@ toggle_makelod22 = ttk.Checkbutton(frame_lod_settings2, text="LoD2.2", variable=
                                        toggleMakeInterior(toggle_makeinterior)
                                    ])
 
-toggle_makelod11 = ttk.Checkbutton(frame_lod_settings3, text="1:1",  variable=lod_settings.translate,
-                                   command=lambda: [
-                                       toggleMakeFootprint(toggle_makefootprint),
-                                       toggleMakeRoofOutline(toggle_makeroofprint),
-                                       toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
-                                   ])
-
-toggle_makelode1 = ttk.Checkbutton(frame_lod_settings3, text="LoDe.1",  variable=lod_settings.lod32r,
+toggle_makelode1 = ttk.Checkbutton(frame_lod_settings3, text="LoDe.1", variable=lod_settings.lode1,
                                    command=lambda: [
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
@@ -679,9 +680,34 @@ toggle_makelod32 = ttk.Checkbutton(frame_lod_settings3, text="LoD3.2", variable=
                                        toggleMakeFootprintBased(toggle_footprint_based),
                                        toggleMakeInterior(toggle_makeinterior)
                                    ])
+
 toggle_makelod50 = ttk.Checkbutton(frame_lod_settings3,
                                    text="LoDV.0",
                                    variable=lod_settings.lod50,
+                                   command=lambda: [
+                                       toggleMakeFootprint(toggle_makefootprint),
+                                       toggleMakeRoofOutline(toggle_makeroofprint),
+                                       toggleMakeFootprintBased(toggle_footprint_based),
+                                       toggleMakeInterior(toggle_makeinterior)
+                                   ])
+
+toggle_makelod40 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.0",  variable=lod_settings.lod40,
+                                   command=lambda: [
+                                       toggleMakeFootprint(toggle_makefootprint),
+                                       toggleMakeRoofOutline(toggle_makeroofprint),
+                                       toggleMakeFootprintBased(toggle_footprint_based),
+                                       toggleMakeInterior(toggle_makeinterior)
+                                   ])
+
+toggle_makelod41 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.1",  variable=lod_settings.lod41,
+                                   command=lambda: [
+                                       toggleMakeFootprint(toggle_makefootprint),
+                                       toggleMakeRoofOutline(toggle_makeroofprint),
+                                       toggleMakeFootprintBased(toggle_footprint_based),
+                                       toggleMakeInterior(toggle_makeinterior)
+                                   ])
+
+toggle_makelod42 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.2",  variable=lod_settings.lod42,
                                    command=lambda: [
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
@@ -697,10 +723,13 @@ toggle_makelod10.pack(side=tkinter.LEFT)
 toggle_makelod12.pack(side=tkinter.LEFT)
 toggle_makelod13.pack(side=tkinter.LEFT)
 toggle_makelod22.pack(side=tkinter.LEFT)
-toggle_makelod11.pack(side=tkinter.LEFT, padx=(0,19))
 toggle_makelode1.pack(side=tkinter.LEFT)
 toggle_makelod32.pack(side=tkinter.LEFT)
 toggle_makelod50.pack(side=tkinter.LEFT)
+toggle_makelod40.pack(side=tkinter.LEFT)
+toggle_makelod41.pack(side=tkinter.LEFT)
+toggle_makelod42.pack(side=tkinter.LEFT)
+
 
 text_format_settings = tkinter.Label(frame_lod_settings_gen, text="Additional format:")
 text_format_settings.pack(pady=[5,0])

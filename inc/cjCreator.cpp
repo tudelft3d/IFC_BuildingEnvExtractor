@@ -264,7 +264,9 @@ void CJGeoCreator::garbageCollection()
 		!finishedLoDc2_ && settingsCollection.makec2() ||
 		!finishedLoDd1_ && settingsCollection.maked1() ||
 		!finishedLoDd2_ && settingsCollection.maked2() ||
-		!finishedLoDe0_ && settingsCollection.makee0())
+		!finishedLoD40_ && settingsCollection.make40() ||
+		!finishedLoD41_ && settingsCollection.make41() ||
+		!finishedLoD42_ && settingsCollection.make42())
 	{
 		requireStoreyObjects = true;
 	}
@@ -758,8 +760,6 @@ void CJGeoCreator::SplitInAndOuterHFaces(const TopoDS_Shape& inputFaces, std::ve
 TopoDS_Solid CJGeoCreator::extrudeFace(const TopoDS_Face& evalFace, bool downwards, double splittingFaceHeight)
 {
 	if (evalFace.IsNull()) { return {}; }
-	TopoDS_Face projectedFace = helperFunctions::projectFaceFlat(evalFace, splittingFaceHeight);
-	if (projectedFace.IsNull()) { return {}; }
 	double precision = SettingsCollection::getInstance().spatialTolerance();
 
 	BRep_Builder brepBuilder;
@@ -768,8 +768,8 @@ TopoDS_Solid CJGeoCreator::extrudeFace(const TopoDS_Face& evalFace, bool downwar
 	brepBuilder.MakeShell(shell);
 	TopoDS_Solid solidShape;
 	brepBuilder.MakeSolid(solidShape);
-
 	std::vector<TopoDS_Wire> wireList;
+
 	for (TopExp_Explorer wireExplorer(evalFace, TopAbs_WIRE); wireExplorer.More(); wireExplorer.Next())
 	{
 		TopoDS_Wire currentWire = TopoDS::Wire(wireExplorer.Current());
@@ -794,6 +794,7 @@ TopoDS_Solid CJGeoCreator::extrudeFace(const TopoDS_Face& evalFace, bool downwar
 
 			gp_Pnt p0 = helperFunctions::getFirstPointShape(edge);
 			gp_Pnt p1 = helperFunctions::getLastPointShape(edge);
+
 			if (p0.IsEqual(p1, precision)) { continue; }
 			if (edge.Orientation() != TopAbs_FORWARD) { std::swap(p0, p1); }
 
@@ -1383,6 +1384,7 @@ std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_F
 	// extrude the trimmed top surfaces
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> splittingfaceIdx; // horizontal and veritcal faces that can be used to split the to be split faces
 	std::vector<TopoDS_Face> toBesSplitFaceList; // vertical faces that are to be split
+	std::vector<TopoDS_Face> horizontalFaceList;
 
 	for (const TopoDS_Face& currentFace : splitTopSurfaceList)
 	{
@@ -1392,13 +1394,16 @@ std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_F
 			ErrorCollection::getInstance().addError(ErrorID::warningUnableToExtrude);
 			continue;
 		}
-
 		for (TopExp_Explorer expl(extrudedShape, TopAbs_FACE); expl.More(); expl.Next()) {
 			TopoDS_Face extrusionFace = TopoDS::Face(expl.Current());
 
 			// ignore if not vertical face
 			gp_Vec currentNormal = helperFunctions::computeFaceNormal(extrusionFace);
-			if (abs(currentNormal.Z()) > angularTolerance) { continue; };
+			if (abs(currentNormal.Z()) > angularTolerance) 
+			{ 
+				horizontalFaceList.emplace_back(extrusionFace);
+				continue; 
+			}
 
 			// find if already found in model 
 			BoostBox3D faceBox = helperFunctions::createBBox(extrusionFace);
@@ -1410,6 +1415,7 @@ std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_F
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> cuttingFaceIdx = indexUniqueFaces(splittingfaceIdx);
 	for (const auto& [currentBox, currentFace] : cuttingFaceIdx) { toBesSplitFaceList.emplace_back(currentFace);}
 	std::vector<TopoDS_Face> splitFaceList = getSplitFaces(toBesSplitFaceList, cuttingFaceIdx);
+	DebugUtils::WriteToSTEP(splitFaceList, "C:/Users/Jasper/Desktop/desk/test.STEP");
 
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> SplitfaceIdx;
 	for (const TopoDS_Face& currentFace : splitFaceList)
@@ -1447,24 +1453,22 @@ std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_F
 			}
 			if (!currentNormal.IsParallel(helperFunctions::computeFaceNormal(otherFace), angularTolerance)) { continue; }
 			if (!helperFunctions::pointOnShape(otherFace, currentPoint)) { continue; }
+			if (!helperFunctions::isSame(currentFace, otherFace)) { continue; }
 			isDub = true;
 			break;
 		}
-		if (!isDub)
-		{
-			brepSewer.Add(currentFace);
-		}
+		if (!isDub) { brepSewer.Add(currentFace); }
 	}
 
 	// add the horizontal faces (both roof and projects)
-	for (const TopoDS_Face& currentFace : splitTopSurfaceList)
+	for (const TopoDS_Face& currentFace : horizontalFaceList)
 	{
 		brepSewer.Add(currentFace);
-		brepSewer.Add(helperFunctions::projectFaceFlat(currentFace, lowestZ).Reversed());
 	}
 
 	brepSewer.Perform();
 	TopoDS_Shape sewedShape = brepSewer.SewedShape();
+
 
 	if (sewedShape.IsNull()) { return {}; }
 
@@ -2902,7 +2906,7 @@ void CJGeoCreator::make2DStoreys(
 	std::map<std::string, int> storyProgressList;
 
 	std::vector<TopoDS_Shape> copyGeoList;
-	for (const std::shared_ptr<CJT::CityObject>& storeyCityObject : storeyCityObjects)
+	for (const std::shared_ptr<CJT::CityObject>& storeyCityObject : storeyObjects_)
 	{
 		//make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03);
 		threadList.emplace_back([&]() {make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03); });
@@ -3947,8 +3951,6 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDc1(DataManager* h, CJT::Kernel*
 		outerShapeFaces.emplace_back(currentFace);
 	}
 
-	DebugUtils::WriteToSTEP(outerShapeFaces, "C:/Users/Jasper/Desktop/desk/test.STEP");
-
 	gp_Trsf trsf;
 	trsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -SettingsCollection::getInstance().gridRotation());
 	BRepBuilderAPI_Sewing brepSewer;
@@ -4348,14 +4350,27 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDd2(DataManager* h, CJT::Kernel*
 	return std::vector<CJT::GeoObject>();
 }
 
-std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe0(DataManager* h, CJT::Kernel* kernel, int unitScale)
+std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel* kernel, int unitScale)
+{
+	//TODO: implement
+	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingLoD40) << std::endl;
+
+	finishedLoD40_ = true;
+	garbageCollection();
+	return std::vector<CJT::GeoObject>();
+}
+
+std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel* kernel, int unitScale)
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
-	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingLoDe0) << std::endl;
-	std::cout << "\tprocessing IFC objects\n";
+	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingLoD41) << std::endl;
+
+	if (storeyObjects_.empty()) { makeStoreyObjects(h); }
+
+	std::cout << "\tprocessing IFC objects\r";
 
 	auto startTime = std::chrono::steady_clock::now();
-	finishedLoDe0_ = true;
+	finishedLoD41_ = true;
 
 	gp_Trsf localRotationTrsf;
 	localRotationTrsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
@@ -4392,10 +4407,10 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe0(DataManager* h, CJT::Kernel*
 	auto lastStart = allEntries.begin();
 	for (size_t i = 0; i < sublists.size(); i++)
 	{
-		threadList.emplace_back([&, i] {makeLoDe0(h, kernel, sublists[i], localRotationTrsf, listMutex, countMutex, counter, geoObjectList, collectionShape, i); });
+		threadList.emplace_back([&, i] {makeLoD41(h, kernel, sublists[i], localRotationTrsf, listMutex, countMutex, counter, geoObjectList, collectionShape, i); });
 	}
 
-	threadList.emplace_back([&] {updateCounter("", allEntries.size(), counter, listMutex); });
+	threadList.emplace_back([&] {updateCounter("processing IFC objects", allEntries.size(), counter, listMutex); });
 
 	for (auto& thread : threadList) {
 		if (thread.joinable()) {
@@ -4417,6 +4432,15 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe0(DataManager* h, CJT::Kernel*
 	printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
+}
+
+std::vector<CJT::GeoObject> CJGeoCreator::makeLoD42(DataManager* h, CJT::Kernel* kernel, int unitScale)
+{
+	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingLoD42) << std::endl;
+	//TODO: implement
+	finishedLoD42_ = true;
+	garbageCollection();
+	return std::vector<CJT::GeoObject>();
 }
 
 std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel* kernel, int unitScale)
@@ -5858,7 +5882,7 @@ void CJGeoCreator::intersectionSplitting(const std::vector<TopoDS_Face>& inputFa
 	return;
 }
 
-void CJGeoCreator::makeLoDe0(
+void CJGeoCreator::makeLoD41(
 	DataManager* h, 
 	CJT::Kernel* kernel, 
 	const std::vector<Value>& valueList, 
@@ -5902,7 +5926,7 @@ void CJGeoCreator::makeLoDe0(
 		for (TopExp_Explorer explorer(cleanShape, TopAbs_FACE); explorer.More(); explorer.Next()) { faceCount++; }
 		std::vector<int>TypeValueList(faceCount, 0);
 
-		CJT::GeoObject geoObject = kernel->convertToJSON(cleanShape, "4.0");
+		CJT::GeoObject geoObject = kernel->convertToJSON(cleanShape, "4.1");
 		geoObject.setSurfaceTypeValues(TypeValueList);
 		geoObject.appendSurfaceData(attributeMap);
 

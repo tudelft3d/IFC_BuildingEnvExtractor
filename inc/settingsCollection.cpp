@@ -410,96 +410,89 @@ void SettingsCollection::setLoD(const nlohmann::json& json)
 		if (currentLoD == 0.0 || currentLoD == "0.0")
 		{
 			setMake00(true);
-			continue;
 		}
-		if (currentLoD == 0.2 || currentLoD == "0.2")
+		else if (currentLoD == 0.2 || currentLoD == "0.2")
 		{
 			setMake02(true);
-			continue;
 		}
-		if (currentLoD == 0.3 || currentLoD == "0.3")
+		else if (currentLoD == 0.3 || currentLoD == "0.3")
 		{
 			setMake03(true);
-			continue;
 		}
-		if (currentLoD == 0.4 || currentLoD == "0.4")
+		else if (currentLoD == 0.4 || currentLoD == "0.4")
 		{
 			setMake04(true);
-			continue;
 		}
-		if (currentLoD == 1.0 || currentLoD == "1.0")
+		else if (currentLoD == 1.0 || currentLoD == "1.0")
 		{
 			setMake10(true);
-			continue;
 		}
-		if (currentLoD == 1.2 || currentLoD == "1.2")
+		else if (currentLoD == 1.2 || currentLoD == "1.2")
 		{
 			setMake12(true);
-			continue;
 		}
-		if (currentLoD == 1.3 || currentLoD == "1.3")
+		else if (currentLoD == 1.3 || currentLoD == "1.3")
 		{
 			setMake13(true);
-			continue;
 		}
-		if (currentLoD == 2.2 || currentLoD == "2.2")
+		else if (currentLoD == 2.2 || currentLoD == "2.2")
 		{
 			setMake22(true);
-			continue;
 		}
-		if (currentLoD == 3.2 || currentLoD == "3.2")
+		else if (currentLoD == 3.2 || currentLoD == "3.2")
 		{
 			setMake32(true);
-			continue;
 		}
-		if (currentLoD == 5.0 || currentLoD == "5.0" || currentLoD == "v.0" || currentLoD == "V.0")
+		else if (currentLoD == 4.0 || currentLoD == "4.0")
+		{
+			setMake40(true);
+		}
+		else if (currentLoD == 4.1 || currentLoD == "4.1")
+		{
+			setMake41(true);
+		}
+		else if (currentLoD == 4.2 || currentLoD == "4.2")
+		{
+			setMake42(true);
+		}
+		else if (currentLoD == 5.0 || currentLoD == "5.0" || currentLoD == "v.0" || currentLoD == "V.0")
 		{
 			setMakeV(true);
-			continue;
 		}
-		if (currentLoD == "b.0" || currentLoD == "B.0")
+		else if (currentLoD == "b.0" || currentLoD == "B.0")
 		{
 			setMakeb0(true);
-			continue;
 		}
-		if (currentLoD == "c.1" || currentLoD == "C.1")
+		else if (currentLoD == "c.1" || currentLoD == "C.1")
 		{
 			setMakec1(true);
-			continue;
 		}
-		if (currentLoD == "c.2" || currentLoD == "C.2")
+		else if (currentLoD == "c.2" || currentLoD == "C.2")
 		{
 			setMakec2(true);
-			continue;
 		}
-		if (currentLoD == "d.1" || currentLoD == "D.1")
+		else if (currentLoD == "d.1" || currentLoD == "D.1")
 		{
 			setMaked1(true);
-			continue;
 		}
-		if (currentLoD == "d.2" || currentLoD == "D.2")
+		else if (currentLoD == "d.2" || currentLoD == "D.2")
 		{
 			setMaked2(true);
-			continue;
 		}
-		if (currentLoD == "e.0" || currentLoD == "E.0")
-		{
-			setMakee0(true);
-			continue;
-		}
-		if (currentLoD == "e.1" || currentLoD == "E.1")
+		else if (currentLoD == "e.1" || currentLoD == "E.1")
 		{
 			setMakee1(true);
-			continue;
 		}
+		else
+		{
+			//if this is reached an unexpected value has been encountered
+			std::stringstream lodStringStream;
+			lodStringStream << std::fixed << std::setprecision(1) << currentLoD;
+			std::string formattedLoD = lodStringStream.str();
 
-		//if this is reached an unexpected value has been encountered
-		std::stringstream lodStringStream;
-		lodStringStream << std::fixed << std::setprecision(1) << currentLoD;
-		std::string formattedLoD = lodStringStream.str();
-
-		ErrorCollection::getInstance().addError(ErrorID::errorJsonInvalidLod, formattedLoD);
-		throw std::string(errorWarningStringEnum::getString(ErrorID::errorJsonInvalidLod) + formattedLoD);
+			ErrorCollection::getInstance().addError(ErrorID::errorJsonInvalidLod, formattedLoD);
+			throw std::string(errorWarningStringEnum::getString(ErrorID::errorJsonInvalidLod) + formattedLoD);
+		}
 	}
 	return;
 }
@@ -628,6 +621,11 @@ void SettingsCollection::setMakeInterior(const nlohmann::json& json)
 		}
 	}
 	return;
+}
+
+bool SettingsCollection::requiresInteriorCityObjects() const
+{
+	return (makeInterior_ || make40_ || make41_ || make42_);
 }
 
 void SettingsCollection::setMakeExterior(const nlohmann::json& json)

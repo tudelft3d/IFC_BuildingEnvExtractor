@@ -41,8 +41,11 @@ private:
     bool makec2_ = false;
     bool maked1_ = false;
     bool maked2_ = false;
-    bool makee0_ = false;
     bool makee1_ = false;
+
+    bool make40_ = false;
+    bool make41_ = false;
+    bool make42_ = false;
 
     bool makeSite_ = false;
 
@@ -242,6 +245,15 @@ public:
     bool make32() const { return make32_; }
     void setMake32(bool value) { make32_ = value; }
 
+    bool make40() const { return make40_; }
+    void setMake40(bool value) { make40_ = value; }
+
+    bool make41() const { return make41_; }
+    void setMake41(bool value) { make41_ = value; }
+
+    bool make42() const { return make42_; }
+    void setMake42(bool value) { make42_ = value; }
+
     bool makeV() const { return makeV_; }
     void setMakeV(bool value) { makeV_ = value; }
 
@@ -259,9 +271,6 @@ public:
     
     bool maked2() const { return maked2_; }
     void setMaked2(bool value) { maked2_ = value; }
-
-    bool makee0() const { return makee0_; }
-    void setMakee0(bool value) { makee0_ = value; }
 
     bool makee1() const { return makee1_; }
     void setMakee1(bool value) { makee1_ = value; }
@@ -285,6 +294,8 @@ public:
     bool makeInterior() const { return makeInterior_; }
     void setMakeInterior(bool value) { makeInterior_ = value; }
     void setMakeInterior(const nlohmann::json& json);
+
+    bool requiresInteriorCityObjects() const;
 
     bool makeExterior() const { return makeExterior_; }
     void setMakeExterior(bool value) { makeExterior_ = value; }

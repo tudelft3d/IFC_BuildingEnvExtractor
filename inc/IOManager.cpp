@@ -335,7 +335,9 @@ std::string IOManager::getLoDEnabled()
 	if (settingsCollection.makec2()) { summaryString += ", c.2"; }
 	if (settingsCollection.maked1()) { summaryString += ", d.1"; }
 	if (settingsCollection.maked2()) { summaryString += ", d.2"; }
-	if (settingsCollection.makee0()) { summaryString += ", e.0"; }
+	if (settingsCollection.make40()) { summaryString += ", 4.0"; }
+	if (settingsCollection.make41()) { summaryString += ", 4.1"; }
+	if (settingsCollection.make42()) { summaryString += ", 4.2"; }
 	if (settingsCollection.makee1()) { summaryString += ", e.1"; }
 	if (settingsCollection.make32()) { summaryString += ", 3.2"; }
 	if (settingsCollection.makeV()) { summaryString += ", 5.0 (V)"; }
@@ -383,7 +385,9 @@ nlohmann::json IOManager::settingsToJSON()
 	if (settingsCollection.makec2()) { LoDList.emplace_back("c.2"); }
 	if (settingsCollection.maked1()) { LoDList.emplace_back("d.1"); }
 	if (settingsCollection.maked2()) { LoDList.emplace_back("d.2"); }
-	if (settingsCollection.makee1()) { LoDList.emplace_back("e.1"); }
+	if (settingsCollection.make40()) { LoDList.emplace_back("4.0"); }
+	if (settingsCollection.make41()) { LoDList.emplace_back("4.1"); }
+	if (settingsCollection.make42()) { LoDList.emplace_back("4.2"); }
 	if (settingsCollection.make32()) { LoDList.emplace_back("3.2"); }
 	if (settingsCollection.makeV()) { LoDList.emplace_back("5.0"); }
 
@@ -538,6 +542,7 @@ void IOManager::setMetaData(std::shared_ptr<CJT::CityCollection> collection)
 void IOManager::setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::CityObject& cityOuterShellObject, CJT::CityObject& cityInnerShellObject)
 {
 	// Set up objects and their relationships
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	std::string BuildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
 	if (BuildingName == "") { BuildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcSite>("IfcSite", false); }
 	nlohmann::json buildingAttributes = internalDataManager_.get()->getBuildingInformation();
@@ -554,7 +559,7 @@ void IOManager::setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::Cit
 
 	cityBuildingObject.addChild(&cityOuterShellObject);
 
-	if (SettingsCollection::getInstance().makeInterior())
+	if (settingsCollection.requiresInteriorCityObjects())
 	{
 		cityBuildingObject.addChild(&cityInnerShellObject);
 	}
@@ -775,17 +780,29 @@ void IOManager::processExternalLoD(CJGeoCreator* geoCreator, CJT::CityObject& ci
 			return std::vector<CJT::GeoObject>{geoCreator->makeLoDd2(internalDataManager_.get(), kernel, 1)};
 			}, cityOuterShellObject, ErrorID::failedLoDd2, timeLoDd2_);
 	}
-	if (settingsCollection.makee0())
+	if (settingsCollection.make40())
 	{
 		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoDe0(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD32, timeLoDe0_);
+			return std::vector<CJT::GeoObject>{geoCreator->makeLoD40(internalDataManager_.get(), kernel, 1)};
+			}, cityOuterShellObject, ErrorID::failedLoD40, timeLoD40_);
+	}
+	if (settingsCollection.make41())
+	{
+		processExternalLoD([&]() {
+			return std::vector<CJT::GeoObject>{geoCreator->makeLoD41(internalDataManager_.get(), kernel, 1)};
+			}, cityOuterShellObject, ErrorID::failedLoD41, timeLoD41_);
+	}
+	if (settingsCollection.make42())
+	{
+		processExternalLoD([&]() {
+			return std::vector<CJT::GeoObject>{geoCreator->makeLoD42(internalDataManager_.get(), kernel, 1)};
+			}, cityOuterShellObject, ErrorID::failedLoD42, timeLoD42_);
 	}
 	if (settingsCollection.makee1())
 	{
 		processExternalLoD([&]() {
 			return std::vector<CJT::GeoObject>{geoCreator->makeLoDe1(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD32, timeLoDe1_);
+			}, cityOuterShellObject, ErrorID::failedLoDe1, timeLoDe1_);
 	}
 	if (settingsCollection.make32())
 	{
@@ -826,14 +843,14 @@ void IOManager::processExternalLoD(
 }
 
 
-void IOManager::processInteriorLod(CJGeoCreator* geoCreator, std::shared_ptr<CJT::CityCollection> collection, CJT::CityObject* cityInnerShellObject, CJT::Kernel* kernel)
+void IOManager::processInteriorLod(CJGeoCreator* geoCreator, std::shared_ptr<CJT::CityCollection> collection, std::vector<std::shared_ptr<CJT::CityObject>>& storeyObjects, CJT::Kernel* kernel)
 {
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingInterior) << std::endl;
 
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	// get storey semantic objects
-	std::vector<std::shared_ptr<CJT::CityObject>> storeyObjects = geoCreator->makeStoreyObjects(internalDataManager_.get());
+
 	std::vector<std::shared_ptr<CJT::CityObject>> roomObjects = {};
 
 	if (settingsCollection.make02() || settingsCollection.make12() || 
@@ -843,7 +860,7 @@ void IOManager::processInteriorLod(CJGeoCreator* geoCreator, std::shared_ptr<CJT
 		roomObjects = geoCreator->makeRoomObjects(internalDataManager_.get(), storeyObjects);
 	}
 
-	// storeys
+
 	if (settingsCollection.make02())
 	{
 		geoCreator->make2DStoreys(internalDataManager_.get(), kernel, storeyObjects, 1, false);
@@ -866,12 +883,6 @@ void IOManager::processInteriorLod(CJGeoCreator* geoCreator, std::shared_ptr<CJT
 	if (settingsCollection.makeV())
 	{
 		geoCreator->makeVRooms(internalDataManager_.get(), kernel, storeyObjects, roomObjects, 1);
-	}
-
-	for (size_t i = 0; i < storeyObjects.size(); i++)
-	{
-		storeyObjects[i]->addParent(cityInnerShellObject);
-		collection->addCityObject(*storeyObjects[i].get());
 	}
 
 	for (size_t i = 0; i < roomObjects.size(); i++)
@@ -961,11 +972,27 @@ bool IOManager::run()
 		return false;
 	}
 
+	// create storey semantics
+	std::vector<std::shared_ptr<CJT::CityObject>> storeyObjects;
+	if (settingsCollection.requiresInteriorCityObjects())
+	{
+		storeyObjects = geoCreator.makeStoreyObjects(internalDataManager_.get());
+		for (size_t i = 0; i < storeyObjects.size(); i++)
+		{
+			storeyObjects[i]->addParent(&cityInnerShellObject);
+			collection->addCityObject(*storeyObjects[i].get());
+		}
+	}
+
+
 	// create the actual geometry
 	CJT::Kernel kernel = CJT::Kernel(collection);
 	if (settingsCollection.makeInterior())
 	{
-		processInteriorLod(&geoCreator, collection, &cityInnerShellObject, &kernel);
+		if (!storeyObjects.empty())
+		{
+			processInteriorLod(&geoCreator, collection, storeyObjects, &kernel);
+		}
 	}
 	if (settingsCollection.makeExterior())
 	{
@@ -980,7 +1007,7 @@ bool IOManager::run()
 
 	collection->addCityObject(cityBuildingObject);
 	collection->addCityObject(cityOuterShellObject);
-	if (settingsCollection.makeInterior())
+	if (settingsCollection.requiresInteriorCityObjects())
 	{
 		collection->addCityObject(cityInnerShellObject);
 	}
@@ -1027,7 +1054,9 @@ bool IOManager::write(bool reportOnly)
 	addTimeToJSON(&timeReport, "LoDc.2 generation", timeLoDc2_);
 	addTimeToJSON(&timeReport, "LoDd.1 generation", timeLoDd1_);
 	addTimeToJSON(&timeReport, "LoDd.2 generation", timeLoDd2_);
-	addTimeToJSON(&timeReport, "LoDe.0 generation", timeLoDe0_);
+	addTimeToJSON(&timeReport, "LoD4.0 generation", timeLoD40_);
+	addTimeToJSON(&timeReport, "LoD4.1 generation", timeLoD41_);
+	addTimeToJSON(&timeReport, "LoD4.2 generation", timeLoD42_);
 	addTimeToJSON(&timeReport, "LoDe.1 generation", timeLoDe1_);
 	addTimeToJSON(&timeReport, "Total Processing", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime_).count());
 

@@ -86,7 +86,11 @@ enum class ErrorID {
 	failedLoDc2, // LoDc.2 creation failed
 	failedLoDd1, // LoDd.1 creation failed
 	failedLoDd2, // LoDd.2 creation failed
+	failedLoDe1, // LoDe.1 creation failed
 	failedLoD32, // LoD3.2 creation failed
+	failedLoD40, // LoD4.0 creation failed
+	failedLoD41, // LoD4.1 creation failed
+	failedLoD42, // LoD4.2 creation failed
 	failedLoD50, // voxel creation failed
 
 	propertyNotImplemented

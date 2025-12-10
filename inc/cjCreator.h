@@ -66,7 +66,9 @@ private:
 	bool finishedLoDc2_ = false;
 	bool finishedLoDd1_ = false;
 	bool finishedLoDd2_ = false;
-	bool finishedLoDe0_ = false;
+	bool finishedLoD40_ = false;
+	bool finishedLoD41_ = false;
+	bool finishedLoD42_ = false;
 
 
 	// list collects the faces from the LoD03 creation to base LoD13 output on
@@ -347,7 +349,7 @@ private:
 	void intersectionSplitting(const std::vector<TopoDS_Face>& inputFaceList, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, std::mutex& processMutex, std::vector<TopoDS_Face>& splitFaceListOut);
 
 	/// generates a sublist of LoDe.0 objects
-	void makeLoDe0(
+	void makeLoD41(
 		DataManager* h,
 		CJT::Kernel* kernel, 
 		const std::vector<Value>& valueList, 
@@ -370,6 +372,8 @@ public:
 
 	/// generates the empty storey objects for the ifc storeys in a file
 	std::vector<std::shared_ptr<CJT::CityObject>> makeStoreyObjects(DataManager* h);
+	/// returns the storey objects that are stored in the creator
+	std::vector<std::shared_ptr<CJT::CityObject>> getStoreyObjects(DataManager* h);
 
 	/// generates the empty room objects for the ifc storeys in a file
 	std::vector<std::shared_ptr<CJT::CityObject>> makeRoomObjects(DataManager* h, const std::vector<std::shared_ptr<CJT::CityObject>>& cityStoreyObjects);
@@ -407,8 +411,12 @@ public:
 	std::vector< CJT::GeoObject> makeLoDd1(DataManager* h, CJT::Kernel* kernel, int unitScale);
 	/// generates a list of LoDd.2 objects
 	std::vector< CJT::GeoObject> makeLoDd2(DataManager* h, CJT::Kernel* kernel, int unitScale);
-	/// generates a list of LoDe.0 objects
-	std::vector< CJT::GeoObject> makeLoDe0(DataManager* h, CJT::Kernel* kernel, int unitScale);
+	/// generates a list of LoDe4.0 objects
+	std::vector< CJT::GeoObject> makeLoD40(DataManager* h, CJT::Kernel* kernel, int unitScale);
+	/// generates a list of LoDe4.1 objects
+	std::vector< CJT::GeoObject> makeLoD41(DataManager* h, CJT::Kernel* kernel, int unitScale);
+	/// generates a list of LoDe4.2 objects
+	std::vector< CJT::GeoObject> makeLoD42(DataManager* h, CJT::Kernel* kernel, int unitScale);
 	/// generates a list of LoDe.1 objects
 	std::vector< CJT::GeoObject> makeLoDe1(DataManager* h, CJT::Kernel* kernel, int unitScale);
 	/// generates a list of LoD3.2 objects

@@ -39,6 +39,7 @@
 #include <gp_Vec.hxx>
 #include <TopoDS.hxx>
 #include <Poly_Triangulation.hxx>
+#include <Standard_Handle.hxx>
 
 #include <CJT.h>
 #include <CJToKernel.h>

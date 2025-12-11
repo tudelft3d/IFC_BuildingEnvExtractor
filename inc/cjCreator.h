@@ -349,11 +349,12 @@ private:
 	void intersectionSplitting(const std::vector<TopoDS_Face>& inputFaceList, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, std::mutex& processMutex, std::vector<TopoDS_Face>& splitFaceListOut);
 
 	/// generates a sublist of LoDe.0 objects
-	void makeLoD41(
+	void valueToGeoObject(
 		DataManager* h,
 		CJT::Kernel* kernel, 
 		const std::vector<Value>& valueList, 
 		const gp_Trsf& localTrans,
+		bool filterIsExternal,
 		std::mutex& listMutex,
 		std::mutex& countMutex,
 		int& totalObjectsProcessed, 
@@ -361,7 +362,19 @@ private:
 		std::vector<TopoDS_Shape>& collectionShapeOut,
 		const int num);
 
-	void brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, const std::vector<IfcGeom::BRepElement*>& brepElemList, std::mutex& countMutex, int& counter, std::mutex& listMutex, std::vector< CJT::GeoObject>& geoObjectList, std::vector<TopoDS_Shape>& collectionShape);
+	void brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, std::vector< CJT::GeoObject>& geoObjectList, std::vector<TopoDS_Shape>& collectionShape);
+
+	void brepIFcElemToGeoObject(
+		DataManager* h, 
+		CJT::Kernel* kernel, 
+		const std::vector<IfcGeom::BRepElement*>& brepElemList, 
+		std::mutex& countMutex, int& counter,
+		std::mutex& listMutex, 
+		const std::string& LoDnr,
+		std::set<std::string>& uniqueKeySet,
+		std::vector< CJT::GeoObject>& geoObjectList,
+		std::vector<TopoDS_Shape>& collectionShape
+	);
 
 public:
 	explicit CJGeoCreator(DataManager* h, double vSize);

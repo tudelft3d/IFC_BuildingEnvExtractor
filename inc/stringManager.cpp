@@ -379,6 +379,10 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		const std::string coms = "Data required to georeferencing is missing";
 		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
 		return coms; }
+	case ErrorID::warningIfcMissingIsExternal: {
+		const std::string coms = "No objects found that were external, possibly attribute IsExternal is not correctly populated";
+		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
+		return coms; }
 
 
 	case ErrorID::warningIssueencountered: {

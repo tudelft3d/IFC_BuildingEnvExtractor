@@ -4410,15 +4410,24 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 		}
 	}
 
-	if (settingsCollection.createOBJ())
+	if (geoObjectList.empty())
 	{
-		helperFunctions::writeToOBJ(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD40));
+		ErrorCollection::getInstance().addError(ErrorID::warningIfcMissingIsExternal);
+		std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMissingIsExternal) << std::endl;
+	}
+	else
+	{
+		if (settingsCollection.createOBJ())
+		{
+			helperFunctions::writeToOBJ(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD40));
+		}
+
+		if (settingsCollection.createSTEP())
+		{
+			helperFunctions::writeToSTEP(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD40));
+		}
 	}
 
-	if (settingsCollection.createSTEP())
-	{
-		helperFunctions::writeToSTEP(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD40));
-	}
 
 	printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();

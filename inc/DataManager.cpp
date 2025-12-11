@@ -885,7 +885,13 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		gp_Trsf trs;
 		trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
 		shape.Move(trs);
-		shape = helperFunctions::addSolidSemantic(shape);
+
+		if (shape.ShapeType() != TopAbs_SOLID)
+		{
+			indexMutex_.lock();
+			shape = helperFunctions::addSolidSemantic(shape);
+			indexMutex_.unlock();
+		}
 
 		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
 		std::string productType = product->data().type()->name();

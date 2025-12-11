@@ -3323,6 +3323,8 @@ void helperFunctions::writeToOBJ(const T& theShape, const std::string& targetPat
 template <typename T>
 void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::string& targetPath)
 {
+	if (theShapeList.empty()) { return; }
+
 	std::ofstream objFile(targetPath);
 	int vertIdxOffset = 1;
 	std::vector<std::vector<int>> nestedTriangleIndx;
@@ -3892,12 +3894,14 @@ TopoDS_Shape helperFunctions::addSolidSemantic(const TopoDS_Shape& assumedSolid)
 	builder.MakeShell(shell);
 
 	BRepBuilderAPI_Sewing brepSewer;
+
 	for (TopExp_Explorer faceExpl(assumedSolid, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 	{
 		TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
 		if (currentFace.IsNull()) { continue; }
 		brepSewer.Add(currentFace);
 	}
+
 	brepSewer.Perform();
 	TopoDS_Shape sewedShape = brepSewer.SewedShape();
 

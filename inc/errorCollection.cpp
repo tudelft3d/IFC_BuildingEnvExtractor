@@ -97,6 +97,7 @@ ErrorCollection::ErrorCollection() {
 		{ErrorID::warningIfcNoObjectNameLong, ErrorObject("I0014", errorWarningStringEnum::getString(ErrorID::warningIfcNoObjectNameLong, false))},
 		{ErrorID::warningIfcObjectDifferentName, ErrorObject("I0015", errorWarningStringEnum::getString(ErrorID::warningIfcObjectDifferentName, false))},
 		{ErrorID::warningIfcMissingGeoreference, ErrorObject("I0016", errorWarningStringEnum::getString(ErrorID::warningIfcMissingGeoreference, false))},
+		{ErrorID::warningIfcMissingIsExternal, ErrorObject("I0017", errorWarningStringEnum::getString(ErrorID::warningIfcMissingIsExternal, false))},
 
 		{ErrorID::warningIssueencountered, ErrorObject("I0017", errorWarningStringEnum::getString(ErrorID::warningIssueencountered, false))},
 		{ErrorID::warningNoSolid, ErrorObject("I0018", errorWarningStringEnum::getString(ErrorID::warningNoSolid, false))},

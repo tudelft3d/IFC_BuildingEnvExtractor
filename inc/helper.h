@@ -1,4 +1,4 @@
-#define USE_IFC4
+#define USE_IFC4x3
 #define iterationVersion "0.3.0"
 
 #ifdef USE_IFC2x3
@@ -39,7 +39,6 @@
 #include <gp_Vec.hxx>
 #include <TopoDS.hxx>
 #include <Poly_Triangulation.hxx>
-#include <Standard_Handle.hxx>
 
 #include <CJT.h>
 #include <CJToKernel.h>
@@ -142,7 +141,7 @@ struct helperFunctions{
 	/// point on shape code
 
 	/// get the middle of a triangle
-	static gp_Pnt getTriangleCenter(const opencascade::handle<Poly_Triangulation>& mesh, const Poly_Triangle& theTriangle, const TopLoc_Location& loc);
+	static gp_Pnt getTriangleCenter(const Handle(Poly_Triangulation)& mesh, const Poly_Triangle& theTriangle, const TopLoc_Location& loc);
 	/// get the middlepoint of the face located in the first triangle of its triangulation
 	static std::optional<gp_Pnt> getPointOnFace(const TopoDS_Face& theFace);
 	/// get the middlepoint list of the face triangulation

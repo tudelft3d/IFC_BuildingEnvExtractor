@@ -768,7 +768,7 @@ double helperFunctions::getAverageZ(const T& shape) {
 }
 
 
-gp_Pnt helperFunctions::getTriangleCenter(const opencascade::handle<Poly_Triangulation>& mesh, const Poly_Triangle& theTriangle, const TopLoc_Location& loc) {
+gp_Pnt helperFunctions::getTriangleCenter(const Handle(Poly_Triangulation)& mesh, const Poly_Triangle& theTriangle, const TopLoc_Location& loc) {
 
 	gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
 	gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
@@ -786,7 +786,7 @@ std::optional<gp_Pnt> helperFunctions::getPointOnFace(const TopoDS_Face& theFace
 {
 	triangulateShape(theFace);
 	TopLoc_Location loc;
-	opencascade::handle<Poly_Triangulation> mesh = BRep_Tool::Triangulation(theFace, loc);
+	Handle(Poly_Triangulation) mesh = BRep_Tool::Triangulation(theFace, loc);
 
 	if (mesh.IsNull()) { return std::nullopt; }
 

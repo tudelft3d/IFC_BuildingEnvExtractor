@@ -5994,21 +5994,11 @@ void CJGeoCreator::valueToGeoObject(
 
 		Value valueObject = *it;
 		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(valueObject.second);
-
-		TopoDS_Shape currentShape = lookup->getProductShape();
-		if (currentShape.IsNull()) { continue; }
-
-		TopoDS_Shape cleanShape = helperFunctions::TesselateShape(currentShape);
-		if (cleanShape.IsNull()) {
-			cleanShape = currentShape;
-		}
-
-		cleanShape.Move(localTrans);
 		IfcSchema::IfcProduct* currentProduct = lookup->getProductPtr();
 
 		nlohmann::json attributeMap;
 		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->data().type()->name();
-		nlohmann::json attributeList = h->collectPropertyValues(currentProduct->GlobalId());
+		nlohmann::json attributeList = h->collectPropertyValues(currentProduct->GlobalId()); //TODO: this could be written faster
 
 		if (filterIsExternal)
 		{
@@ -6019,6 +6009,16 @@ void CJGeoCreator::valueToGeoObject(
 		for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
 			attributeMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();
 		}
+
+		TopoDS_Shape currentShape = lookup->getProductShape();
+		if (currentShape.IsNull()) { continue; }
+
+		TopoDS_Shape cleanShape = helperFunctions::TesselateShape(currentShape);
+		if (cleanShape.IsNull()) {
+			cleanShape = currentShape;
+		}
+
+		cleanShape.Move(localTrans);
 
 		int faceCount = 0;
 		for (TopExp_Explorer explorer(cleanShape, TopAbs_FACE); explorer.More(); explorer.Next()) { faceCount++; }

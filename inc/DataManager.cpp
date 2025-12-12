@@ -1075,7 +1075,8 @@ void DataManager::fetchGroundFloorElevation()
 				bool found = false;
 				for (const std::string& floorCode : groundFloorCodes)
 				{
-					if (optionalName->_Starts_with(floorCode))
+					if (optionalName->size() >= floorCode.size() &&
+						optionalName->substr(0, floorCode.size()) == floorCode)
 					{
 						groundfloorElevationList.emplace_back(storeyObject->Elevation().get());
 						found = true;
@@ -1091,7 +1092,8 @@ void DataManager::fetchGroundFloorElevation()
 				bool found = false;
 				for (const std::string& floorCode : groundFloorCodes)
 				{
-					if (optionalLongName->_Starts_with(floorCode))
+					if (optionalName->size() >= floorCode.size() &&
+						optionalName->substr(0, floorCode.size()) == floorCode)
 					{
 						groundfloorElevationList.emplace_back(storeyObject->Elevation().get());
 						found = true;

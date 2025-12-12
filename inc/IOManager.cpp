@@ -1067,7 +1067,7 @@ bool IOManager::write(bool reportOnly)
 	addTimeToJSON(&timeReport, "LoD4.1 generation", timeLoD41_);
 	addTimeToJSON(&timeReport, "LoD4.2 generation", timeLoD42_);
 	addTimeToJSON(&timeReport, "LoDe.1 generation", timeLoDe1_);
-	addTimeToJSON(&timeReport, "Total Processing", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime_).count());
+	addTimeToJSON(&timeReport, "Total Processing", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime_).count());
 
 	report["Duration"] = timeReport;
 	report["Errors"] = ErrorCollection::getInstance().toJson();

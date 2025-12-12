@@ -40,9 +40,8 @@ private:
 	long long timeV_ = 0;
 
 	// Time at which the program is started
-	std::chrono::steady_clock::time_point startTime_ = std::chrono::high_resolution_clock::now();
+	std::chrono::steady_clock::time_point startTime_ = std::chrono::steady_clock::now();
 	
-
 	// 1 is all the geocreation functions were succesfull
 	bool succesfullExit_ = 1;
 

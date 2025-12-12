@@ -198,7 +198,7 @@ void DebugUtils::printMesh(const TopoDS_Shape& shape)
 
 void DebugUtils::WriteToTxt(const std::vector<TopoDS_Face>& shapeList, const std::string& pathString, bool append)
 {
-	int mode = std::ios_base::out;
+	std::ios_base::openmode mode = std::ios_base::out;
 	if (append) { mode = std::ios_base::app; }
 	std::ofstream outputFile(pathString, mode);
 
@@ -211,7 +211,7 @@ void DebugUtils::WriteToTxt(const std::vector<TopoDS_Face>& shapeList, const std
 
 void DebugUtils::WriteToTxt(const std::vector<TopoDS_Shape>& shapeList, const std::string& pathString, bool append)
 {
-	int mode = std::ios_base::out;
+	std::ios_base::openmode mode = std::ios_base::out;
 	if (append) { mode = std::ios_base::app; }
 	std::ofstream outputFile(pathString, mode);
 

@@ -471,7 +471,6 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 			outerSurfaceRingList = bufferList;
 			bufferList.clear();
 		}
-
 		if (toBeGroupdSurfaces.empty()) { continue; }
 		std::vector<TopoDS_Face> mergedSurfaces = helperFunctions::mergeFaces(toBeGroupdSurfaces);
 		mergedRSurfaces.emplace_back(RCollection(mergedSurfaces));

@@ -650,7 +650,7 @@ void SettingsCollection::setMakeExterior(const nlohmann::json& json)
 	if (!make00_ && !make02_ && !make03_ && !make04_ &&
 		!make10_ && !make12_ && !make13_ && !make22_ &&
 		!make32_ && !makeb0_ && !makec1_ && !makec2_ && 
-		!maked1_ && !maked2_ && !makee1_ )
+		!maked1_ && !maked2_ && !makee1_ && !makeV_)
 	{
 		setMakeExterior(false);
 	}

@@ -326,31 +326,41 @@ std::array<int, 6> VoxelGrid::getDirNeighbours(const std::shared_ptr<voxel>& box
 void VoxelGrid::growVoid(int startIndx, int roomnum, DataManager* h)
 {
 	// set up starting data
-	std::unordered_set<int> buffer = { startIndx };
-	int totalRoomSize = 1;
+	std::vector<int> buffer = { startIndx };
+	
+	int totalRoomSize = 0;
+	int totalCount = 100000;
+	int counter = 100000;
+
+	if (counter > VoxelLookup_.size())
+	{
+		counter = static_cast<int>(std::pow(10, static_cast<int>(std::log10(VoxelLookup_.size()))));
+	}
+
 	VoxelLookup_[startIndx]->setRoomNum(roomnum);
+	VoxelLookup_[startIndx]->setOutside(roomnum);
 
 	bool isOutSide = false;
 	if (roomnum == 0) { isOutSide = true; }
 
-	while (buffer.size() > 0)
+	while (!buffer.empty())
 	{
-		std::unordered_set<int> tempBuffer;
+		std::vector<int> tempBuffer;
 		for (const int currentIdx : buffer)
 		{
 			// only output process if outside is processed
 			if (roomnum == 0)
 			{
-				if (totalRoomSize % 10000 == 0)
+				if (totalCount <= 0)
 				{
 					std::cout.flush();
 					std::cout << "\tSize: " << totalRoomSize << "\r";
+					totalCount = 100000;
 				}
 			}
 
 			std::shared_ptr<voxel> externalVoxel = VoxelLookup_[currentIdx];
-			externalVoxel->setOutside(isOutSide);
-
+	
 			// find neighbours
 			std::array<int, 6> neighbourIndxList = getDirNeighbours(currentIdx);
 
@@ -368,22 +378,16 @@ void VoxelGrid::growVoid(int startIndx, int roomnum, DataManager* h)
 				{
 					potentialIntVoxel->setTransFace(i ^ 1);
 					externalVoxel->setTransFace(i);
-					if (roomnum == 0)
-					{					
-						potentialIntVoxel->setIsShell();
-					}
-
+					if (roomnum == 0) { potentialIntVoxel->setIsShell(); }
 					continue;
 				}
+				potentialIntVoxel->setOutside(isOutSide);
+				potentialIntVoxel->setRoomNum(roomnum);
 
-				// exclude neighbour if already in buffer
-				if (tempBuffer.find(neighbourIdx) != tempBuffer.end()) {
-					continue;
-				}
-				tempBuffer.emplace(neighbourIdx);
-				VoxelLookup_[neighbourIdx]->setRoomNum(roomnum);
-				totalRoomSize++;
+				tempBuffer.emplace_back(neighbourIdx);
 			}
+			totalRoomSize++;
+			totalCount--;
 		}
 		buffer.clear();
 		buffer = tempBuffer;

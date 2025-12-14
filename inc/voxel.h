@@ -12,20 +12,20 @@ private:
 	CJObjectID voxelType_ = CJObjectID::CJTypeNone;
 
 public:
-	void setIsDoor();
-	void setIsWall();
-	void setIsWindow();
-	void setIsRoof();
-	void setIsExternalCeiling();
-	void setIsGround();
+	void setIsDoor() { voxelType_ = CJObjectID::CJTypeDoor; }
+	void setIsWall() { voxelType_ = CJObjectID::CJTypeWallSurface; }
+	void setIsWindow() { voxelType_ = CJObjectID::CJTypeWindow; }
+	void setIsRoof() { voxelType_ = CJObjectID::CJTypeRoofSurface; }
+	void setIsExternalCeiling() { voxelType_ = CJObjectID::CJTTypeOuterCeilingSurface; }
+	void setIsGround() { voxelType_ = CJObjectID::CJTypeGroundSurface; }
 
-	bool isDoor();
-	bool isWall();
-	bool isWindow();
-	bool isRoof();
-	bool isGround();
+	bool isDoor() const { return (voxelType_ == CJObjectID::CJTypeDoor); }
+	bool isWall() const { return (voxelType_ == CJObjectID::CJTypeWallSurface); }
+	bool isWindow() const { return (voxelType_ == CJObjectID::CJTypeWindow); }
+	bool isRoof() const { return (voxelType_ == CJObjectID::CJTypeRoofSurface); }
+	bool isGround() const { return (voxelType_ == CJObjectID::CJTypeGroundSurface); }
 
-	CJObjectID getType();
+	const CJObjectID& getType() const { return voxelType_; }
 };
 
 

@@ -110,11 +110,11 @@ public:
 
 	// returns a plate in full x an y but 1 z the closes at the input platelvl 
 	std::vector<voxel*> getVoxelPlate(double platelvl);
-	std::vector<voxel*> getIntersectingVoxels();
-	std::vector<voxel*> getOuterIntersectingVoxels();
-	std::vector<voxel*> getExternalVoxels();
-	std::vector<voxel*> getInternalVoxels();
-	std::vector<voxel*> getVoxels();
+	std::vector<voxel*> getIntersectingVoxels() const;
+	std::vector<voxel*> getOuterIntersectingVoxels() const;
+	std::vector<voxel*> getExternalVoxels() const;
+	std::vector<voxel*> getInternalVoxels() const;
+	std::vector<voxel*> getVoxels() const; 
 
 	gp_Pnt getAnchor() { return anchor_; }
 	double getRotation() { return planeRotation_; }

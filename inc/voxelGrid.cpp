@@ -718,7 +718,7 @@ void VoxelGrid::computeSurfaceSemantics(DataManager* h)
 	}
 }
 
-std::vector<voxel*> VoxelGrid::getIntersectingVoxels()
+std::vector<voxel*> VoxelGrid::getIntersectingVoxels() const
 {
 	std::vector<voxel*> intersectingVoxels;
 	for (auto i = VoxelLookup_.begin(); i != VoxelLookup_.end(); i++)
@@ -731,7 +731,7 @@ std::vector<voxel*> VoxelGrid::getIntersectingVoxels()
 	return intersectingVoxels;
 }
 
-std::vector<voxel*> VoxelGrid::getOuterIntersectingVoxels()
+std::vector<voxel*> VoxelGrid::getOuterIntersectingVoxels() const
 {
 	std::vector<voxel*> intersectingVoxels;
 	for (auto i = VoxelLookup_.begin(); i != VoxelLookup_.end(); i++)
@@ -745,7 +745,7 @@ std::vector<voxel*> VoxelGrid::getOuterIntersectingVoxels()
 		{
 			if (otherIdx == -1) { continue; }
 
-			const voxel& otherVoxel = *VoxelLookup_[otherIdx];
+			const voxel& otherVoxel = *VoxelLookup_.at(otherIdx);
 			if (otherVoxel.getRoomNum() == 0)
 			{
 				intersectingVoxels.emplace_back(currentVoxel);
@@ -757,7 +757,7 @@ std::vector<voxel*> VoxelGrid::getOuterIntersectingVoxels()
 }
 
 
-std::vector<voxel*> VoxelGrid::getExternalVoxels()
+std::vector<voxel*> VoxelGrid::getExternalVoxels() const
 {
 	std::vector<voxel*> externalVoxels;
 	for (auto i = VoxelLookup_.begin(); i != VoxelLookup_.end(); i++)
@@ -769,7 +769,7 @@ std::vector<voxel*> VoxelGrid::getExternalVoxels()
 	return externalVoxels;
 }
 
-std::vector<voxel*> VoxelGrid::getInternalVoxels()
+std::vector<voxel*> VoxelGrid::getInternalVoxels() const
 {
 	std::vector<voxel*> internalVoxels;
 	for (auto i = VoxelLookup_.begin(); i != VoxelLookup_.end(); i++)
@@ -782,7 +782,7 @@ std::vector<voxel*> VoxelGrid::getInternalVoxels()
 }
 
 
-std::vector<voxel*> VoxelGrid::getVoxels()
+std::vector<voxel*> VoxelGrid::getVoxels() const
 {
 	std::vector<voxel*> externalVoxels;
 	for (auto i = VoxelLookup_.begin(); i != VoxelLookup_.end(); i++)

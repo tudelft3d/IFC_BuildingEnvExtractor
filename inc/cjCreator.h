@@ -49,7 +49,7 @@ private:
 
 	// default spatial index tree depth
 	static const int treeDepth_ = 25;
-	std::shared_ptr<VoxelGrid> voxelGrid_ = nullptr;
+	std::unique_ptr<VoxelGrid> voxelGrid_ = nullptr;
 
 	// flags representing the eval state of the creator
 	bool hasTopFaces_ = false;

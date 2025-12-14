@@ -1024,7 +1024,6 @@ bool IOManager::run()
 	collection->CleanVertices();
 	cityCollection_ = collection;
 	printErrors();
-
 	return succesfullExit_;
 }
 

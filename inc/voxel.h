@@ -82,11 +82,11 @@ public:
 	explicit voxel(const BoostPoint3D& center, double sizeXY, double sizeZ);
 
 	/// returns the lll and urr point of a voxel in axis aligned space
-	bg::model::box<BoostPoint3D> getVoxelGeo();
+	bg::model::box<BoostPoint3D> getVoxelGeo() const;
 	/// return the cornerpoints of a voxel based on the angle
-	std::vector<gp_Pnt> getCornerPoints();
+	std::vector<gp_Pnt> getCornerPoints() const;
 	/// return the points represeinging the three intersection planes of a voxel based on the angle
-	std::vector<gp_Pnt> getPlanePoints();
+	std::vector<gp_Pnt> getPlanePoints() const;
 
 	/// check the intersection of a triangluted product and a voxel
 	bool checkIntersecting(IfcProductSpatialData& lookup, const std::vector<gp_Pnt>& voxelPoints, const gp_Pnt& centerPoint, int intersectionLogic = 4);
@@ -109,25 +109,25 @@ public:
 	/// sets flag signifying if voxel is part of the exterior shell
 	void setIsShell() { isShell_ = true; }
 	/// get flag signifying if voxel is part of the exterior shell
-	bool getIsShell() { return isShell_; }
+	bool getIsShell() const { return isShell_; }
 
 	/// set flag notifying if the voxel is part of the outside of a building 
 	void setOutside(bool b) { isInside_ = !b; }
 	/// returns flag representing if the voxel is part of the interior of a building
-	const bool getIsInside() { return isInside_; }
+	const bool getIsInside() const { return isInside_; }
 
 	/// returns the centerpoint of a voxel at its virtual location
-	BoostPoint3D getCenterPoint() { return center_; }
+	BoostPoint3D getCenterPoint() const { return center_; }
 	/// returns the centerpoint of a voxel at its virtual location in OCCT format
-	gp_Pnt getOCCTCenterPoint() { return gp_Pnt(center_.get<0>(), center_.get<1>(), center_.get<2>()); }
+	gp_Pnt getOCCTCenterPoint() const { return gp_Pnt(center_.get<0>(), center_.get<1>(), center_.get<2>()); }
 
 	/// returns the intersecting flag
-	bool getIsIntersecting() { return isIntersecting_; }
+	bool getIsIntersecting() const { return isIntersecting_; }
 	/// sets the intersecting flag
 	void isIntersecting() { isIntersecting_ = true; }
 
 	/// returns the building number
-	int getBuildingNum() { return buildingNum_; }
+	int getBuildingNum() const { return buildingNum_; }
 
 	/// internalize an object, used to internalize the objects the voxel intersects with
 	void addInternalProduct(const Value& prodValue) { internalProducts_.emplace_back(prodValue); }
@@ -141,10 +141,10 @@ public:
 	/// 3 = +Y
 	/// 4 = +Z
 	/// 5 = -Z
-	bool hasFace(int dirNum = -1);
+	bool hasFace(int dirNum = -1) const;
 
 	/// returns the number of transfaces
-	int numberOfFaces();
+	int numberOfFaces() const;
 
 	/// sets a transitionalface
 	void setTransFace(int dirNum);
@@ -152,7 +152,7 @@ public:
 	/// sets the roomnum the voxel is related to
 	void setRoomNum(int roomNum) { roomNum_ = roomNum; }
 	/// get the roomnum the voxel is related to
-	int getRoomNum() { return roomNum_; }
+	int getRoomNum() const { return roomNum_; }
 
 	/// set voxel face to roof
 	void addRoofSemantic(int indx);
@@ -168,6 +168,6 @@ public:
 	void addGroundSemantic(int indx);
 
 	/// return the type of the voxel face
-	CJObjectID faceType(int dirNum);
+	CJObjectID faceType(int dirNum) const;
 };
 #endif // VOXEL_VOXEL_H

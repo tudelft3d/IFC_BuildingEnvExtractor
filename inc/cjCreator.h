@@ -218,8 +218,8 @@ private:
 
 	/// create spatial index for voxels and lookup
 	void populateVoxelIndex(
-		bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<voxel>>, bgi::rstar<25>>* voxelIndex,
-		const std::vector<std::shared_ptr<voxel>> exteriorVoxels
+		bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>* voxelIndex,
+		const std::vector<voxel*> exteriorVoxels
 	);
 
 	// voxel shape related code
@@ -247,7 +247,7 @@ private:
 		CJT::Kernel* kernel, 
 		int unitScale, 
 		const std::vector<Value>& productLookupValues,
-		const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<voxel>>, bgi::rstar<25>>& voxelIdx);
+		const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIdx);
 
 	// get the outer surface by raycasting against exterior voxels
 	void getOuterRaySurfaces(
@@ -256,7 +256,7 @@ private:
 		const std::vector<int>& scoreList,
 		DataManager* h,
 		const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx,
-		const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<voxel>>, bgi::rstar<25>>& voxelIndex);
+		const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIndex);
 
 	// get the outer surface by raycasting against exterior voxels (subprocess)
 	void getOuterRaySurfaces(
@@ -267,7 +267,7 @@ private:
 		std::mutex& listmutex,
 		DataManager* h,
 		const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx,
-		const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<voxel>>, bgi::rstar<25>>& voxelIndex);
+		const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIndex);
 
 	/// monitor the progress of the getouterraysurfaces code
 	void updateCounter(
@@ -298,7 +298,7 @@ private:
 	void simpleRaySurfaceCast(
 		std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& outList,
 		const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& surfaceList,
-		const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<voxel>>, bgi::rstar<25>>& voxelIndex,
+		const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIndex,
 		const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& surfaceIndx);
 
 	void setLoD32SurfaceAttributes(std::vector<nlohmann::json>& outSurfaceTypeCollection, std::vector<int>& outTypeValueList, const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& surfacePairList, DataManager* h);
@@ -308,7 +308,7 @@ private:
 	/// remove dublicate values from valueList
 	std::vector<Value> makeUniqueValueList(const std::vector<Value>& valueList);
 	//gets the unqiue products that intersect with the voxelList
-	std::vector<Value> getUniqueProductValues(std::vector<std::shared_ptr<voxel>> voxelList);
+	std::vector<Value> getUniqueProductValues(const std::vector<voxel*>& voxelList);
 
 	// CityJSON object related code
 

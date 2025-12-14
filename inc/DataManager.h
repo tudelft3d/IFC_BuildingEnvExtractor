@@ -72,6 +72,8 @@ public:
 	bgi::rtree<Value, bgi::rstar<25>>* getIndxPointer() { return &triangleIndex_; }
 	/// returns the triangulated shape vector that coorperates with the index
 	const std::vector<MeshTriangle>& getProductTriangleList() { return productTrianglePoints_; }
+	/// returns the triangulated shape vector that coorperates with the index
+	const MeshTriangle& getProductTriangleList(int i) { return productTrianglePoints_[i]; }
 };
 
 class fileKernelCollection 

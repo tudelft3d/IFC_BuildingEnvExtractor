@@ -20,7 +20,7 @@ std::vector<gp_Pnt> voxel::getPotentialMeshObjectPoints(const std::vector<gp_Pnt
 	std::vector<gp_Pnt> productPoints;
 	for (const Value& qResult : qResultList)
 	{
-		MeshTriangle triangle = lookup.getProductTriangleList()[qResult.second];
+		MeshTriangle triangle = lookup.getProductTriangleList(qResult.second);
 		const std::vector<gp_Pnt> trianglePoints = triangle.getPoints();
 		for (const gp_Pnt& currentPoint : trianglePoints)
 		{
@@ -59,7 +59,7 @@ bool voxel::voxelCoreIsInShape(const gp_Pnt& centerPoint, IfcProductSpatialData&
 
 	for (const Value& qResult : qResultList)
 	{
-		MeshTriangle triangle = lookup.getProductTriangleList()[qResult.second];
+		MeshTriangle triangle = lookup.getProductTriangleList(qResult.second);
 		const std::vector<gp_Pnt> trianglePoints = triangle.getPoints();
 		if (helperFunctions::triangleIntersecting({ centerPoint,  offsetPoint }, trianglePoints))
 		{
@@ -187,22 +187,29 @@ voxel::voxel(const BoostPoint3D& center, double sizeXY, double sizeZ)
 	double offsetXY = sizeXY / 2;
 	double offsetZ = sizeZ / 2;
 
-	gp_Pnt minPoint(bg::get<0>(center) - offsetXY, bg::get<1>(center) - offsetXY, bg::get<2>(center) - offsetZ);
-	gp_Pnt maxPoint(bg::get<0>(center) + offsetXY, bg::get<1>(center) + offsetXY, bg::get<2>(center) + offsetZ);
+	double xCoord = bg::get<0>(center);
+	double yCoord = bg::get<1>(center);
+	double zCoord = bg::get<2>(center);
+
+	gp_Pnt minPoint(xCoord - offsetXY, yCoord - offsetXY, zCoord - offsetZ);
+	gp_Pnt maxPoint(xCoord + offsetXY, yCoord + offsetXY, zCoord + offsetZ);
 }
 
-bg::model::box<BoostPoint3D> voxel::getVoxelGeo()
+bg::model::box<BoostPoint3D> voxel::getVoxelGeo() const
 {
 	double offsetXY = sizeXY_ / 2;
 	double offsetZ = sizeZ_ / 2;
 
-	BoostPoint3D lll(bg::get<0>(center_) - offsetXY, bg::get<1>(center_) - offsetXY, bg::get<2>(center_) - offsetZ);
-	BoostPoint3D urr(bg::get<0>(center_) + offsetXY, bg::get<1>(center_) + offsetXY, bg::get<2>(center_) + offsetZ);
+	double xCoord = bg::get<0>(center_);
+	double yCoord = bg::get<1>(center_);
+	double zCoord = bg::get<2>(center_);
 
+	BoostPoint3D lll(xCoord - offsetXY, yCoord - offsetXY, zCoord - offsetZ);
+	BoostPoint3D urr(xCoord + offsetXY, yCoord + offsetXY, zCoord + offsetZ);
 	return bg::model::box<BoostPoint3D>(lll, urr);
 }
 
-std::vector<gp_Pnt> voxel::getCornerPoints()
+std::vector<gp_Pnt> voxel::getCornerPoints() const
 {
 	auto boxelGeo = getVoxelGeo();
 
@@ -223,7 +230,7 @@ std::vector<gp_Pnt> voxel::getCornerPoints()
 	return pointList;
 }
 
-std::vector<gp_Pnt> voxel::getPlanePoints()
+std::vector<gp_Pnt> voxel::getPlanePoints() const
 {
 	auto boxelGeo = getVoxelGeo();
 
@@ -377,7 +384,7 @@ const std::vector<std::vector<int>>& voxel::getPlaneEdges()
 }
 
 
-bool voxel::hasFace(int dirNum)
+bool voxel::hasFace(int dirNum) const
 {
 	if (dirNum == -1) // check if there is any face
 	{
@@ -395,7 +402,7 @@ bool voxel::hasFace(int dirNum)
 	return true;
 }
 
-int voxel::numberOfFaces()
+int voxel::numberOfFaces() const
 {
 	int numFaces = 0;
 
@@ -515,7 +522,7 @@ void voxel::addGroundSemantic(int indx)
 	return;
 }
 
-CJObjectID voxel::faceType(int dirNum)
+CJObjectID voxel::faceType(int dirNum) const
 {
 	if (faceMap_.size() == 0) { return CJObjectID::CJTypeNone; }
 
@@ -526,7 +533,8 @@ CJObjectID voxel::faceType(int dirNum)
 	else {
 		if (faceMap_.count(dirNum))
 		{
-			return faceMap_[dirNum].getType();
+			voxelFace voxelFaceObject = faceMap_.at(dirNum);
+			return voxelFaceObject.getType();
 		}
 		return CJObjectID::CJTypeNone;
 	}

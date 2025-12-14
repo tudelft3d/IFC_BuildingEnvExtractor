@@ -624,8 +624,8 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<Value>& p
 	std::vector<TopoDS_Shape> shapeList;
 	for (size_t i = 0; i < productLookupValues.size(); i++)
 	{
-		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(productLookupValues[i].second);
-		TopoDS_Shape currentShape = lookup->getProductShape();
+		const IfcProductSpatialData& lookup = h->getLookup(productLookupValues[i].second);
+		const TopoDS_Shape& currentShape = lookup.getProductShape();
 		shapeList.emplace_back(currentShape);
 	}
 
@@ -2011,9 +2011,9 @@ std::vector<TopoDS_Shape> CJGeoCreator::beamProjection(DataManager* h)
 
 	for (int currentValue : topValueIdxset)
 	{
-		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(currentValue);
+		const IfcProductSpatialData& lookup = h->getLookup(currentValue);
 		TopoDS_Shape currentShape;
-		topObjectList.emplace_back(lookup->getProductShape());
+		topObjectList.emplace_back(lookup.getProductShape());
 	}
 
 	printTime(startTime, std::chrono::steady_clock::now());
@@ -2680,8 +2680,8 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD00(DataManager* h, CJT::Kernel
 		std::vector<gp_Pnt> pointList;
 		for (const Value& resultItem : qResult)
 		{
-			std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(resultItem.second);
-			TopoDS_Shape currentShape = h->getObjectShape(lookup->getProductPtr(), true);
+			const IfcProductSpatialData& lookup = h->getLookup(resultItem.second);
+			TopoDS_Shape currentShape = h->getObjectShape(lookup.getProductPtr(), true);
 			for (TopExp_Explorer expl(currentShape, TopAbs_VERTEX); expl.More(); expl.Next())
 			{
 				TopoDS_Vertex vertex = TopoDS::Vertex(expl.Current());
@@ -4380,8 +4380,8 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 	std::vector<Value> allEntries(spatialIndx->begin(), spatialIndx->end());
 	for (const Value& value : allEntries)
 	{
-		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(value.second);
-		TopoDS_Shape currentShape = lookup->getProductShape();
+		const IfcProductSpatialData& lookup = h->getLookup(value.second);
+		TopoDS_Shape currentShape = lookup.getProductShape();
 		int localScore = helperFunctions::getPointCount(currentShape);
 		scoreList.emplace_back(localScore);
 		totalScore += localScore;
@@ -4461,8 +4461,8 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 	std::vector<Value> allEntries(spatialIndx->begin(), spatialIndx->end());
 	for (const Value& value : allEntries)
 	{
-		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(value.second);
-		TopoDS_Shape currentShape = lookup->getProductShape();
+		const IfcProductSpatialData& lookup = h->getLookup(value.second);
+		TopoDS_Shape currentShape = lookup.getProductShape();
 		int localScore = helperFunctions::getPointCount(currentShape);
 		scoreList.emplace_back(localScore);
 		totalScore += localScore;
@@ -5283,9 +5283,9 @@ std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> CJGeoCreator::getE1F
 	double searchBuffer = settingsCollection.searchBufferLod32();
 	for (size_t i = 0; i < productLookupValues.size(); i++)
 	{
-		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(productLookupValues[i].second);
-		std::string lookupType = lookup->getProductPtr()->data().type()->name();
-		TopoDS_Shape currentShape = lookup->getProductShape();
+		const IfcProductSpatialData& lookup = h->getLookup(productLookupValues[i].second);
+		std::string lookupType = lookup.getProductPtr()->data().type()->name();
+		TopoDS_Shape currentShape = lookup.getProductShape();
 
 		BoostBox3D totalBox = helperFunctions::createBBox(currentShape, searchBuffer);
 		int score = static_cast<int>(std::distance(voxelIdx.qbegin(bgi::intersects(totalBox)), voxelIdx.qend()));
@@ -5389,9 +5389,9 @@ void CJGeoCreator::getOuterRaySurfaces(
 		processedObject++;
 		processCountLock.unlock();
 
-		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(currentValue.second);
-		const std::string& lookupType = lookup->getProductPtr()->data().type()->name();
-		const TopoDS_Shape& currentShape = lookup->getProductShape(); 
+		const IfcProductSpatialData& lookup = h->getLookup(currentValue.second);
+		const std::string& lookupType = lookup.getProductPtr()->data().type()->name();
+		const TopoDS_Shape& currentShape = lookup.getProductShape(); 
 		for (TopExp_Explorer explorer(currentShape, TopAbs_FACE); explorer.More(); explorer.Next())
 		{
 			bool faceIsExterior = false;
@@ -5413,7 +5413,7 @@ void CJGeoCreator::getOuterRaySurfaces(
 				}
 
 				std::unique_lock<std::mutex> listLock(listmutex);
-				outerSurfacePairList.emplace_back(std::make_pair(currentTesselatedFace, lookup->getProductPtr()));
+				outerSurfacePairList.emplace_back(std::make_pair(currentTesselatedFace, lookup.getProductPtr()));
 				listLock.unlock();
 			}
 		}
@@ -5587,8 +5587,8 @@ std::vector < std::shared_ptr<CJT::CityObject >> CJGeoCreator::fetchRoomObject(D
 		// find the room that point is located in
 
 		bool encapsulating = true;
-		std::shared_ptr<IfcProductSpatialData> lookup = h->getSpaceLookup(qResult[k].second);
-		IfcSchema::IfcProduct* product = lookup->getProductPtr();
+		const IfcProductSpatialData& lookup = h->getSpaceLookup(qResult[k].second);
+		IfcSchema::IfcProduct* product = lookup.getProductPtr();
 
 		TopoDS_Shape productShape = h->getObjectShape(product, false, true);
 		BRepClass3d_SolidClassifier solidClassifier;
@@ -5992,8 +5992,8 @@ void CJGeoCreator::valueToGeoObject(
 		countMutex.unlock();
 
 		Value valueObject = *it;
-		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(valueObject.second);
-		IfcSchema::IfcProduct* currentProduct = lookup->getProductPtr();
+		const IfcProductSpatialData& lookup = h->getLookup(valueObject.second);
+		IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
 
 		nlohmann::json attributeMap;
 		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->data().type()->name();
@@ -6009,7 +6009,7 @@ void CJGeoCreator::valueToGeoObject(
 			attributeMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();
 		}
 
-		TopoDS_Shape currentShape = lookup->getProductShape();
+		TopoDS_Shape currentShape = lookup.getProductShape();
 		if (currentShape.IsNull()) { continue; }
 
 		TopoDS_Shape cleanShape = helperFunctions::TesselateShape(currentShape);

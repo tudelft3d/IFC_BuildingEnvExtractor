@@ -553,8 +553,8 @@ void DataManager::updateShapeMemory(IfcSchema::IfcProduct* product, TopoDS_Shape
 	if (productIndxLookup_.find(objectType) == productIndxLookup_.end()) { return; }
 	if (productIndxLookup_[objectType].find(product->GlobalId()) == productIndxLookup_[objectType].end()) { return; }
 
-	std::shared_ptr<IfcProductSpatialData> currentLookupvalue = productLookup_[productIndxLookup_[objectType][product->GlobalId()]];
-	currentLookupvalue->setProductShape(shape);
+	IfcProductSpatialData& currentLookupvalue = *productLookup_[productIndxLookup_[objectType][product->GlobalId()]];
+	currentLookupvalue.setProductShape(shape);
 	return;
 }
 
@@ -654,8 +654,8 @@ std::vector<TopoDS_Shape> DataManager::computeEmptyVoids(IfcSchema::IfcRelVoidsE
 		bool intersects = false;
 		for (size_t i = 0; i < qResult.size(); i++)
 		{
-			std::shared_ptr<IfcProductSpatialData> lookup = getLookup(qResult[i].second);
-			IfcSchema::IfcProduct* qProduct = lookup->getProductPtr();
+			const IfcProductSpatialData& lookup = getLookup(qResult[i].second);
+			IfcSchema::IfcProduct* qProduct = lookup.getProductPtr();
 			if (cuttingObjects.find(qProduct->data().type()->name()) == cuttingObjects.end()) { continue; }
 
 			TopoDS_Shape qShape = getObjectShape(qProduct, false);
@@ -944,14 +944,14 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 			helperFunctions::triangulateShape(currentFace);
 		}
 
-		std::shared_ptr<IfcProductSpatialData> lookup = std::make_shared<IfcProductSpatialData>(product, shape);
+		std::unique_ptr<IfcProductSpatialData> lookup = std::make_unique<IfcProductSpatialData>(product, shape);
 
 		if (isRoom)
 		{
 			indexMutex_.lock();
 			std::lock_guard<std::mutex> spaceLock(spaceIndexMutex_);
 			spaceIndex_.insert(std::make_pair(box, (int)spaceIndex_.size()));
-			SpaceLookup_.emplace_back(lookup);
+			SpaceLookup_.emplace_back(std::move(lookup));
 			indexMutex_.unlock();
 			continue;
 		}
@@ -959,7 +959,7 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		indexMutex_.lock();
 		int locationIdx = (int)index_.size();
 		index_.insert(std::make_pair(box, locationIdx));
-		productLookup_.emplace_back(lookup);
+		productLookup_.emplace_back(std::move(lookup));
 		updateBoudingData(box);
 
 		auto typeSearch = productIndxLookup_.find(productType);
@@ -999,8 +999,8 @@ std::vector<TopoDS_Shape> DataManager::getIndexedShapes()
 	for (auto it = spatialIndx->begin(); it != spatialIndx->end(); ++it)
 	{
 		Value test = *it;
-		std::shared_ptr<IfcProductSpatialData> lookup = getLookup(test.second);
-		TopoDS_Shape currentShape = lookup->getProductShape();
+		const IfcProductSpatialData& lookup = getLookup(test.second);
+		TopoDS_Shape currentShape = lookup.getProductShape();
 		if (currentShape.IsNull()) { continue; }
 		shapeList.emplace_back(currentShape);
 	}
@@ -1552,8 +1552,8 @@ TopoDS_Shape DataManager::getObjectShapeFromMem(IfcSchema::IfcProduct* product, 
 	if (obbjectShapeLocation == -1) { return {}; }
 
 	std::shared_lock<std::shared_mutex> lookupMutex(indexMutex_);
-	std::shared_ptr<IfcProductSpatialData> currentProductData = productLookup_[obbjectShapeLocation];
-	return currentProductData->getProductShape();
+	const IfcProductSpatialData& currentProductData = *productLookup_[obbjectShapeLocation];
+	return currentProductData.getProductShape();
 }
 
 

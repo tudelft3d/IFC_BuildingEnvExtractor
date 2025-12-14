@@ -63,9 +63,9 @@ public:
 	~IfcProductSpatialData() {
 	}
 	/// returns the pointer of the product 
-	IfcSchema::IfcProduct* getProductPtr() { return productPtr_.get(); }
+	IfcSchema::IfcProduct* getProductPtr() const { return productPtr_.get(); }
 	/// returns the shape of the product
-	const TopoDS_Shape& getProductShape() { return productShape_;  }
+	const TopoDS_Shape& getProductShape() const { return productShape_;  }
 	/// replaces or sets the stored shape of the product
 	void setProductShape(const TopoDS_Shape& newShape) { productShape_ = newShape; }
 	/// returns the index for the triangulated shape
@@ -130,11 +130,11 @@ private:
 	
 	std::shared_mutex indexMutex_;
 	bgi::rtree<Value, bgi::rstar<treeDepth>> index_;
-	std::vector<std::shared_ptr<IfcProductSpatialData>> productLookup_;
+	std::vector<std::unique_ptr<IfcProductSpatialData>> productLookup_;
 
 	std::mutex spaceIndexMutex_;
 	bgi::rtree<Value, bgi::rstar<treeDepth>> spaceIndex_;
-	std::vector<std::shared_ptr<IfcProductSpatialData>> SpaceLookup_;
+	std::vector<std::unique_ptr<IfcProductSpatialData>> SpaceLookup_;
 
 	std::mutex convertMutex_;
 
@@ -231,14 +231,18 @@ public:
 	/// get the pointer to the space objects index
 	const bgi::rtree<Value, bgi::rstar<treeDepth>>* getSpaceIndexPointer() { return &spaceIndex_; }
 	/// get the spatial/product data related to the space dividing objects index
-	std::shared_ptr<IfcProductSpatialData> getLookup(int i) { return productLookup_.at(i); }
+	const IfcProductSpatialData& getLookup(int i) { return *productLookup_.at(i); }
+	/// get the spatial/product data related to the space dividing objects index
+	IfcProductSpatialData* getLookupPtr(int i) { return productLookup_.at(i).get(); }
 	/// get all indexed object shapes
 	std::vector<TopoDS_Shape> getIndexedShapes();
 	/// get all indexed lookup values
 	std::vector<Value> getIndexedValues();
 
-	/// get the spatial/product data  related to the space objects index
-	std::shared_ptr<IfcProductSpatialData> getSpaceLookup(int i) { return SpaceLookup_.at(i); }
+	/// get the spatial/product data related to the space objects index
+	const IfcProductSpatialData& getSpaceLookup(int i) { return *SpaceLookup_.at(i); }
+	/// get the spatial/product data related to the space objects index
+	IfcProductSpatialData* getSpaceLookupPtr(int i) { return SpaceLookup_.at(i).get(); }
 
 	// internalises the geometry while approximating a smallest bbox around the geometry
 	void internalizeGeo();

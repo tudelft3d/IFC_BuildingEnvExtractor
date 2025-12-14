@@ -127,7 +127,7 @@ bool VoxelGrid::addVoxel(int indx, DataManager* h)
 	h->getIndexPointer()->query(bgi::intersects(boxelGeo), std::back_inserter(qResult));
 	for (const Value& resultItem : qResult)
 	{
-		std::shared_ptr<IfcProductSpatialData> lookup = h->getLookup(resultItem.second);
+		IfcProductSpatialData* lookup = h->getLookupPtr(resultItem.second);
 		if (boxel->checkIntersecting(*lookup, pointList, midPointOCCT, settingsCollection.intersectionLogic()))
 		{
 			boxel->addInternalProduct(resultItem);
@@ -536,7 +536,7 @@ bool VoxelGrid::voxelBeamWindowIntersection(DataManager* h, const voxel& current
 		std::vector<Value> intersectingValues = voxelBeam[j].getInternalProductList();
 		for (auto valueIt = intersectingValues.begin(); valueIt != intersectingValues.end(); ++valueIt)
 		{
-			std::string productTypeName = h->getLookup(valueIt->second)->getProductPtr()->data().type()->name();
+			std::string productTypeName = h->getLookup(valueIt->second).getProductPtr()->data().type()->name();
 
 			if (productTypeName == "IfcDoor" || productTypeName == "IfcWindow")
 			{
@@ -564,7 +564,7 @@ void VoxelGrid::setSemanticVoxelFace(DataManager* h, voxel& voxel , int dirIndx,
 
 	for (auto valueIt = intersectingValues.begin(); valueIt != intersectingValues.end(); ++valueIt)
 	{
-		IfcSchema::IfcProduct* intersectedProduct = h->getLookup(valueIt->second)->getProductPtr();
+		IfcSchema::IfcProduct* intersectedProduct = h->getLookup(valueIt->second).getProductPtr();
 		std::string productTypeName = intersectedProduct->data().type()->name();
 		
 		if (productTypeName == "IfcDoor")

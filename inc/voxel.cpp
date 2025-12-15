@@ -77,7 +77,7 @@ bool voxel::voxelCoreIsInShape(const gp_Pnt& centerPoint, IfcProductSpatialData&
 bool voxel::productEdgeIntersectsVoxel(const std::vector<gp_Pnt>& voxelPoints, const std::vector<gp_Pnt>& productPoints, int intersectionLogic)
 {
 	// check if any object edges itersect with the voxel
-	std::vector<std::vector<int>> triangleVoxels;
+	std::vector<std::array<int, 3>> triangleVoxels;
 	if (intersectionLogic == 2) { triangleVoxels = getplaneTriangles(); }
 	else if (intersectionLogic == 3) { triangleVoxels = getVoxelTriangles(); }
 
@@ -93,9 +93,9 @@ bool voxel::productEdgeIntersectsVoxel(const std::vector<gp_Pnt>& voxelPoints, c
 	double voxelLowY = lll.Y();
 	double voxelMaxY = urr.Y();
 
-	for (const auto& boxel : triangleVoxels)
+	for (const std::array<int, 3>& currentTriangle : triangleVoxels)
 	{
-		std::vector<gp_Pnt> voxelTriangle = { voxelPoints[boxel[0]], voxelPoints[boxel[1]], voxelPoints[boxel[2]] };
+		std::vector<gp_Pnt> voxelTriangle = { voxelPoints[currentTriangle[0]], voxelPoints[currentTriangle[1]], voxelPoints[currentTriangle[2]] }; //TODO: this can be an array
 
 		for (size_t i = 0; i < productPoints.size(); i += 3)
 		{
@@ -152,7 +152,7 @@ bool voxel::productEdgeIntersectsVoxel(const std::vector<gp_Pnt>& voxelPoints, c
 bool voxel::voxelEdgeIntersectsProduct(const std::vector<gp_Pnt>& voxelPoints, const std::vector<gp_Pnt>& productPoints, int intersectionLogic)
 {
 	// check with triangulated object
-	std::vector<std::vector<int>> vets;
+	std::vector<std::array<int, 2>> vets;
 	if (intersectionLogic == 2) { vets = getPlaneEdges(); }
 	else if (intersectionLogic == 3) { vets = getVoxelEdges(); }
 
@@ -161,12 +161,14 @@ bool voxel::voxelEdgeIntersectsProduct(const std::vector<gp_Pnt>& voxelPoints, c
 		const gp_Pnt& p1 = productPoints[i + 0];
 		const gp_Pnt& p2 = productPoints[i + 1];
 		const gp_Pnt& p3 = productPoints[i + 2];
+		std::vector<gp_Pnt> triangle = { p1, p2, p3 };
 
 		for (size_t j = 0; j < vets.size(); j++)
 		{
+			const std::array<int, 2> currentEdge = vets[j];
 			if (helperFunctions::triangleIntersecting(
-				{ voxelPoints[vets[j][0]], voxelPoints[vets[j][1]] },
-				{ p1, p2, p3 })
+				{ voxelPoints[currentEdge[0]], voxelPoints[currentEdge[1]] },
+				triangle) //TODO:fix this
 				)
 			{
 				isIntersecting_ = true;
@@ -297,92 +299,6 @@ bool voxel::checkIntersecting(IfcProductSpatialData& lookup, const std::vector<g
 
 	return false;
 }
-
-
-const std::vector<std::vector<int>>& voxel::getVoxelTriangles()
-{
-	static const std::vector<std::vector<int>> voxelTriangles = {
-	{ 0, 1, 5 }, // side    
-	{ 0, 5, 6 },
-	{ 1, 2, 4 },
-	{ 1, 4, 5 },
-	{ 2, 3, 7 },
-	{ 2, 7, 4 },
-	{ 3, 0, 6 },
-	{ 3, 6, 7 },
-	{ 6, 5, 4 }, // top
-	{ 6, 4, 7 },
-	{ 0, 3, 2 }, // bottom
-	{ 0, 2, 1 }
-	};
-	return voxelTriangles;
-}
-
-const std::vector<std::vector<int>>& voxel::getVoxelFaces()
-{
-	static const std::vector<std::vector<int>> voxelFaces = {
-		{ 1, 2, 4, 5 },
-		{ 3, 0, 6, 7 },
-		{ 2, 3, 7, 4 },
-		{ 0, 1, 5, 6 },
-		{ 6, 5, 4, 7 }, // top
-		{ 0, 3, 2, 1 }
-	};
-	return voxelFaces;
-}
-
-const std::vector<std::vector<int>>& voxel::getVoxelEdges()
-{
-	static const std::vector<std::vector<int>> voxelEdges = {
-		{ 0, 1},
-		{ 1, 2},
-		{ 2, 3},
-		{ 3, 0},
-		{ 4, 5},
-		{ 5, 6},
-		{ 6, 7},
-		{ 7, 4},
-		{ 1, 5},
-		{ 2, 4},
-		{ 3, 7},
-		{ 0, 6}
-	};
-	return voxelEdges;
-}
-
-
-const std::vector<std::vector<int>>& voxel::getplaneTriangles()
-{
-	static const std::vector<std::vector<int>> planeTriangles = {
-		{0, 1, 3},
-		{1, 2, 3},
-		{4, 5, 7},
-		{5, 6, 7},
-		{8, 9, 11},
-		{9, 10, 11}
-	};
-	return planeTriangles;
-}
-
-const std::vector<std::vector<int>>& voxel::getPlaneEdges()
-{
-	static const std::vector<std::vector<int>> planeEdges {
-		{ 0, 1},
-		{ 1, 2},
-		{ 2, 3},
-		{ 3, 0},
-		{ 4, 5},
-		{ 5, 6},
-		{ 6, 7},
-		{ 7, 4},
-		{ 8, 9},
-		{ 9, 10},
-		{ 10, 11},
-		{ 11, 8}
-	};
-	return planeEdges;
-}
-
 
 bool voxel::hasFace(int dirNum) const
 {

@@ -950,9 +950,8 @@ bool IOManager::init(const std::vector<std::string>& inputPathList)
 	printSummary();
 	
 	internalDataManager_ = std::make_unique<DataManager>(SettingsCollection::getInstance().getIfcPathList());
-	DataManager* internalManagerPtr = internalDataManager_.get();
-	if (!internalManagerPtr->isPopulated()) { return false; }
-	if (!internalManagerPtr->hasSetUnits()) { return false; }
+	if (!internalDataManager_->isPopulated()) { return false; }
+	if (!internalDataManager_->hasSetUnits()) { return false; }
 
 	return true;
 }

@@ -63,10 +63,78 @@ private:
 	bool hasFace5_ = false; // +z
 
 	// map containing the semantic voxel faces, the int signifies the dir
-	std::map<int, voxelFace> faceMap_ = {}; 
+	std::map<int, voxelFace> faceMap_ = {};
+
+	/// integers representing the voxel mesh that comply with the getCornerPoints output
+	inline static const std::vector<std::array<int, 3>> voxelTriangles = {
+		{ 0, 1, 5 }, // side    
+		{ 0, 5, 6 },
+		{ 1, 2, 4 },
+		{ 1, 4, 5 },
+		{ 2, 3, 7 },
+		{ 2, 7, 4 },
+		{ 3, 0, 6 },
+		{ 3, 6, 7 },
+		{ 6, 5, 4 }, // top
+		{ 6, 4, 7 },
+		{ 0, 3, 2 }, // bottom
+		{ 0, 2, 1 }
+	};
+
+	/// integers representing the voxel faces that comply with the getCornerPoints output
+	inline static const std::vector<std::array<int, 4>> voxelFaces = {
+		{ 1, 2, 4, 5 },
+		{ 3, 0, 6, 7 },
+		{ 2, 3, 7, 4 },
+		{ 0, 1, 5, 6 },
+		{ 6, 5, 4, 7 }, // top
+		{ 0, 3, 2, 1 }
+	};
+
+	/// integers representing the voxel edges that comply with the getCornerPoints output
+	inline static const std::vector<std::array<int, 2>> voxelEdges = {
+		{ 0, 1},
+		{ 1, 2},
+		{ 2, 3},
+		{ 3, 0},
+		{ 4, 5},
+		{ 5, 6},
+		{ 6, 7},
+		{ 7, 4},
+		{ 1, 5},
+		{ 2, 4},
+		{ 3, 7},
+		{ 0, 6}
+	};
+
+	/// integers of the voxel planes' mesh that comply with the getPlanePoints output
+	inline static const std::vector<std::array<int, 3>> voxel::planeTriangles = {
+		{0, 1, 3},
+		{1, 2, 3},
+		{4, 5, 7},
+		{5, 6, 7},
+		{8, 9, 11},
+		{9, 10, 11}
+	};
+
+	/// integers of the voxel planes' edges that comply with the getPlanePoints output
+	inline static const std::vector<std::array<int, 2>> planeEdges = {
+		{ 0, 1},
+		{ 1, 2},
+		{ 2, 3},
+		{ 3, 0},
+		{ 4, 5},
+		{ 5, 6},
+		{ 6, 7},
+		{ 7, 4},
+		{ 8, 9},
+		{ 9, 10},
+		{ 10, 11},
+		{ 11, 8}
+	};
 
 	/// get the points of the product mesh
-	std::vector<gp_Pnt> getPotentialMeshObjectPoints(const std::vector<gp_Pnt>& voxelPoints, IfcProductSpatialData& lookup);	
+	std::vector<gp_Pnt> getPotentialMeshObjectPoints(const std::vector<gp_Pnt>& voxelPoints, IfcProductSpatialData& lookup);
 	/// check if any cornerpoints fall inside voxel
 	bool linearEqIntersection(const std::vector<gp_Pnt>& productPoints, const std::vector<gp_Pnt>& voxelPoints);
 
@@ -78,6 +146,7 @@ private:
 	bool voxelEdgeIntersectsProduct(const std::vector<gp_Pnt>& voxelPoints, const std::vector<gp_Pnt>& productPoints, int intersectionLogic);
 
 public:
+
 	/// greates an axis aligned voxel
 	explicit voxel(const BoostPoint3D& center, double sizeXY, double sizeZ);
 
@@ -92,16 +161,16 @@ public:
 	bool checkIntersecting(IfcProductSpatialData& lookup, const std::vector<gp_Pnt>& voxelPoints, const gp_Pnt& centerPoint, int intersectionLogic = 4);
 
 	/// returns integers representing the voxel mesh that comply with the getCornerPoints output
-	static const std::vector<std::vector<int>>& getVoxelTriangles();
+	static const std::vector<std::array<int, 3>>& getVoxelTriangles() { return voxelTriangles; }
 	/// returns integers representing the voxel faces that comply with the getCornerPoints output
-	static const std::vector<std::vector<int>>& getVoxelFaces();
+	static const std::vector<std::array<int, 4>>& getVoxelFaces() { return voxelFaces; }
 	/// returns integers representing the voxel edges that comply with the getCornerPoints output
-	static const std::vector<std::vector<int>>& getVoxelEdges();
+	static const std::vector<std::array<int, 2>>& getVoxelEdges() { return voxelEdges; }
 
 	/// returns integers of the voxel planes' mesh that comply with the getPlanePoints output
-	static const std::vector<std::vector<int>>& getplaneTriangles();
+	const std::vector<std::array<int, 3>>& getplaneTriangles() { return planeTriangles; }
 	/// returns integers of the voxel planes' edges that comply with the getPlanePoints output
-	static const std::vector<std::vector<int>>& getPlaneEdges();
+	static const std::vector<std::array<int, 2>>& getPlaneEdges() { return planeEdges; }
 
 	/// sets number representing to which building the voxel belongs
 	void setBuildingNum(int num) { buildingNum_ = num; }
@@ -170,4 +239,5 @@ public:
 	/// return the type of the voxel face
 	CJObjectID faceType(int dirNum) const;
 };
+
 #endif // VOXEL_VOXEL_H

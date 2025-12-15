@@ -38,6 +38,9 @@ void VoxelGrid::init(DataManager* h)
 
 	totalVoxels_ = xRelRange_ * yRelRange_ * zRelRange_;
 	planeRotation_ = settingsCollection.gridRotation();
+
+	VoxelLookup_.resize(totalVoxels_);
+
 	return;
 }
 
@@ -137,10 +140,8 @@ bool VoxelGrid::addVoxel(int indx, DataManager* h)
 	}
 
 	bool isIntersecting = boxel->getIsIntersecting();
+	VoxelLookup_[indx] = std::move(boxel);
 
-	voxelLookupMutex.lock();
-	VoxelLookup_.emplace(indx, std::move(boxel));
-	voxelLookupMutex.unlock();
 	return isIntersecting;
 }
 
@@ -725,7 +726,7 @@ std::vector<voxel*> VoxelGrid::getIntersectingVoxels() const
 	std::vector<voxel*> intersectingVoxels;
 	for (auto i = VoxelLookup_.begin(); i != VoxelLookup_.end(); i++)
 	{
-		voxel* currentVoxel = i->second.get();
+		voxel* currentVoxel = i->get();
 		if (!currentVoxel->getIsIntersecting()) { continue; }
 		if (currentVoxel->getBuildingNum() == -1) { continue; }
 		intersectingVoxels.emplace_back(currentVoxel);
@@ -738,7 +739,7 @@ std::vector<voxel*> VoxelGrid::getOuterIntersectingVoxels() const
 	std::vector<voxel*> intersectingVoxels;
 	for (auto i = VoxelLookup_.begin(); i != VoxelLookup_.end(); i++)
 	{
-		voxel* currentVoxel = i->second.get();
+		voxel* currentVoxel = i->get();
 		if (!currentVoxel->getIsIntersecting()) { continue; }
 		if (currentVoxel->getBuildingNum() == -1) { continue; }
 
@@ -764,7 +765,7 @@ std::vector<voxel*> VoxelGrid::getExternalVoxels() const
 	std::vector<voxel*> externalVoxels;
 	for (auto i = VoxelLookup_.begin(); i != VoxelLookup_.end(); i++)
 	{
-		voxel* currentVoxel = i->second.get();
+		voxel* currentVoxel = i->get();
 		if (currentVoxel->getIsInside()) { continue; }
 		externalVoxels.emplace_back(currentVoxel);
 	}
@@ -776,7 +777,7 @@ std::vector<voxel*> VoxelGrid::getInternalVoxels() const
 	std::vector<voxel*> internalVoxels;
 	for (auto i = VoxelLookup_.begin(); i != VoxelLookup_.end(); i++)
 	{
-		voxel* currentVoxel = i->second.get();
+		voxel* currentVoxel = i->get();
 		if (!currentVoxel->getIsInside()) { continue; }
 		internalVoxels.emplace_back(currentVoxel);
 	}
@@ -789,7 +790,7 @@ std::vector<voxel*> VoxelGrid::getVoxels() const
 	std::vector<voxel*> externalVoxels;
 	for (auto i = VoxelLookup_.begin(); i != VoxelLookup_.end(); i++)
 	{
-		voxel* currentVoxel = i->second.get();
+		voxel* currentVoxel = i->get();
 		externalVoxels.emplace_back(currentVoxel);
 	}
 	return externalVoxels;
@@ -801,7 +802,7 @@ double VoxelGrid::getRoomArea(int roomNum)
 	double voxelarea = voxelSize * voxelSize;
 
 	double roomArea = 0;
-	for (const auto& [index, currentVoxel] : VoxelLookup_)
+	for (const auto& currentVoxel : VoxelLookup_)
 	{
 		if (currentVoxel->getRoomNum() != roomNum) { continue; }
 		if (!currentVoxel->hasFace(5)) { continue; }
@@ -1012,7 +1013,7 @@ gp_Pnt VoxelGrid::getPointInRoom(int roomNum)
 {
 	for (auto i = VoxelLookup_.begin(); i != VoxelLookup_.end(); i++)
 	{
-		const voxel& currentVoxel = *i->second;
+		const voxel& currentVoxel = *i->get();
 
 		if (currentVoxel.getRoomNum() == roomNum)
 		{

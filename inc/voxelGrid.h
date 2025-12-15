@@ -21,7 +21,7 @@ private:
 	int activeThreads_ = 0;
 
 	// list for indx to voxel
-	std::map<int, std::unique_ptr<voxel>> VoxelLookup_; 
+	std::vector<std::unique_ptr<voxel>> VoxelLookup_; 
 
 	// list for roomnum to voxelIdx
 	std::map<int, std::vector<int>> room2VoxelIdx_;

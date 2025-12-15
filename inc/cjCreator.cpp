@@ -146,6 +146,9 @@ bool surfaceGridVisibilityTest(
 			std::vector<std::pair<BoostBox3D, TopoDS_Face>>faceQResult;
 			faceIdx.query(bgi::intersects(queryRay), std::back_inserter(faceQResult));
 
+			if (faceQResult.empty()) { continue; }
+			std::array<gp_Pnt, 2> castRay = { gridPoint, targetPoint };
+
 			for (const std::pair<BoostBox3D, TopoDS_Face>& facePair : faceQResult)
 			{
 				// get the potential faces
@@ -167,13 +170,13 @@ bool surfaceGridVisibilityTest(
 				{
 					const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
 
-					std::vector<gp_Pnt> trianglePoints{
+					std::array<gp_Pnt, 3> trianglePoints{
 						mesh->Node(theTriangle(1)).Transformed(loc),
 						mesh->Node(theTriangle(2)).Transformed(loc),
 						mesh->Node(theTriangle(3)).Transformed(loc)
 					};
 
-					if (helperFunctions::triangleIntersecting({ gridPoint, targetPoint }, trianglePoints))
+					if (helperFunctions::triangleIntersecting(castRay, trianglePoints))
 					{
 						clearLine = false;
 						break;
@@ -3184,6 +3187,7 @@ void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::
 			{
 				bool clearLine = true;
 				gp_Pnt topPoint = gp_Pnt(facePoint.X(), facePoint.Y(), facePoint.Z() + 10000);
+				std::array<gp_Pnt, 2> castRay = { facePoint, topPoint };
 
 				for (TopExp_Explorer otherFaceExp(spaceShape, TopAbs_FACE); otherFaceExp.More(); otherFaceExp.Next()) {
 					TopoDS_Face otherFace = TopoDS::Face(otherFaceExp.Current());
@@ -3207,13 +3211,13 @@ void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::
 					{
 						const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
 
-						std::vector<gp_Pnt> trianglePoints{
+						std::array<gp_Pnt, 3> trianglePoints{
 							mesh->Node(theTriangle(1)).Transformed(loc),
 							mesh->Node(theTriangle(2)).Transformed(loc),
 							mesh->Node(theTriangle(3)).Transformed(loc)
 						};
 
-						if (helperFunctions::triangleIntersecting({ facePoint, topPoint }, trianglePoints))
+						if (helperFunctions::triangleIntersecting(castRay, trianglePoints))
 						{
 							clearLine = false;
 							break;

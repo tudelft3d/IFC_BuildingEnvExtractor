@@ -21,7 +21,7 @@ std::vector<gp_Pnt> voxel::getPotentialMeshObjectPoints(const std::vector<gp_Pnt
 	for (const Value& qResult : qResultList)
 	{
 		MeshTriangle triangle = lookup.getProductTriangleList(qResult.second);
-		const std::vector<gp_Pnt> trianglePoints = triangle.getPoints();
+		const std::array<gp_Pnt, 3> trianglePoints = triangle.getPoints();
 		for (const gp_Pnt& currentPoint : trianglePoints)
 		{
 			productPoints.emplace_back(currentPoint);
@@ -56,12 +56,13 @@ bool voxel::voxelCoreIsInShape(const gp_Pnt& centerPoint, IfcProductSpatialData&
 
 	std::vector<Value> qResultList;
 	lookup.getIndxPointer()->query(bgi::intersects(helperFunctions::createBBox(centerPoint, offsetPoint)), std::back_inserter(qResultList));
+	std::array<gp_Pnt, 2> castRay = { centerPoint,  offsetPoint };
 
 	for (const Value& qResult : qResultList)
 	{
 		MeshTriangle triangle = lookup.getProductTriangleList(qResult.second);
-		const std::vector<gp_Pnt> trianglePoints = triangle.getPoints();
-		if (helperFunctions::triangleIntersecting({ centerPoint,  offsetPoint }, trianglePoints))
+		const std::array<gp_Pnt, 3>& trianglePoints = triangle.getPoints();
+		if (helperFunctions::triangleIntersecting(castRay, trianglePoints))
 		{
 			counter++;
 		}
@@ -95,7 +96,7 @@ bool voxel::productEdgeIntersectsVoxel(const std::vector<gp_Pnt>& voxelPoints, c
 
 	for (const std::array<int, 3>& currentTriangle : triangleVoxels)
 	{
-		std::vector<gp_Pnt> voxelTriangle = { voxelPoints[currentTriangle[0]], voxelPoints[currentTriangle[1]], voxelPoints[currentTriangle[2]] }; //TODO: this can be an array
+		std::array<gp_Pnt, 3> voxelTriangle = { voxelPoints[currentTriangle[0]], voxelPoints[currentTriangle[1]], voxelPoints[currentTriangle[2]] }; //TODO: this can be an array
 
 		for (size_t i = 0; i < productPoints.size(); i += 3)
 		{
@@ -130,13 +131,13 @@ bool voxel::productEdgeIntersectsVoxel(const std::vector<gp_Pnt>& voxelPoints, c
 
 			if (minY > voxelMaxY || maxY < voxelLowY) { continue; }
 
-			std::vector<std::vector<gp_Pnt>> lineList = {
+			std::vector<std::array<gp_Pnt, 2>> lineList = {
 				{p1, p2},
 				{p2, p3},
 				{p3, p1}
 			};
 
-			for (std::vector<gp_Pnt> line : lineList)
+			for (const std::array<gp_Pnt, 2>& line : lineList)
 			{
 				if (helperFunctions::triangleIntersecting(line, voxelTriangle))
 				{
@@ -161,7 +162,7 @@ bool voxel::voxelEdgeIntersectsProduct(const std::vector<gp_Pnt>& voxelPoints, c
 		const gp_Pnt& p1 = productPoints[i + 0];
 		const gp_Pnt& p2 = productPoints[i + 1];
 		const gp_Pnt& p3 = productPoints[i + 2];
-		std::vector<gp_Pnt> triangle = { p1, p2, p3 };
+		std::array<gp_Pnt, 3> triangle = { p1, p2, p3 };
 
 		for (size_t j = 0; j < vets.size(); j++)
 		{

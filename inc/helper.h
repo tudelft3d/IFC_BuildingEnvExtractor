@@ -112,6 +112,8 @@ struct helperFunctions{
 	static bg::model::box <BoostPoint3D> createBBox(const std::vector<TopoDS_Shape>& shape, double buffer = 0.0);
 	/// construct a bbox from a list of points
 	static bg::model::box <BoostPoint3D> createBBox(const std::vector<gp_Pnt>& pointList, double buffer = 0.0);
+	/// construct a bbox from a list of points
+	static bg::model::box <BoostPoint3D> createBBox(const std::array<gp_Pnt, 3>& pointList, double buffer = 0.0);
 	/// construct a bbox from the urr and lll points
 	static bg::model::box <BoostPoint3D> createBBox(const gp_Pnt& p1, const gp_Pnt& p2, double buffer = 0.0);
 	/// construct a OCCTbbox from the urr and lll points
@@ -203,9 +205,9 @@ struct helperFunctions{
 	/// line surface intersection related code
 
 	/// check if line intersects triangle
-	static bool triangleIntersecting(const std::vector<gp_Pnt>& line, const std::vector<gp_Pnt>& triangle);
+	static bool triangleIntersecting(const std::array<gp_Pnt, 2>& line, const std::array<gp_Pnt, 3>& triangle);
 	/// test if point falls within the triangle
-	static bool baryCentricTest(const gp_Pnt& point, const std::vector<gp_Pnt>& triangle);
+	static bool baryCentricTest(const gp_Pnt& point, const std::array<gp_Pnt, 3>& triangle);
 
 	/// surface line intersection related code
 

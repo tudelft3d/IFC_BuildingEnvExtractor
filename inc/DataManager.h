@@ -31,11 +31,11 @@ class MeshTriangle
 {
 private:
 	/// the three points of the triangle (do not store any other larger vector)
-	std::vector<gp_Pnt> points_ = {};
+	std::array<gp_Pnt, 3> points_ = {};
 public:
-	MeshTriangle(const std::vector<gp_Pnt> points) { points_ = points; }
+	MeshTriangle(const std::array<gp_Pnt, 3>& points) { points_ = points; }
 	/// return the three points of the triangle
-	const std::vector<gp_Pnt> getPoints() { return points_; }
+	const std::array<gp_Pnt, 3>& getPoints() { return points_; }
 };
 
 // lookup for the major spatial index used in the code (indexing all the objects in the ifc file)

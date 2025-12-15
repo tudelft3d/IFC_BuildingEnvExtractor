@@ -577,6 +577,32 @@ bg::model::box <BoostPoint3D> helperFunctions::createBBox(const std::vector<gp_P
 		);
 }
 
+bg::model::box<BoostPoint3D> helperFunctions::createBBox(const std::array<gp_Pnt, 3>& pointList, double buffer)
+{
+	// get proper order for the bbox
+	gp_Pnt p1 = pointList[0];
+	gp_Pnt p2 = pointList[1];
+	gp_Pnt p3 = pointList[2];
+
+	gp_Pnt lll(
+		std::min({ p1.X(), p2.X(), p3.X() }),
+		std::min({ p1.Y(), p2.Y(), p3.Y() }),
+		std::min({ p1.Z(), p2.Z(), p3.Z() })
+	);
+
+	gp_Pnt urr(
+		std::max({ p1.X(), p2.X(), p3.X() }),
+		std::max({ p1.Y(), p2.Y(), p3.Y() }),
+		std::max({ p1.Z(), p2.Z(), p3.Z() })
+	);
+
+	BoostPoint3D boostlllPoint = BoostPoint3D(lll.X() - buffer, lll.Y() - buffer, lll.Z() - buffer);
+	BoostPoint3D boosturrPoint = BoostPoint3D(urr.X() + buffer, urr.Y() + buffer, urr.Z() + buffer);
+	bg::model::box <BoostPoint3D> box = bg::model::box < BoostPoint3D >(boostlllPoint, boosturrPoint);
+
+	return box;
+}
+
 bg::model::box <BoostPoint3D>  helperFunctions::createBBox(const gp_Pnt& p1, const gp_Pnt& p2, double buffer) 
 {
 	// get proper order for the bbox
@@ -1426,7 +1452,7 @@ bool helperFunctions::surfaceIsIncapsulated(const TopoDS_Face& innerSurface, con
 	return true;
 }
 
-bool helperFunctions::triangleIntersecting(const std::vector<gp_Pnt>& line, const std::vector<gp_Pnt>& triangle)
+bool helperFunctions::triangleIntersecting(const std::array<gp_Pnt, 2>& line, const std::array<gp_Pnt, 3>& triangle)
 {
 	double precision = SettingsCollection::getInstance().spatialTolerance();
 
@@ -1459,7 +1485,7 @@ bool helperFunctions::triangleIntersecting(const std::vector<gp_Pnt>& line, cons
 	return baryCentricTest(pIntersect, triangle);
 }
 
-bool helperFunctions::baryCentricTest(const gp_Pnt& point, const std::vector<gp_Pnt>& triangle)
+bool helperFunctions::baryCentricTest(const gp_Pnt& point, const std::array<gp_Pnt, 3>& triangle)
 {
 	double precision = SettingsCollection::getInstance().spatialTolerance();
 

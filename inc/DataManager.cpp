@@ -47,14 +47,14 @@ IfcProductSpatialData::IfcProductSpatialData(IfcSchema::IfcProduct* productPtr, 
 		{
 			const Poly_Triangle& theTriangle = mesh->Triangles().Value(i);
 
-			std::vector<gp_Pnt> trianglePoints{
+			std::array<gp_Pnt, 3> trianglePoints{
 				mesh->Nodes().Value(theTriangle(1)).Transformed(loc),
 				mesh->Nodes().Value(theTriangle(2)).Transformed(loc),
 				mesh->Nodes().Value(theTriangle(3)).Transformed(loc)
 			};
 
 			auto box = helperFunctions::createBBox(trianglePoints);
-			triangleIndex_.insert(std::make_pair(helperFunctions::createBBox(trianglePoints), productTrianglePoints_.size()));
+			triangleIndex_.insert(std::make_pair(box, productTrianglePoints_.size()));
 			productTrianglePoints_.emplace_back(MeshTriangle(trianglePoints));
 		}
 	}

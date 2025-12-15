@@ -376,7 +376,7 @@ std::vector<CJGeoCreator::BuildingSurfaceCollection> CJGeoCreator::sortRoofStruc
 		}
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return buildingSurfaceCollectionList;
 }
 
@@ -475,7 +475,7 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 		std::vector<TopoDS_Face> mergedSurfaces = helperFunctions::mergeFaces(toBeGroupdSurfaces);
 		mergedRSurfaces.emplace_back(RCollection(mergedSurfaces));
 	}
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return mergedRSurfaces;
 }
 
@@ -986,7 +986,7 @@ void CJGeoCreator::makeFootprint(DataManager* h)
 	}
 
 	hasFootprints_ = true;
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	std::cout << std::endl;
 	return;
 }
@@ -1937,20 +1937,6 @@ TopoDS_Face CJGeoCreator::mergeFaces(const std::vector<TopoDS_Face>& mergeFaces)
 }
 
 
-void CJGeoCreator::printTime(std::chrono::steady_clock::time_point startTime, std::chrono::steady_clock::time_point endTime) {
-	long long duration = std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count();
-	if (duration < 5)
-	{
-		std::cout << CommunicationStringEnum::getString(CommunicationStringID::indentSuccesFinished) << 
-			std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << UnitStringEnum::getString(UnitStringID::milliseconds) << std::endl;
-	}
-	else {
-		std::cout << CommunicationStringEnum::getString(CommunicationStringID::indentSuccesFinished) << 
-			std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count() << UnitStringEnum::getString(UnitStringID::seconds) << std::endl;
-	}
-}
-
-
 TopoDS_Face makeFace(const std::vector<gp_Pnt>& voxelPointList, const std::vector<int>& pointFaceIndx) {
 	gp_Pnt p0(voxelPointList[pointFaceIndx[0]]);
 	gp_Pnt p1(voxelPointList[pointFaceIndx[1]]);
@@ -2016,7 +2002,7 @@ std::vector<TopoDS_Shape> CJGeoCreator::beamProjection(DataManager* h)
 		topObjectList.emplace_back(lookup.getProductShape());
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return topObjectList;
 }
 
@@ -2116,7 +2102,7 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<RColl
 
 	TopoDS_Face cuttingPlane = helperFunctions::createHorizontalFace(p0, p1, 0, 0);
 	std::vector<TopoDS_Face> mergedSurfaces = helperFunctions::planarFaces2Outline(cleanProjectedFaceList, cuttingPlane);
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return mergedSurfaces;
 }
 
@@ -2153,7 +2139,7 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 		}
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 }
 
 
@@ -2235,7 +2221,7 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::FinefilterSurfaces(c
 		}
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 
 	return fineFilteredShapeList;
 }
@@ -2743,7 +2729,7 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD00(DataManager* h, CJT::Kernel
 		helperFunctions::writeToSTEP(faceCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD00));
 	}
 	
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectCollection;
 }
@@ -2831,7 +2817,7 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD02(DataManager* h, CJT::Kernel
 		helperFunctions::writeToSTEP(faceCopyCollection, settingCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD02));
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectCollection;
 }
@@ -2946,7 +2932,7 @@ void CJGeoCreator::make2DStoreys(
 		}
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return;
 }
 
@@ -3341,7 +3327,7 @@ CJT::GeoObject CJGeoCreator::makeLoD10(DataManager* h, CJT::Kernel* kernel, int 
 		helperFunctions::writeToSTEP(bbox, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD10));
 	}
 	 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObject;
 }
@@ -3485,7 +3471,7 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD03(DataManager* h, CJT::Kernel
 		helperFunctions::writeToSTEP(faceCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD03));
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectCollection;
 }
@@ -3578,7 +3564,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD04(DataManager* h, CJT::Kernel*
 		helperFunctions::writeToSTEP(faceCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD04));
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectCollection;
 }
@@ -3643,7 +3629,7 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD12(DataManager* h, CJT::Kernel
 		helperFunctions::writeToSTEP(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD12));
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -3722,7 +3708,7 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD13(DataManager* h, CJT::Kernel
 		helperFunctions::writeToSTEP(prismList, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD13));
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -3802,7 +3788,7 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD22(DataManager* h, CJT::Kernel
 		helperFunctions::writeToSTEP(prismList, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD22));
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -3905,7 +3891,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDb0(DataManager* h, CJT::Kernel*
 		helperFunctions::writeToSTEP(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDb));
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -3929,7 +3915,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDc1(DataManager* h, CJT::Kernel*
 		if (storeyObjects_.empty()) {makeStoreyObjects(h); }
 		make2DStoreys(h, kernel, storeyObjects_, 1, false, false);
 		if (LoD02Plates_.empty()) { return {}; }
-		printTime(startTime, std::chrono::steady_clock::now());
+		helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 
 		startTime = std::chrono::steady_clock::now();
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoContinueOriginalProcess) << "LoDc.1" << std::endl;
@@ -3980,7 +3966,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDc1(DataManager* h, CJT::Kernel*
 		helperFunctions::writeToSTEP(simplefiedShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDc1));
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -4016,7 +4002,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDc2(DataManager* h, CJT::Kernel*
 		if (storeyObjects_.empty()) { makeStoreyObjects(h); }
 		make2DStoreys(h, kernel, storeyObjects_, 1, false, false);
 		if (LoD02Plates_.empty()) { return {}; }
-		printTime(startTime, std::chrono::steady_clock::now());
+		helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 
 		startTime = std::chrono::steady_clock::now();
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoContinueOriginalProcess) << "LoDc.2" << std::endl;
@@ -4228,7 +4214,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDc2(DataManager* h, CJT::Kernel*
 	{
 		helperFunctions::writeToSTEP(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDb));
 	}
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -4249,7 +4235,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDd1(DataManager* h, CJT::Kernel*
 		if (storeyObjects_.empty()) { makeStoreyObjects(h); }
 		make2DStoreys(h, kernel, storeyObjects_, 1, true, false);
 		if (LoD03Plates_.empty()) { return {}; }
-		printTime(startTime, std::chrono::steady_clock::now());
+		helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 		startTime = std::chrono::steady_clock::now();
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoContinueOriginalProcess) << "LoDd.1" << std::endl;
 	}
@@ -4335,7 +4321,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDd1(DataManager* h, CJT::Kernel*
 		helperFunctions::writeToSTEP(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDd1));
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -4427,8 +4413,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 		}
 	}
 
-
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -4500,7 +4485,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 		helperFunctions::writeToSTEP(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD41));
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -4587,7 +4572,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel*
 		helperFunctions::writeToSTEP(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDe1));
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -4733,7 +4718,7 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	}
 
 	geoObjectList.emplace_back(geoObject);
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -4946,7 +4931,7 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeV(DataManager* h, CJT::Kernel* ker
 
 		geoObjectList.emplace_back(geoObject);
 	}
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
 }
@@ -4992,7 +4977,7 @@ void CJGeoCreator::makeVRooms(DataManager* h, CJT::Kernel* kernel, std::vector<s
 			thread.join();
 		}
 	}
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return;
 }
 
@@ -5069,7 +5054,7 @@ std::vector<CJT::CityObject> CJGeoCreator::makeSite(DataManager* h, CJT::Kernel*
 		siteObjectList.emplace_back(siteObject);
 	}
 
-	printTime(startTime, std::chrono::steady_clock::now());
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return siteObjectList;
 }
 

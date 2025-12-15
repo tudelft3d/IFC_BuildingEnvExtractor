@@ -930,8 +930,14 @@ void IOManager::processSitelod(CJGeoCreator* geoCreator, std::shared_ptr<CJT::Ci
 
 bool IOManager::init(const std::vector<std::string>& inputPathList)
 {
+#ifdef NDEBUG
+	std::string buildMode = "Release";
+#else
+	std::string buildMode = "Debug";
+#endif
+
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::seperator) << std::endl;
-	std::cout << "	   IFC_BuildingEnvExtractor v" << iterationVersion << "-" << buildVersion << std::endl;
+	std::cout << "	IFC_BuildingEnvExtractor v" << iterationVersion << "-" << buildVersion << " " << buildMode << std::endl;
 	std::cout << "    Experimental building shell extractor/approximation\n" << std::endl;
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::seperator) << std::endl;
 	std::cout << std::endl;

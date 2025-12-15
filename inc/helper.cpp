@@ -3426,6 +3426,20 @@ void helperFunctions::writeToOBJ(const std::vector<std::vector<T>>& theShapeList
 	return;
 }
 
+void helperFunctions::printTime(std::chrono::steady_clock::time_point startTime, std::chrono::steady_clock::time_point endTime)
+{
+	long long duration = std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count();
+	if (duration < 5)
+	{
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::indentSuccesFinished) <<
+			std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << UnitStringEnum::getString(UnitStringID::milliseconds) << std::endl;
+	}
+	else {
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::indentSuccesFinished) <<
+			std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count() << UnitStringEnum::getString(UnitStringID::seconds) << std::endl;
+	}
+}
+
 double helperFunctions::computeArea(const TopoDS_Face& theFace)
 {
 	GProp_GProps gprops;

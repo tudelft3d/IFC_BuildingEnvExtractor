@@ -319,6 +319,9 @@ struct helperFunctions{
 	static bool isStraight(const TopoDS_Edge& theEdge);
 
 	/// other code
+
+	/// outputs the time delta between the start and end time
+	static void printTime(std::chrono::steady_clock::time_point startTime, std::chrono::steady_clock::time_point endTime);
  
 	/// compute the area of a face
 	static double computeArea(const TopoDS_Face& theFace);

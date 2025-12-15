@@ -213,9 +213,6 @@ private:
 	/// attempts to merge faces into one big face
 	TopoDS_Face mergeFaces(const std::vector<TopoDS_Face>& mergeFaces);
 
-	/// outputs the time delta between the start and end time
-	void printTime(std::chrono::steady_clock::time_point startTime, std::chrono::steady_clock::time_point endTime);
-
 	/// create spatial index for voxels and lookup
 	void populateVoxelIndex(
 		bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>* voxelIndex,

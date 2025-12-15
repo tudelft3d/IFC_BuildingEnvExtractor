@@ -44,6 +44,7 @@ void VoxelGrid::init(DataManager* h)
 
 void VoxelGrid::populateVoxelGrid(DataManager* h)
 {
+	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoPopulateGrid) << std::endl;
 
 	// compute column scores
@@ -87,6 +88,7 @@ void VoxelGrid::populateVoxelGrid(DataManager* h)
 	if (countThread.joinable()) { countThread.join(); }
 
 	std::cout << std::endl;
+	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());	
 }
 
 void VoxelGrid::countVoxels(const int* voxelGrowthCount)

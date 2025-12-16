@@ -940,10 +940,9 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 
 		for (TopExp_Explorer expl(shape, TopAbs_FACE); expl.More(); expl.Next())
 		{
-			TopoDS_Face currentFace = TopoDS::Face(expl.Current());
+			const TopoDS_Face& currentFace = TopoDS::Face(expl.Current());
 			helperFunctions::triangulateShape(currentFace);
 		}
-
 		std::unique_ptr<IfcProductSpatialData> lookup = std::make_unique<IfcProductSpatialData>(product, shape);
 
 		if (isRoom)

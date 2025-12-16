@@ -403,7 +403,7 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 		std::vector<TopoDS_Face> currentCleanFaceList = helperFunctions::TessellateFace(currentFace); //tODO: should be more central
 		for (const TopoDS_Face& currentCleanFace: currentCleanFaceList)
 		{
-			bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentCleanFace, 0.5);
+			bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentCleanFace, 0.01);
 			spatialIndex.insert(std::make_pair(bbox, faceList.size()));
 			faceList.emplace_back(currentCleanFace);
 		}
@@ -433,7 +433,7 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 
 				std::vector<Value> qResult;
 				qResult.clear();
-				spatialIndex.query(bgi::intersects(helperFunctions::createBBox(evalFace, 0.1)), std::back_inserter(qResult));
+				spatialIndex.query(bgi::intersects(helperFunctions::createBBox(evalFace, 0.01)), std::back_inserter(qResult));
 
 				if (qResult.size() == 1) { break; }
 
@@ -1393,6 +1393,7 @@ std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_F
 	for (const TopoDS_Face& currentFace : splitTopSurfaceList)
 	{
 		TopoDS_Solid extrudedShape = extrudeFace(currentFace, true, lowestZ);
+
 		if (extrudedShape.IsNull())
 		{
 			ErrorCollection::getInstance().addError(ErrorID::warningUnableToExtrude);
@@ -1624,6 +1625,7 @@ TopoDS_Shape CJGeoCreator::simplefySolid(const TopoDS_Shape& solidShape, bool ev
 		normalList.emplace_back(faceNomal);
 	}
 
+
 	if (facelist.size() != normalList.size()) { return solidShape; }
 	BRep_Builder brepBuilder;
 	BRepBuilderAPI_Sewing brepSewer;
@@ -1649,7 +1651,7 @@ TopoDS_Shape CJGeoCreator::simplefySolid(const TopoDS_Shape& solidShape, bool ev
 	if (sewedShape.IsNull()) { return{}; }
 	TopAbs_ShapeEnum sewedShapeType = sewedShape.ShapeType();
 	if (sewedShapeType == TopAbs_COMPOUND) { return sewedShape; }
-	if (sewedShapeType != TopAbs_SHELL) { return {}; }
+	if (sewedShapeType != TopAbs_SHELL) {  return {}; }
 
 	brepBuilder.Add(simpleBuilding, sewedShape);
 
@@ -6028,7 +6030,7 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, s
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	std::vector<IfcGeom::filter_t> filterFuncs;
-	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { "IfcProduct" }));
+	filterFuncs.emplace_back(IfcGeom::entity_filter(true, false, { "IfcElement" }));
 	
 	std::set<std::string> uniqueKeySet;
 	for (size_t i = 0; i < h->getSourceFileCount(); i++)
@@ -6311,7 +6313,7 @@ void CJGeoCreator::splitOuterSurfaces(
 	}
 
 
-	//threadList.emplace_back([&] {updateCounter("Splitting outer surfaces", outerSurfacePairList.size(), processedCount, processedCountMutex);  });
+	threadList.emplace_back([&] {updateCounter("Splitting outer surfaces", outerSurfacePairList.size(), processedCount, processedCountMutex);  });
 
 
 	for (auto& thread : threadList) {

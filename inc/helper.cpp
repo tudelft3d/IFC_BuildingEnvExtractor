@@ -132,21 +132,29 @@ template void helperFunctions::writeToOBJ<TopoDS_Shape>(const std::vector<std::v
 template std::vector<TopoDS_Face> helperFunctions::sortShapes(const std::vector<TopoDS_Face>& shapeList, const std::vector<double>& sortingValues);
 template std::vector<TopoDS_Shape> helperFunctions::sortShapes(const std::vector<TopoDS_Shape>& shapeList, const std::vector<double>& sortingValues);
 
-struct gp_XYZ_Hash {
-	std::size_t operator()(const gp_XYZ& p) const {
-		auto round = [](double theVal) -> long long {
-			return static_cast<long long>(std::round(theVal * SettingsCollection::getInstance().spatialTolerance()));
-		};
-		std::size_t hx = std::hash<long long>()(round(p.X()));
-		std::size_t hy = std::hash<long long>()(round(p.Y()));
-		std::size_t hz = std::hash<long long>()(round(p.Z()));
+
+struct IntXYZ {
+	int64_t x, y, z;
+
+	IntXYZ(const gp_XYZ& p, double invTol) {
+		x = static_cast<int64_t>(std::floor(p.X() * invTol + 0.5));
+		y = static_cast<int64_t>(std::floor(p.Y() * invTol + 0.5));
+		z = static_cast<int64_t>(std::floor(p.Z() * invTol + 0.5));
+	}
+};
+
+struct IntXYZ_Hash {
+	std::size_t operator()(const IntXYZ& p) const {
+		std::size_t hx = std::hash<long long>()(p.x);
+		std::size_t hy = std::hash<long long>()(p.y);
+		std::size_t hz = std::hash<long long>()(p.x);
 		return hx ^ (hy << 1) ^ (hz << 2);
 	}
 };
 
-struct gp_XYZ_Equal {
-	bool operator()(const gp_XYZ& a, const gp_XYZ& b) const {
-		return a.IsEqual(b, SettingsCollection::getInstance().spatialTolerance());
+struct IntXYZ_Equal {
+	bool operator()(const IntXYZ& a, const IntXYZ& b) const {
+		return (a.x == b.x && a.y == b.y && a.z == b.z);
 	}
 };
 
@@ -3354,7 +3362,7 @@ void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::
 	std::ofstream objFile(targetPath);
 	int vertIdxOffset = 1;
 	std::vector<std::vector<int>> nestedTriangleIndx;
-	std::unordered_map<gp_XYZ, int, gp_XYZ_Hash, gp_XYZ_Equal> vertMap;
+	std::unordered_map<IntXYZ, int, IntXYZ_Hash, IntXYZ_Equal> vertMap;
 
 	int counter = 0;
 	for (const T& theShape : theShapeList)
@@ -3388,16 +3396,17 @@ void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::
 					for (size_t i = 3; i >= 1; i--)
 					{
 						gp_XYZ xyz = mesh->Nodes().Value(theTriangle(i)).Transformed(loc).Coord();
+						IntXYZ intXyz = IntXYZ(xyz, 1/1e-6);
 
-						if (vertMap.find(xyz) != vertMap.end())
+						if (vertMap.find(intXyz) != vertMap.end())
 						{
-							triangleIndx.emplace_back(vertMap[xyz]);
+							triangleIndx.emplace_back(vertMap[intXyz]);
 							continue;
 						}
 
 						objFile << "v " << xyz.X() << " " << xyz.Y() << " " << xyz.Z() << "\n";
 						triangleIndx.emplace_back(vertIdxOffset);
-						vertMap[xyz] = vertIdxOffset;
+						vertMap.try_emplace(intXyz, vertIdxOffset);
 						vertIdxOffset++;
 					}
 				}
@@ -3406,16 +3415,17 @@ void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::
 					for (size_t i = 1; i <= 3; i++)
 					{
 						gp_XYZ xyz = mesh->Nodes().Value(theTriangle(i)).Transformed(loc).Coord();
+						IntXYZ intXyz = IntXYZ(xyz, 1 / 1e-6);
 
-						if (vertMap.find(xyz) != vertMap.end())
+						if (vertMap.find(intXyz) != vertMap.end())
 						{
-							triangleIndx.emplace_back(vertMap[xyz]);
+							triangleIndx.emplace_back(vertMap[intXyz]);
 							continue;
 						}
 
 						objFile << "v " << xyz.X() << " " << xyz.Y() << " " << xyz.Z() << "\n";
 						triangleIndx.emplace_back(vertIdxOffset);
-						vertMap[xyz] = vertIdxOffset;
+						vertMap.try_emplace(intXyz, vertIdxOffset);
 						vertIdxOffset++;
 					}
 				}
@@ -3423,7 +3433,6 @@ void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::
 			}
 		}
 	}
-
 	for (const auto& triangleList : nestedTriangleIndx)
 	{
 		objFile << "f";

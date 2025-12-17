@@ -3134,12 +3134,12 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 		IfcSchema::IfcMaterial* ifcMaterial = relMaterial->as<IfcSchema::IfcMaterial>();
 		std::string materialName = boost::to_upper_copy(ifcMaterial->Name());
 
-		if (materialName.find("GLASS") != std::string::npos || 
+		if (materialName.find("GLASS") != std::string::npos ||
 			materialName.find("GLAZED") != std::string::npos)
 		{
 			return true;
 		}
-		 //TODO: implement ifc4x3
+		//TODO: implement ifc4x3
 #if defined(USE_IFC4x3)
 		return false;
 #elif defined(USE_IFC2x3) || defined(USE_IFC4) 
@@ -3170,7 +3170,6 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 
 		// find via object material
 		if (currentStyleRep != nullptr) {
-
 			IfcSchema::IfcRepresentationItem::list::ptr representationList = currentStyleRep->Items();
 			for (auto propertyIt = representationList->begin(); propertyIt != representationList->end(); ++propertyIt)
 			{
@@ -3202,93 +3201,118 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 						IfcSchema::IfcSurfaceStyle* currentStyle = currentStyleSelect->as<IfcSchema::IfcSurfaceStyle>();
 						IfcSchema::IfcSurfaceStyleElementSelect::list::ptr elementSurfList = currentStyle->Styles();
 
+						bool hasRenderingStyle = false;
 						for (auto styleElementIt = elementSurfList->begin(); styleElementIt != elementSurfList->end(); ++styleElementIt)
 						{
 							IfcSchema::IfcSurfaceStyleElementSelect* currentElemStyle = *styleElementIt;
 							if (currentElemStyle->data().type()->name() != "IfcSurfaceStyleRendering") { continue; }
 							IfcSchema::IfcSurfaceStyleRendering* currentRenderStyle = currentElemStyle->as< IfcSchema::IfcSurfaceStyleRendering>();
-							if (currentRenderStyle->Transparency() > 0.25) { return true; }
+							if (currentRenderStyle->Transparency() > 0.2) { return true; }
+							hasRenderingStyle = true;
 						}
+						if (hasRenderingStyle) { return false; }
 					}
 				}
 			}
 		}
+	}
 
-		// find via geometry material
-		if (currentStyleRep == nullptr) {
-			IfcSchema::IfcProductRepresentation* currentProductRep = ifcProduct->Representation();
-			IfcSchema::IfcRepresentation::list::ptr currentRepList = currentProductRep->Representations();
-			
-			std::vector< IfcSchema::IfcRepresentation*> representationList;
-			for (auto repIt = currentRepList->begin(); repIt != currentRepList->end(); ++repIt)
+	// find via geometry material
+	IfcSchema::IfcProductRepresentation* currentProductRep = ifcProduct->Representation();
+	IfcSchema::IfcRepresentation::list::ptr currentRepList = currentProductRep->Representations();
+
+	std::vector< IfcSchema::IfcRepresentation*> representationList;
+	for (auto repIt = currentRepList->begin(); repIt != currentRepList->end(); ++repIt)
+	{
+		IfcSchema::IfcRepresentation* currentRep = *repIt;
+		if (!currentRep->RepresentationIdentifier()) { continue; }
+		if (currentRep->RepresentationIdentifier().get() != "Body") { continue; }
+		if (currentRep->RepresentationType().get() == "MappedRepresentation") // repesentation is used as container
+		{
+			IfcSchema::IfcRepresentationItem::list::ptr representationSubItemList = currentRep->Items();
+
+
+
+			for (auto represenetationSubIt = representationSubItemList->begin(); represenetationSubIt != representationSubItemList->end(); ++represenetationSubIt)
 			{
-				IfcSchema::IfcRepresentation* currentRep = *repIt;
-				if (!currentRep->RepresentationIdentifier()) { continue;  }
-				if (currentRep->RepresentationIdentifier().get() != "Body") { continue; }
-				if (currentRep->RepresentationType().get() == "MappedRepresentation") // repesentation is used as container
-				{
-					IfcSchema::IfcRepresentationItem::list::ptr representationSubItemList = currentRep->Items();
-
-					for (auto represenetationSubIt = representationSubItemList->begin(); represenetationSubIt != representationSubItemList->end(); ++represenetationSubIt)
-					{
-						IfcSchema::IfcRepresentationItem* subRepresentationItem = *represenetationSubIt;
-						if (subRepresentationItem->data().type()->name() != "IfcMappedItem") { continue; }
-						IfcSchema::IfcMappedItem* currentMappedItem = subRepresentationItem->as<IfcSchema::IfcMappedItem>();
-						IfcSchema::IfcRepresentationMap* currentRepMap = currentMappedItem->MappingSource();
-						IfcSchema::IfcRepresentation* subRep = currentRepMap->MappedRepresentation();
-						representationList.emplace_back(subRep);
-					}
-					continue;
-				}
-				representationList.emplace_back(currentRep);
+				IfcSchema::IfcRepresentationItem* subRepresentationItem = *represenetationSubIt;
+				if (subRepresentationItem->data().type()->name() != "IfcMappedItem") { continue; }
+				IfcSchema::IfcMappedItem* currentMappedItem = subRepresentationItem->as<IfcSchema::IfcMappedItem>();
+				IfcSchema::IfcRepresentationMap* currentRepMap = currentMappedItem->MappingSource();
+				IfcSchema::IfcRepresentation* subRep = currentRepMap->MappedRepresentation();
+				representationList.emplace_back(subRep);
 			}
+			continue;
+		}
+		representationList.emplace_back(currentRep);
+	}
 
+	for (IfcSchema::IfcRepresentation* currentRep : representationList)
+	{
+		IfcSchema::IfcRepresentationItem::list::ptr representationSubItemList = currentRep->Items();
 
-			for (IfcSchema::IfcRepresentation* currentRep : representationList)
+		for (auto RepresentationSubItemIt = representationSubItemList->begin(); RepresentationSubItemIt != representationSubItemList->end(); ++RepresentationSubItemIt)
+		{
+			IfcSchema::IfcRepresentationItem* RepresentationSubItem = *RepresentationSubItemIt;
+			IfcSchema::IfcStyledItem::list::ptr StyledItemList = RepresentationSubItem->StyledByItem();
+
+			for (auto styledItemIt = StyledItemList->begin(); styledItemIt != StyledItemList->end(); ++styledItemIt)
 			{
-				IfcSchema::IfcRepresentationItem::list::ptr representationSubItemList = currentRep->Items();
 
-				for (auto RepresentationSubItemIt = representationSubItemList->begin(); RepresentationSubItemIt != representationSubItemList->end(); ++RepresentationSubItemIt)
+				IfcSchema::IfcStyledItem* styledItem = *styledItemIt;
+
+#if defined(USE_IFC2x3)
+				IfcSchema::IfcPresentationStyleAssignment::list::ptr currenStyleAssList = styledItem->Styles();
+#elif defined(USE_IFC4)
+				IfcSchema::IfcStyleAssignmentSelect::list::ptr currenStyleAssList = styledItem->Styles();
+#endif
+				for (auto currenStyleAssIt = currenStyleAssList->begin(); currenStyleAssIt != currenStyleAssList->end(); ++currenStyleAssIt)
 				{
-					IfcSchema::IfcRepresentationItem* RepresentationSubItem = *RepresentationSubItemIt;
-					IfcSchema::IfcStyledItem::list::ptr StyledItemList = RepresentationSubItem->StyledByItem();
-
-					for (auto styledItemIt = StyledItemList->begin(); styledItemIt != StyledItemList->end(); ++styledItemIt)
-					{
-						IfcSchema::IfcStyledItem* styledItem = *styledItemIt;
-
 #if defined(USE_IFC2x3)
-						IfcSchema::IfcPresentationStyleAssignment::list::ptr currenStyleAssList = styledItem->Styles();
+					IfcSchema::IfcPresentationStyleAssignment* currentStyleAss = *currenStyleAssIt;
 #elif defined(USE_IFC4)
-						IfcSchema::IfcStyleAssignmentSelect::list::ptr currenStyleAssList = styledItem->Styles();
+					IfcSchema::IfcStyleAssignmentSelect* currentStyleAss = *currenStyleAssIt;
 #endif
+					if (currentStyleAss->data().type()->name() == "IfcSurfaceStyle") {
 
-						for (auto currenStyleAssIt = currenStyleAssList->begin(); currenStyleAssIt != currenStyleAssList->end(); ++currenStyleAssIt)
+						IfcSchema::IfcSurfaceStyle* currentStyle = currentStyleAss->as<IfcSchema::IfcSurfaceStyle>();
+						IfcSchema::IfcSurfaceStyleElementSelect::list::ptr elementSurfList = currentStyle->Styles();
+
+						for (auto styleElementIt = elementSurfList->begin(); styleElementIt != elementSurfList->end(); ++styleElementIt)
 						{
+							IfcSchema::IfcSurfaceStyleElementSelect* currentElemStyle = *styleElementIt;
+							if (currentElemStyle->data().type()->name() != "IfcSurfaceStyleRendering") { continue; }
+							IfcSchema::IfcSurfaceStyleRendering* currentRenderStyle = currentElemStyle->as< IfcSchema::IfcSurfaceStyleRendering>();
+							if (currentRenderStyle->Transparency() > 0.1) { return true; }
+						}
+					}
 #if defined(USE_IFC2x3)
-							IfcSchema::IfcPresentationStyleAssignment* currentStyleAss = *currenStyleAssIt;
-#elif defined(USE_IFC4)
-							IfcSchema::IfcStyleAssignmentSelect* currentStyleAss = *currenStyleAssIt;
-#endif
-							if (currentStyleAss->data().type()->name() != "IfcSurfaceStyle") { continue; }
+					if (currentStyleAss->data().type()->name() == "IfcPresentationStyleAssignment") {
+						IfcSchema::IfcPresentationStyleSelect::list::ptr presentationStyles = currentStyleAss->Styles();
+						for (auto styleElementIt = presentationStyles->begin(); styleElementIt != presentationStyles->end(); ++styleElementIt)
+						{
+							IfcSchema::IfcPresentationStyleSelect* presentationStyleSelect = *styleElementIt;
+							if (presentationStyleSelect->data().type()->name() == "IfcSurfaceStyle") {
 
-							IfcSchema::IfcSurfaceStyle* currentStyle = currentStyleAss->as<IfcSchema::IfcSurfaceStyle>();
-							IfcSchema::IfcSurfaceStyleElementSelect::list::ptr elementSurfList = currentStyle->Styles();
+								IfcSchema::IfcSurfaceStyle* currentStyle = presentationStyleSelect->as<IfcSchema::IfcSurfaceStyle>();
+								IfcSchema::IfcSurfaceStyleElementSelect::list::ptr elementSurfList = currentStyle->Styles();
 
-							for (auto styleElementIt = elementSurfList->begin(); styleElementIt != elementSurfList->end(); ++styleElementIt)
-							{
-								IfcSchema::IfcSurfaceStyleElementSelect* currentElemStyle = *styleElementIt;
-								if (currentElemStyle->data().type()->name() != "IfcSurfaceStyleRendering") { continue; }
-								IfcSchema::IfcSurfaceStyleRendering* currentRenderStyle = currentElemStyle->as< IfcSchema::IfcSurfaceStyleRendering>();
-								if (currentRenderStyle->Transparency() > 0.25) { return true; }
+								for (auto styleElementIt = elementSurfList->begin(); styleElementIt != elementSurfList->end(); ++styleElementIt)
+								{
+									IfcSchema::IfcSurfaceStyleElementSelect* currentElemStyle = *styleElementIt;
+									if (currentElemStyle->data().type()->name() != "IfcSurfaceStyleRendering") { continue; }
+									IfcSchema::IfcSurfaceStyleRendering* currentRenderStyle = currentElemStyle->as< IfcSchema::IfcSurfaceStyleRendering>();
+									if (currentRenderStyle->Transparency() > 0.2) { return true; }
+								}
 							}
 						}
 					}
+#endif
 				}
 			}
 		}
-#endif
 	}
+#endif
 	return false;
 }
 

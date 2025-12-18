@@ -108,7 +108,7 @@ private:
 	};
 
 	/// integers of the voxel planes' mesh that comply with the getPlanePoints output
-	inline static const std::vector<std::array<int, 3>> voxel::planeTriangles = {
+	inline static const std::vector<std::array<int, 3>> planeTriangles = {
 		{0, 1, 3},
 		{1, 2, 3},
 		{4, 5, 7},

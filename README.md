@@ -5,13 +5,14 @@
 
 The IfcEnvelopeExtractor enables users to automatically abstract BIM models (IFC) to format compliant GIS models (CityJSON, STEP, and OBJ). Automating this process allows designs to be quickly and easily place the building BIM model into a GIS environment without the need of a lengthy manual conversion or without the need of surveying data. This can be used to use GIS analysis methods without compromise but also to update GIS environment models faster and with more detail (such as overhang and facade/roof openings). The converter adheres geometrically to a selection of LoD from the LoD framework developed by the TU Delft [(Biljecki et al., 2016)](#2). The software can create CityJSON models with overhang (LoD3/3.2) and interior spaces and/or storeys (LoD0.2, 0.3, 1.2, 2.2, 3.2). The capabilities of the application has been expanded by experimental LoD that fall outside of this framework that utilize the data of BIM.
 
-The development of this conversion process is one of the steps required to close the gap between architecture/BIM and  GIS/city scale models.
+The development of this conversion process is one of the steps required to close the gap between architecture/BIM and GIS/city scale models.
 
-**Development of this tool is funded up until the end of December 2025. After this date new funding has to be found if further development is desired.**
+**Development of this tool was funded up until the end of December 2025.**
 
 ![Output of the IfcEnvelopeExtractor](https://raw.githubusercontent.com/jaspervdv/IFC_BuildingEnvExtractor/master/Images/EnvExtractorExample.gif "An example of the created LoD envelopes based on an input file")
 
 The software is able to extract multiple different LoD (Level of Detail) shells from an IFC-model. The actual LoDs it is able to extract is dependent on the accuracy and validity of the input model.
+A full description of the methods applied in this application can be found in the [technical report](#3). A summary of this report can be found in the [Journal paper](#4) covering the tool.
 
 Current possible output shells (*non-standard LoD in Italic type*):
 
@@ -489,6 +490,13 @@ The EnvExtractor allows the voxel shell to be used for the approximation of a se
 
 These attributes are prefaced with "Env_ex V" to highlight that these values are approximated utilizing the voxel grid. The accuracy of these variables are heavily dependent on the size of the utilized voxels and the shape of the buildings. If the proper voxel size is selected the volume approximations and the footprint area can be very accurate. However, the shell area computations area extremely unreliable regardless of the input variables.
 
+## known issues
+
+* Lower precisions than the standard 1e-6 (the high precision value) can cause missing surfaces or completely missing models, this issue seems to primarily impact LoD1.3 and 2.2.
+* LoD3.2 can be inaccurate for complex models.
+* The merging surfaces process can be extremely slow.
+* Complex curved surfaces and meshes can slow down the processes significantly and can impact the quality of the out.
+
 ## References
 
 <a id="2"></a>
@@ -496,3 +504,9 @@ Biljecki, F., Ledoux, H., & Stoter, J. (2016). An improved LOD specification for
 
 <a id="1"></a>
 van der Vaart, J. A. J. (2022, June 6). Automatic Building Feature Detection and Reconstruction in IFC models. TU Delft Repositories. Retrieved March 30, 2023, from https://repository.tudelft.nl/islandora/object/uuid:db6edbfc-5310-47db-b2c7-3d8e2b62de0f
+
+<a id="3"></a>
+van der Vaart, J.A.J., Arroyo Ohori, G.A.K., & Stoter, J. (2025). BIM2Geo converter. TU Delft Repositories. Retrieved December 12, 2025, from https://repository.tudelft.nl/record/uuid:692f07e4-beb6-47d9-8359-eb6cb1ae16c7
+
+<a id="4"></a>
+van der Vaart, J.A.J., Arroyo Ohori, G.A.K., & Stoter, J. (2025). A Methodology to Convert Highly Detailed BIM Models into 3D Geospatial Building Models at Different LoDs. TU Delft Repositories. Retrieved December 12, 2025, from https://repository.tudelft.nl/record/uuid:152c471b-479b-45e7-9dbe-e5e50d2f4a71

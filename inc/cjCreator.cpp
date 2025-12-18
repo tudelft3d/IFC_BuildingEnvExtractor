@@ -1635,26 +1635,24 @@ TopoDS_Shape CJGeoCreator::simplefySolid(const TopoDS_Shape& solidShape, bool ev
 	brepBuilder.MakeSolid(simpleBuilding);
 
 	std::vector<TopoDS_Face> mergedFaceList = simplefyFacePool(facelist, normalList, evalOverlap);
+	if (mergedFaceList.size() == facelist.size()) { return solidShape; }
 
-	if (mergedFaceList.size() == facelist.size())
+	for (const TopoDS_Face& currentFace: mergedFaceList)
 	{
-		return solidShape;
-	}
-
-	for (size_t i = 0; i < mergedFaceList.size(); i++)
-	{
-		brepSewer.Add(mergedFaceList[i]);
+		brepSewer.Add(currentFace);
 	}
 
 	brepSewer.Perform();
 	TopoDS_Shape sewedShape = brepSewer.SewedShape();
+
 	if (sewedShape.IsNull()) { return{}; }
 	TopAbs_ShapeEnum sewedShapeType = sewedShape.ShapeType();
 	if (sewedShapeType == TopAbs_COMPOUND) { return sewedShape; }
-	if (sewedShapeType != TopAbs_SHELL) {  return {}; }
+	if (sewedShapeType != TopAbs_SHELL) { return {}; }
+	if (!sewedShape.Closed()) { return sewedShape; }
 
 	brepBuilder.Add(simpleBuilding, sewedShape);
-
+	
 	return simpleBuilding;
 }
 
@@ -1919,6 +1917,7 @@ TopoDS_Face CJGeoCreator::mergeFaces(const std::vector<TopoDS_Face>& mergeFaces)
 
 	std::vector<TopoDS_Face> cleanedMergingFaces = helperFunctions::removeDubFaces(mergingFaces);
 	std::vector<TopoDS_Face> mergedFaces =  helperFunctions::planarFaces2Outline(cleanedMergingFaces);
+
 
 	if (!mergedFaces.size())
 	{

@@ -3141,7 +3141,7 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 		}
 		//TODO: implement ifc4x3
 #if defined(USE_IFC4x3)
-		return false;
+	}
 #elif defined(USE_IFC2x3) || defined(USE_IFC4) 
 
 		// if material name is not glass or glazed search for render properties transparency

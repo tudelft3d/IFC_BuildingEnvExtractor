@@ -48,6 +48,7 @@ enum class ErrorID {
 	warningIfcNoSchema,
 	warningIfcIncomp,
 	warningIfcNoSlab,
+	warningIFCMissingType,
 	warningIfcMultipleProjections,
 	warningIfcNoVolumeUnit,
 	warningIfcDubSites,

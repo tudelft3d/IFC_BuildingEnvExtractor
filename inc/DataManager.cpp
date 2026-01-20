@@ -165,9 +165,10 @@ void fileKernelCollection::setUnits()
 	//internalize the data
 	if (!length)
 	{
+		length = 1;
 		ErrorCollection::getInstance().addError(ErrorID::errorNoLengthUnit);
 		std::cout << errorWarningStringEnum::getString(ErrorID::errorNoLengthUnit) << std::endl;
-		return;
+		//return;
 	}
 
 	length_ = length;
@@ -294,15 +295,13 @@ void DataManager::computeBoundingData(gp_Pnt* lllPoint, gp_Pnt* urrPoint)
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	// get the slab pointlist to base the inital bbox on
-	std::vector<gp_Pnt> pointList = getObjectListPoints <IfcSchema::IfcSlab> (true);
-	if (!pointList.size())
-	{
-		pointList = getObjectListPoints<IfcSchema::IfcRoof>(true);
-	}
+	std::vector<gp_Pnt> pointList = getObjectListPoints("IfcSlab", true);
+	if (!pointList.size()) { pointList = getObjectListPoints("IfcRoof", true); }
 	if (!pointList.size())
 	{
 		ErrorCollection::getInstance().addError(ErrorID::errorNoPoints);
-		throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoPoints));
+		std::cout << errorWarningStringEnum::getString(ErrorID::errorNoPoints) << std::endl; //TODO: make this more pretty
+		return;
 	}
 
 	// if custom roration is required use that for bbox creation
@@ -325,15 +324,13 @@ gp_Vec DataManager::computeObjectTranslation()
 {
 	double precision = SettingsCollection::getInstance().spatialTolerance();
 	gp_Vec translationVec = computeObjectTranslation("IfcSlab");
-	if (translationVec.Magnitude() > precision) { return translationVec; } 
-	translationVec = computeObjectTranslation("IfcRoof");
 	if (translationVec.Magnitude() > precision) { return translationVec; }
 
 	if (SettingsCollection::getInstance().useDefaultDiv())
 	{
 		for (const std::string& currentType : SettingsCollection::getInstance().getDefaultDivList())
 		{
-			if (currentType == "IfcSlab" || currentType == "IfcRoof") { continue; }
+			if (currentType == "IfcSlab") { continue; }
 			translationVec = computeObjectTranslation(currentType);
 			if (translationVec.Magnitude() > precision) { return translationVec; }
 		}
@@ -346,7 +343,6 @@ gp_Vec DataManager::computeObjectTranslation()
 
 	for (const std::string& currentType : SettingsCollection::getInstance().getCustomDivList())	
 	{
-		if (currentType == "IfcSlab" || currentType == "IfcRoof") { continue; }
 		translationVec = computeObjectTranslation(currentType);
 		if (translationVec.Magnitude() > precision) { return translationVec; }
 	}
@@ -372,11 +368,14 @@ gp_Vec DataManager::computeObjectTranslation(const std::string& objectType)
 
 			if (slabShape.IsNull()) { continue; }
 			helperFunctions::bBoxDiagonal(helperFunctions::getPoints(slabShape), &lllPoint, &urrPoint, 0);
+
+			std::cout << "	Translation based on " << objectType << " class\n";
+
 			return gp_Vec(-lllPoint.X(), -lllPoint.Y(), -lllPoint.Z());
 		}
 	}
-	ErrorCollection::getInstance().addError(ErrorID::warningIfcNoSlab);
-	std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcNoSlab) << std::endl;
+	ErrorCollection::getInstance().addError(ErrorID::warningIFCMissingType, objectType);
+	std::cout << errorWarningStringEnum::getString(ErrorID::warningIFCMissingType) << objectType << std::endl;
 	return gp_Vec();
 }
 
@@ -515,15 +514,16 @@ IfcSchema::IfcProduct::list::ptr DataManager::getNestedProductList(IfcSchema::If
 	return outputList;
 }
 
-template<typename T>
-std::vector<gp_Pnt> DataManager::getObjectListPoints(bool simple)
+std::vector<gp_Pnt> DataManager::getObjectListPoints(const std::string& classTypeName, bool simple)
 {
 	std::vector<gp_Pnt> pointList;
 	for (const auto& fileObject : datacollection_)
 	{
-		typename T::list::ptr objectList = fileObject->getFilePtr()->instances_by_type<T>();
+		aggregate_of_instance::ptr objectList = fileObject->getFilePtr()->instances_by_type(classTypeName);
+		if (objectList == nullptr) { continue; }
+
 		for (auto it = objectList->begin(); it != objectList->end(); ++it) {
-			IfcSchema::IfcProduct* product = *it;
+			IfcSchema::IfcProduct* product = (*it)->as<IfcSchema::IfcProduct>();
 			std::vector<gp_Pnt> temp = getObjectPoints(product, simple);
 
 			for (const auto& point : temp) {
@@ -1030,6 +1030,7 @@ void DataManager::internalizeGeo()
 	if (SettingsCollection::getInstance().correctPlacement())
 	{
 		ifcTrsf = computeObjectTranslation();
+		std::cout << "\n";
 		objectTranslation_.SetTranslationPart(ifcTrsf);
 	}
 

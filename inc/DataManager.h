@@ -166,8 +166,7 @@ private:
 	/// get the products that are nested inside of the main product
 	IfcSchema::IfcProduct::list::ptr getNestedProductList(IfcSchema::IfcProduct* product);
 	/// get flat pointlist of the input product list
-	template<typename T>
-	std::vector<gp_Pnt> getObjectListPoints(bool simple = false);
+	std::vector<gp_Pnt> getObjectListPoints(const std::string& classTypeName, bool simple = false);
 	/// get flat pointlist of the input product 
 	std::vector<gp_Pnt> getObjectPoints(IfcSchema::IfcProduct* product, bool simple = false);
 	/// replace the simple shape of a spatial data object in memory

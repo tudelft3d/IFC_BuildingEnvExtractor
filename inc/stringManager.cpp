@@ -332,11 +332,15 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms + ": "; }
 		return coms; }
 	case ErrorID::warningIfcNoSlab: {
-		const std::string coms = "No slab objects were found";
+		const std::string coms = "During model orientation object class IfcSlab can not be found, alternative class is searched for";
 		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
 		return coms; }
 	case ErrorID::warningIFCMissingType: {
 		const std::string coms = "During model orientation object class could not be found: ";
+		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
+		return coms; }
+	case ErrorID::warningIFCNoRotationClass: {
+		const std::string coms = "During model orientation no suitable object class could be found, no rotation is applied";
 		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
 		return coms; }
 	case ErrorID::warningIfcMultipleProjections: {

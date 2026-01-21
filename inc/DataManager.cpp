@@ -133,32 +133,33 @@ void fileKernelCollection::setUnits()
 	if (assignedUnitListObjects.get()->size() == 0) {
 		ErrorCollection::getInstance().addError(ErrorID::errorNoUnits);
 		std::cout << errorWarningStringEnum::getString(ErrorID::errorNoUnits) << std::endl;
-		return;
 	}
 	else if (assignedUnitListObjects.get()->size() > 1)
 	{
 		ErrorCollection::getInstance().addError(ErrorID::warningMultipleUnits);
 		std::cout << errorWarningStringEnum::getString(ErrorID::warningMultipleUnits) << std::endl;
 	}
-
-	IfcSchema::IfcUnitAssignment* assignedUnitListObject = *assignedUnitListObjects->begin();
-	IfcSchema::IfcUnit::list::ptr assignedUnitList = assignedUnitListObject->Units();
-
-	for (IfcSchema::IfcUnit::list::it unitIterator = assignedUnitList->begin(); unitIterator != assignedUnitList->end(); ++unitIterator)
+	else
 	{
-		IfcSchema::IfcUnit* currentUnit = *unitIterator;
-		if (currentUnit->declaration().name() == "IfcSIUnit") //comput SI units
+		IfcSchema::IfcUnitAssignment* assignedUnitListObject = *assignedUnitListObjects->begin();
+		IfcSchema::IfcUnit::list::ptr assignedUnitList = assignedUnitListObject->Units();
+
+		for (IfcSchema::IfcUnit::list::it unitIterator = assignedUnitList->begin(); unitIterator != assignedUnitList->end(); ++unitIterator)
 		{
-			IfcSchema::IfcSIUnit* currentSiUnit = currentUnit->as<IfcSchema::IfcSIUnit>();
-			if (currentSiUnit->UnitType() == IfcSchema::IfcUnitEnum::IfcUnit_LENGTHUNIT)
+			IfcSchema::IfcUnit* currentUnit = *unitIterator;
+			if (currentUnit->declaration().name() == "IfcSIUnit") //comput SI units
 			{
-				length = getSiScaleValue(*currentSiUnit);
-				continue;
+				IfcSchema::IfcSIUnit* currentSiUnit = currentUnit->as<IfcSchema::IfcSIUnit>();
+				if (currentSiUnit->UnitType() == IfcSchema::IfcUnitEnum::IfcUnit_LENGTHUNIT)
+				{
+					length = getSiScaleValue(*currentSiUnit);
+					continue;
+				}
 			}
-		}
-		if (length != 0)
-		{
-			break;
+			if (length != 0)
+			{
+				break;
+			}
 		}
 	}
 
@@ -325,6 +326,9 @@ gp_Vec DataManager::computeObjectTranslation()
 	gp_Vec translationVec = computeObjectTranslation("IfcSlab");
 	if (translationVec.Magnitude() > precision) { return translationVec; }
 
+	ErrorCollection::getInstance().addError(ErrorID::warningIfcNoSlab);
+	std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcNoSlab) << std::endl;
+
 	if (SettingsCollection::getInstance().useDefaultDiv())
 	{
 		for (const std::string& currentType : SettingsCollection::getInstance().getDefaultDivList())
@@ -345,6 +349,10 @@ gp_Vec DataManager::computeObjectTranslation()
 		translationVec = computeObjectTranslation(currentType);
 		if (translationVec.Magnitude() > precision) { return translationVec; }
 	}
+
+	ErrorCollection::getInstance().addError(ErrorID::warningIFCNoRotationClass);
+	std::cout << errorWarningStringEnum::getString(ErrorID::warningIFCNoRotationClass) << std::endl;
+
 	return gp_Vec();
 }
 
@@ -374,7 +382,6 @@ gp_Vec DataManager::computeObjectTranslation(const std::string& objectType)
 		}
 	}
 	ErrorCollection::getInstance().addError(ErrorID::warningIFCMissingType, objectType);
-	std::cout << errorWarningStringEnum::getString(ErrorID::warningIFCMissingType) << objectType << std::endl;
 	return gp_Vec();
 }
 

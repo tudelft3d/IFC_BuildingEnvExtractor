@@ -99,6 +99,7 @@ ErrorCollection::ErrorCollection() {
 		{ErrorID::warningIfcMissingGeoreference, ErrorObject("I0016", errorWarningStringEnum::getString(ErrorID::warningIfcMissingGeoreference, false))},
 		{ErrorID::warningIfcMissingIsExternal, ErrorObject("I0017", errorWarningStringEnum::getString(ErrorID::warningIfcMissingIsExternal, false))},
 		{ErrorID::warningIFCMissingType, ErrorObject("I00018", errorWarningStringEnum::getString(ErrorID::warningIFCMissingType, false))},
+		{ErrorID::warningIFCNoRotationClass, ErrorObject("I00019", errorWarningStringEnum::getString(ErrorID::warningIFCNoRotationClass, false))},
 
 		{ErrorID::warningIssueencountered, ErrorObject("I0017", errorWarningStringEnum::getString(ErrorID::warningIssueencountered, false))},
 		{ErrorID::warningNoSolid, ErrorObject("I0018", errorWarningStringEnum::getString(ErrorID::warningNoSolid, false))},

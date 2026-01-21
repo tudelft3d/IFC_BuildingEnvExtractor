@@ -336,7 +336,7 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
 		return coms; }
 	case ErrorID::warningIFCMissingType: {
-		const std::string coms = "no objects were found of type: ";
+		const std::string coms = "During model orientation object class could not be found: ";
 		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
 		return coms; }
 	case ErrorID::warningIfcMultipleProjections: {

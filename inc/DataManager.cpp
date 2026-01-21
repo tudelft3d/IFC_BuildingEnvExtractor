@@ -168,7 +168,6 @@ void fileKernelCollection::setUnits()
 		length = 1;
 		ErrorCollection::getInstance().addError(ErrorID::errorNoLengthUnit);
 		std::cout << errorWarningStringEnum::getString(ErrorID::errorNoLengthUnit) << std::endl;
-		//return;
 	}
 
 	length_ = length;

@@ -85,6 +85,8 @@ private:
 	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> LoDE1Faces_;
 	// list collects the storey city Pointers
 	std::vector<std::shared_ptr<CJT::CityObject>> storeyObjects_;
+	// list collects the objects that are external according to the raycasting process
+	std::vector<Value> externalValueList_;
 	// check if the surfaces that are stored can be discarded.
 	void garbageCollection();
 
@@ -238,8 +240,8 @@ private:
 		int unitScale);
 
 	// LoD32 related code
-
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> getE1Faces(
+	template <typename T>
+	std::vector<std::pair<T, IfcSchema::IfcProduct*>> getE1Objects(
 		DataManager* h, 
 		CJT::Kernel* kernel, 
 		int unitScale, 
@@ -247,8 +249,9 @@ private:
 		const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIdx);
 
 	// get the outer surface by raycasting against exterior voxels
-	void getOuterRaySurfaces(
-		std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& outerSurfacePairList,
+	template<typename T>
+	void getOuterRayObjects(
+		std::vector<std::pair<T, IfcSchema::IfcProduct*>>& outerSurfacePairList,
 		const std::vector<Value>& totalValueObjectList,
 		const std::vector<int>& scoreList,
 		DataManager* h,
@@ -256,8 +259,9 @@ private:
 		const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIndex);
 
 	// get the outer surface by raycasting against exterior voxels (subprocess)
-	void getOuterRaySurfaces(
-		std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& outerSurfacePairList,
+	template<typename T>
+	void getOuterRayObjects(
+		std::vector<std::pair<T, IfcSchema::IfcProduct*>>& outerSurfacePairList,
 		const std::vector<Value>& valueObjectList,
 		int& processedObject,
 		std::mutex& processedObjectmutex,
@@ -356,6 +360,19 @@ private:
 		std::mutex& countMutex,
 		int& totalObjectsProcessed, 
 		std::vector<CJT::GeoObject>& geoObjectListOut, 
+		std::vector<TopoDS_Shape>& collectionShapeOut,
+		const int num);
+
+	void productToGeoObject(
+		DataManager* h,
+		CJT::Kernel* kernel,
+		const std::vector < std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>>& shapeProductPairList,
+		const gp_Trsf& localTrans,
+		bool filterIsExternal,
+		std::mutex& listMutex,
+		std::mutex& countMutex,
+		int& totalObjectsProcessed,
+		std::vector<CJT::GeoObject>& geoObjectListOut,
 		std::vector<TopoDS_Shape>& collectionShapeOut,
 		const int num);
 

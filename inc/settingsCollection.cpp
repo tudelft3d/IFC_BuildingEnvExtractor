@@ -263,7 +263,7 @@ void SettingsCollection::generateGeneralSettings()
 		}
 	}
 
-	if (!make32() && !makeV() && !summaryVoxels() &&
+	if (!make32() && !make40() && !makeV() && !summaryVoxels() &&
 		!makec1() && !makec2() && !maked1() && !maked2() &&
 		!makee1())
 	{

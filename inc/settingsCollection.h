@@ -89,6 +89,7 @@ private:
         "IfcWindow"
     };
     int ignoreVoidGrade_ = 0;
+    bool ignoreIsExternal_ = true;
     bool simplefyGeo_ = true;
     std::vector<std::string> ignoreSimplificationList_;
 
@@ -352,6 +353,10 @@ public:
     int ignoreVoidGrade() const { return ignoreVoidGrade_; }
     void setIgnoreVoidGrade(int value) { ignoreVoidGrade_ = value; }
     void setIgnoreVoidGrade(const nlohmann::json& json); 
+
+    int ignoreIsExternal() const { return ignoreIsExternal_; }
+    void setIgnoreIsExternal(int value) { ignoreIsExternal_ = value; }
+    void setIgnoreIsExternal(const nlohmann::json& json);
     
     bool simplefyGeo() const { return simplefyGeo_; }
     void setSimplefyGeo(bool value) { simplefyGeo_ = value; }

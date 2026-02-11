@@ -4347,11 +4347,11 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 
 	finishedLoD40_ = true;
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
-	
+
 	std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>> shapeProductList;
-	if (true)
+	if (!settingsCollection.ignoreIsExternal())
 	{
-		std::cout << "\ttest if IfExternal properties are utilized\n";
+		std::cout << "\tTest if IfExternal properties are utilized\n";
 		auto spatialIndx = h->getIndexPointer();
 		std::vector<Value> allEntries(spatialIndx->begin(), spatialIndx->end());
 
@@ -4367,41 +4367,55 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 			IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
 			shapeProductList.emplace_back(std::make_pair(currentShape, currentProduct));
 		}
+
 		if (shapeProductList.empty())
 		{
 			ErrorCollection::getInstance().addError(ErrorID::warningIfcMissingIsExternal);
-			std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMissingIsExternal) << std::endl;		
-			if (externalValueList_.empty())
+			std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMissingIsExternal) << std::endl;
+		}
+	}
+
+	if (shapeProductList.empty())
+	{
+		if (externalValueList_.empty())
+		{
+			if (!settingsCollection.ignoreIsExternal())
 			{
 				std::cout << "\tRay casting processing as alternative\n";
-
-				bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>> voxelIndex;
-				// collect and index the voxels to which rays are cast
-				std::vector<voxel*> externalVoxel = voxelGrid_->getExternalVoxels();
-				populateVoxelIndex(&voxelIndex, externalVoxel);
-
-				std::vector<Value> productLookupValues = h->getIndexedValues();
-				shapeProductList = getE1Objects<TopoDS_Shape>(h, kernel, unitScale, productLookupValues, voxelIndex);
 			}
 			else
 			{
-				std::cout << "\tRay casting data is utilized as alternative\n";
+				std::cout << "\tRay casting processing\n";
+			}
+			
 
-				for (const Value& currentValue: externalValueList_)
-				{
-					const IfcProductSpatialData& lookup = h->getLookup(currentValue.second);
-					TopoDS_Shape currentShape = lookup.getProductShape();
-					IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
-					shapeProductList.emplace_back(std::make_pair(currentShape, currentProduct));
-				}
+			bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>> voxelIndex;
+			// collect and index the voxels to which rays are cast
+			std::vector<voxel*> externalVoxel = voxelGrid_->getExternalVoxels();
+			populateVoxelIndex(&voxelIndex, externalVoxel);
+
+			std::vector<Value> productLookupValues = h->getIndexedValues();
+			shapeProductList = getE1Objects<TopoDS_Shape>(h, kernel, unitScale, productLookupValues, voxelIndex);
+		}
+		else
+		{
+			if (!settingsCollection.ignoreIsExternal())
+			{
+				std::cout << "\tRay casting data is utilized as alternative\n";
+			}
+			else
+			{
+				std::cout << "\tRay casting data is utilized\n";
+			}
+
+			for (const Value& currentValue : externalValueList_)
+			{
+				const IfcProductSpatialData& lookup = h->getLookup(currentValue.second);
+				TopoDS_Shape currentShape = lookup.getProductShape();
+				IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
+				shapeProductList.emplace_back(std::make_pair(currentShape, currentProduct));
 			}
 		}
-	}
-	else
-	{
-		std::cout << "\tRaycasting data is used\n";
-		//TODO: check for alternative data list
-		//TODO: do raycast from e.1 but partially
 	}
 	std::cout << "\tprocessing IFC objects\r";
 
@@ -5446,7 +5460,7 @@ void CJGeoCreator::getOuterRayObjects(
 			const TopoDS_Face& currentFace = TopoDS::Face(explorer.Current());
 			if (helperFunctions::getPointCount(currentFace) < 3) { continue; }
 
-			std::vector<TopoDS_Face> tesselatedFaceList = helperFunctions::TessellateFace(currentFace);
+			std::vector<TopoDS_Face> tesselatedFaceList = helperFunctions::TessellateFace(currentFace); //TODO: use this data for tesselation
 			for (const TopoDS_Face& currentTesselatedFace : tesselatedFaceList)
 			{
 				//Create a grid over the surface and the offsetted wire
@@ -5492,8 +5506,19 @@ void CJGeoCreator::getOuterRayObjects(
 				}
 				else
 				{
+					TopoDS_Shape cleanedCurrentShape = helperFunctions::TesselateShape(currentShape);
 					std::unique_lock<std::mutex> listLock(listmutex);
-					outerObjectPairList.emplace_back(std::make_pair(currentShape, lookup.getProductPtr()));
+
+					if (cleanedCurrentShape.IsNull())
+					{
+						outerObjectPairList.emplace_back(std::make_pair(currentShape, lookup.getProductPtr()));
+					}
+					else
+					{
+						outerObjectPairList.emplace_back(std::make_pair(cleanedCurrentShape, lookup.getProductPtr()));
+					}
+
+
 					listLock.unlock();
 					break;
 				}

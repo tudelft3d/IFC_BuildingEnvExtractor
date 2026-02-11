@@ -631,6 +631,8 @@ std::string JsonObjectInEnum::getString(JsonObjectInID id)
 		return "Ignore voids";
 	case JsonObjectInID::IFCignoreSimple:
 		return "Ignore simplification";
+	case JsonObjectInID::IFCignoreIsExternal:
+		return "Ignore IsExternal";
 	case JsonObjectInID::IFCCorrentPlacement:
 		return "Correct placement";
 	case JsonObjectInID::IFCDetectFootprintElev:

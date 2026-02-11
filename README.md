@@ -295,6 +295,7 @@ The configuration json has a very simple structure. An example can be found belo
         "Ignore proxy": true,
         "Div objects" : [],
         "Ignore voids" : 0,
+        "Ignore IsExternal" : false,
         "Simplify geometry" : true,
         "Ignore simplification" : [],
         "Correct placement" : true,
@@ -350,7 +351,7 @@ Optional:
   * Float/double
   * The x, y and z dimension of the voxels that will be used for the extraction process. A value between 0.5 and 1 often suffices for normal buildings.
   * Default value = 0.5
-* :white_check_mark: "Voxel" "Store values" :white_check_mark:
+* :ballot_box_with_check: "Voxel" "Store values" :ballot_box_with_check:
   * Boolean
   * Toggles the computation of general shell summary values based on the voxelized shape and stores this as semantic attributes.
   * Default value = false
@@ -382,6 +383,10 @@ Optional:
   * int
   * Toggles the use of void objects on the IFC objects. If 2: voids are not applied, if 1: voids are only applied for void objects that are not filled with other objects, if 0: all void objects are applied. GUI allows the choice between 0 and 2. 1 is only available from the ConfigJSON. If voids are not applied processing speed will improve, but accuracy is reduced if there are voids present in the to be evaluated objects.
   * Default value = false
+* :white_check_mark: "Ignore IsExternal":white_check_mark:
+  * Boolean
+  * Toggles the use of the IsExternal object property. If not use the software will determine itself if an object is external or not. Currently this is only implemented for LoD4.0
+  * Default value = true
 * :ballot_box_with_check: "IFC" "Simplify geometry" :ballot_box_with_check:
   * Boolean
   * Toggles the use of oriented bounding box simplification of *IfcWindow* and *IfcDoor* objects.

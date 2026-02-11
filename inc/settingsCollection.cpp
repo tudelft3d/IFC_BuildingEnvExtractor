@@ -187,6 +187,7 @@ void SettingsCollection::setIFCRelatedSettings(const nlohmann::json& json)
 		setUseProxy(ifcDataJson);
 		setCustomDivList(ifcDataJson);
 		setIgnoreVoidGrade(ifcDataJson);
+		setIgnoreIsExternal(ifcDataJson);
 		setSimplefyGeo(ifcDataJson);
 		setIgnoreSimplificationList(ifcDataJson);
 		setCorrectPlacement(ifcDataJson);
@@ -890,6 +891,25 @@ void SettingsCollection::setIgnoreVoidGrade(const nlohmann::json& json)
 		{
 			ErrorCollection::getInstance().addError(exceptionId, ignoreVoidOName);
 			throw std::string(errorWarningStringEnum::getString(exceptionId) + ignoreVoidOName);
+		}
+	}
+	return;
+}
+
+void SettingsCollection::setIgnoreIsExternal(const nlohmann::json& json)
+{
+	std::string ignoreIsExternalOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreIsExternal);
+	if (json.contains(ignoreIsExternalOName))
+	{
+		try
+		{
+			bool ignoreIsExternalBool = getJsonBoolValue(json[ignoreIsExternalOName]);
+			setIgnoreIsExternal(ignoreIsExternalBool);
+		}
+		catch (const ErrorID& exceptionId)
+		{
+			ErrorCollection::getInstance().addError(exceptionId, ignoreIsExternalOName);
+			throw std::string(errorWarningStringEnum::getString(exceptionId) + ignoreIsExternalOName);
 		}
 	}
 	return;

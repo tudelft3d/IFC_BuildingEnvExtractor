@@ -61,6 +61,7 @@ class OtherSettings:
         self.make_interior = tkinter.IntVar(value=0)
         self.make_exterior = tkinter.IntVar(value=1)
         self.summary_voxels = tkinter.IntVar(value=0)
+        self.ignoreIsExternal = tkinter.IntVar(value=1)
         self.make_report = tkinter.IntVar(value=1)
         self.make_obj = tkinter.IntVar(value=0)
         self.make_step = tkinter.IntVar(value=0)
@@ -140,6 +141,14 @@ def toggleMakeInterior(interior_widget):
     else:
         interior_widget['state'] = tkinter.DISABLED
 
+def toggleIgnoreIsExternal(ignore_IsExternal_widget):
+    # the relevant bools:
+    rel_lod = {lod_settings.lod40.get()}
+
+    if any(b == True for b in rel_lod):
+        ignore_IsExternal_widget['state'] = tkinter.NORMAL
+    else:
+        ignore_IsExternal_widget['state'] = tkinter.DISABLED
 
 def toggleMakeFootprint(footprint_widges):
     # the relevant bools:
@@ -260,7 +269,7 @@ def runCode(input_path,
 
     json_dictionary["Voxel"] = {}
     json_dictionary["Voxel"]["Size"] = voxel_size
-    json_dictionary["Voxel"]["Store values"] = other_settings.summary_voxels.get()
+    #json_dictionary["Voxel"]["Store values"] = other_settings.summary_voxels.get()
     json_dictionary["Voxel"]["Coarse filter"] = voxelSettings.voxel_filter.get()
 
     json_dictionary["IFC"] = {}
@@ -279,6 +288,7 @@ def runCode(input_path,
         json_dictionary["IFC"]["Ignore voids"] = 0
 
     json_dictionary["IFC"]["Fetch footprint elevation"] = footprint_settings.find_footprint_elev.get()
+    json_dictionary["IFC"]["Ignore IsExternal"] = other_settings.ignoreIsExternal.get()
 
     footprint_elevation = float(footprint_settings.footprint_elevation.get())
     if footprint_settings.footprint_unit.get() == "mm":
@@ -696,7 +706,8 @@ toggle_makelod40 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.0",  variable
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 
 toggle_makelod41 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.1",  variable=lod_settings.lod41,
@@ -762,14 +773,14 @@ toggle_makeinterior = ttk.Checkbutton(frame_lod_settings_foot, text="Generate in
 toggle_makefootprint = ttk.Checkbutton(frame_lod_settings_foot, text="Export footprint", variable=footprint_settings.make_footprint)
 toggle_makeroofprint = ttk.Checkbutton(frame_lod_settings_foot, text="Export roof outline", variable=footprint_settings.make_roofprint)
 toggle_footprint_based = ttk.Checkbutton(frame_lod_settings_foot, text="Footprint based abstraction", variable=footprint_settings.footprint_based)
-toggle_summaryvoxel = ttk.Checkbutton(frame_lod_settings_foot, text="Approximate areas and volumes", variable=other_settings.summary_voxels)
+toggle_ignore_IsExternal = ttk.Checkbutton(frame_lod_settings_foot, text="Ignore IsExternal", variable=other_settings.ignoreIsExternal)
 
 toggle_makeexterior.pack(side=tkinter.TOP, fill=tkinter.X)
 toggle_makeinterior.pack(side=tkinter.TOP, fill=tkinter.X)
 toggle_makefootprint.pack(side=tkinter.TOP, fill=tkinter.X)
 toggle_makeroofprint.pack(side=tkinter.TOP, fill=tkinter.X)
 toggle_footprint_based.pack(side=tkinter.TOP, fill=tkinter.X)
-toggle_summaryvoxel.pack(side=tkinter.TOP, fill=tkinter.X)
+toggle_ignore_IsExternal.pack(side=tkinter.TOP, fill=tkinter.X)
 
 separator2 = ttk.Separator(main_window, orient='horizontal')
 separator2.pack(fill='x', pady=10)
@@ -943,6 +954,7 @@ desired_lod_tooltip_txt = "Desired LoD abstractions to be created"
 Tooltip(frame_lod_settings1, desired_lod_tooltip_txt)
 Tooltip(frame_lod_settings2, desired_lod_tooltip_txt)
 Tooltip(frame_lod_settings3, desired_lod_tooltip_txt)
+Tooltip(frame_lod_settings4, desired_lod_tooltip_txt)
 
 Tooltip(toggle_make_obj, "If active output is copied to wavefront .OBJ file(s)")
 Tooltip(toggle_make_step, "If active output is copied to .STEP (ISO 10303) file(s)")
@@ -953,7 +965,7 @@ Tooltip(toggle_footprint_based, "If active the footprint will be used to restric
 Tooltip(toggle_makeexterior, "If active exterior shells will be stored")
 Tooltip(toggle_makeinterior, "If active spaces will be stored (Lod0.2, 1.2, 2.2, 3.2 & voxels) and storey "
                              "objects will be created (loD0.2 and 0.3 )")
-Tooltip(toggle_summaryvoxel, "If active volumes and areas of the shells, storey and spaces are approximated using the voxel grid")
+Tooltip(toggle_ignore_IsExternal, "If active IsExternal attribute will be ignored and the application will determine which objects are external")
 
 Tooltip(entry_voxelsize, "Voxel size to be used for the analysis")
 Tooltip(button_min_voxelsize, "Decrement size by 0.1")
@@ -974,5 +986,21 @@ Tooltip(simpleGeo_toggle, "Use simplefied geometry for the evaluations (voids ar
 Tooltip(run_button, "Run the tool")
 Tooltip(generate_button, "Generate and store the Configuration JSON")
 Tooltip(close_button, "Exit the application")
+
+
+toggleMakeFootprint(toggle_makefootprint),
+toggleMakeRoofOutline(toggle_makeroofprint),
+toggleMakeFootprintBased(toggle_footprint_based),
+toggleMakeInterior(toggle_makeinterior),
+toggleIgnoreIsExternal(toggle_ignore_IsExternal)
+toggleEnableDiv(message_div_objects,
+                useDefault_toggle,
+                igoreproxy_toggle,
+                div_settings.use_default,
+                div_settings.ignore_proxy)
+toggleManualFootprintEleve([entry_footprint,
+                            button_min_footprint,
+                            button_plus_footprint,
+                            footprint_unit_toggle ])
 
 main_window.mainloop()

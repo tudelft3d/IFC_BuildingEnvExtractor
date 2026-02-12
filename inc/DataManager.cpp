@@ -493,20 +493,21 @@ IfcSchema::IfcProduct::list::ptr DataManager::getNestedProductList(IfcSchema::If
 {
 	IfcSchema::IfcProduct::list::ptr outputList = boost::make_shared<IfcSchema::IfcProduct::list>();
 
-#if defined(USE_IFC4) || defined(USE_IFC4x3)
-	IfcSchema::IfcRelAggregates::list::ptr decomposedProducts = product->IsDecomposedBy();
-#else
+#if defined(USE_IFC2x3)
 	IfcSchema::IfcRelDecomposes::list::ptr decomposedProducts = product->IsDecomposedBy();
-#endif // USE_IFC4
+#else
+	IfcSchema::IfcRelAggregates::list::ptr decomposedProducts = product->IsDecomposedBy();
+#endif // USE_IFC2x3
 
 	if (decomposedProducts->size() > 0)
 	{
 		for (auto et = decomposedProducts->begin(); et != decomposedProducts->end(); ++et) {
-#if defined(USE_IFC4) || defined(USE_IFC4x3)
-			IfcSchema::IfcRelAggregates* aggregates = *et;
-#else
+#if defined(USE_IFC2x3)
 			IfcSchema::IfcRelDecomposes* aggregates = *et;
-#endif // USE_IFC4
+#else
+			IfcSchema::IfcRelAggregates* aggregates = *et;
+#endif // USE_IFC2x3
+
 			IfcSchema::IfcObjectDefinition::list::ptr aggDef = aggregates->RelatedObjects();
 
 			for (auto rt = aggDef->begin(); rt != aggDef->end(); ++rt) {
@@ -839,10 +840,11 @@ void DataManager::populateAttributeLookup()
 		for (auto reldefIt = relDefList->begin(); reldefIt != relDefList->end(); reldefIt++)
 		{
 			IfcSchema::IfcRelDefinesByProperties* relDefItem = *reldefIt;
-#if defined(USE_IFC4) || defined(USE_IFC4x3)
-			IfcSchema::IfcObjectDefinition::list::ptr relatedObjectList = relDefItem->RelatedObjects();
-#else
+
+#if defined(USE_IFC2x3)
 			IfcSchema::IfcObject::list::ptr relatedObjectList = relDefItem->RelatedObjects();
+#else
+			IfcSchema::IfcObjectDefinition::list::ptr relatedObjectList = relDefItem->RelatedObjects();		
 #endif
 
 			std::vector<std::string> GuidList;
@@ -852,11 +854,12 @@ void DataManager::populateAttributeLookup()
 				GuidList.emplace_back((*objectIt)->GlobalId());
 			}
 
-#if defined(USE_IFC4) || defined(USE_IFC4x3)
-			IfcSchema::IfcPropertySetDefinitionSelect* propertyDef = relDefItem->RelatingPropertyDefinition();
-#else
+#if defined(USE_IFC2x3)
 			IfcSchema::IfcPropertySetDefinition* propertyDef = relDefItem->RelatingPropertyDefinition();
+#else
+			IfcSchema::IfcPropertySetDefinitionSelect* propertyDef = relDefItem->RelatingPropertyDefinition();
 #endif
+
 			if (propertyDef == nullptr) { continue; }
 			if (propertyDef->data().type()->name() != "IfcPropertySet") { continue; }
 			IfcSchema::IfcPropertySet* propertySet = relDefItem->RelatingPropertyDefinition()->as<IfcSchema::IfcPropertySet>();
@@ -1224,28 +1227,8 @@ void DataManager::indexGeo()
 gp_Trsf DataManager::getProjectionTransformation()
 {
 	IfcParse::IfcFile* fileObject = datacollection_[0]->getFilePtr();
-#if defined(USE_IFC4) || defined(USE_IFC4x3)
-	IfcSchema::IfcMapConversion::list::ptr mapList = fileObject->instances_by_type<IfcSchema::IfcMapConversion>();
-	if (mapList->size() == 0) { return gp_Trsf(); }
-	if (mapList->size() > 1) {
-		ErrorCollection::getInstance().addError(ErrorID::warningIfcMultipleProjections);
-		std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMultipleProjections) << std::endl;
-	}
 
-	gp_Trsf trsf;
-	IfcSchema::IfcMapConversion* mapConversion = *(mapList->begin());
-
-	if (!mapConversion->XAxisAbscissa().has_value() || !mapConversion->XAxisOrdinate().has_value()) { return gp_Trsf(); }
-	double XAO = mapConversion->XAxisOrdinate().get();
-	double XAA = mapConversion->XAxisAbscissa().get();
-	trsf.SetValues(
-		XAA, -XAO, 0, 0,
-		XAO, XAA, 0, 0,
-		0, 0, 1, 0
-	);
-
-	trsf.SetTranslationPart(gp_Vec(mapConversion->Eastings(), mapConversion->Northings(), mapConversion->OrthogonalHeight()));
-#else
+#if defined(USE_IFC2x3)
 	IfcSchema::IfcSite::list::ptr ifcSiteList = fileObject->instances_by_type<IfcSchema::IfcSite>();
 
 	if (ifcSiteList->size() == 0) { return gp_Trsf(); }
@@ -1271,8 +1254,29 @@ gp_Trsf DataManager::getProjectionTransformation()
 		0, 0, 1, 0
 	);
 	trsf.SetTranslationPart(gp_Vec(Eastings, Northings, OrthogonalHeight));
+#else
+	IfcSchema::IfcMapConversion::list::ptr mapList = fileObject->instances_by_type<IfcSchema::IfcMapConversion>();
+	if (mapList->size() == 0) { return gp_Trsf(); }
+	if (mapList->size() > 1) {
+		ErrorCollection::getInstance().addError(ErrorID::warningIfcMultipleProjections);
+		std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMultipleProjections) << std::endl;
+	}
 
-#endif // !USE_IFC4
+	gp_Trsf trsf;
+	IfcSchema::IfcMapConversion* mapConversion = *(mapList->begin());
+
+	if (!mapConversion->XAxisAbscissa().has_value() || !mapConversion->XAxisOrdinate().has_value()) { return gp_Trsf(); }
+	double XAO = mapConversion->XAxisOrdinate().get();
+	double XAA = mapConversion->XAxisAbscissa().get();
+	trsf.SetValues(
+		XAA, -XAO, 0, 0,
+		XAO, XAA, 0, 0,
+		0, 0, 1, 0
+	);
+
+	trsf.SetTranslationPart(gp_Vec(mapConversion->Eastings(), mapConversion->Northings(), mapConversion->OrthogonalHeight()));
+#endif // !USE_IFC2x3
+
 	return trsf;
 }
 
@@ -1280,37 +1284,8 @@ gp_Trsf DataManager::getProjectionTransformation()
 void DataManager::getProjectionData(CJT::ObjectTransformation* transformation, CJT::metaDataObject* metaData)
 {
 	IfcParse::IfcFile* fileObject = datacollection_[0]->getFilePtr();
-#if defined(USE_IFC4) || defined(USE_IFC4x3)
-	IfcSchema::IfcMapConversion::list::ptr mapList = fileObject->instances_by_type<IfcSchema::IfcMapConversion>();
-	if (mapList->size() != 0) {
-		if (mapList->size() > 1) {
-			ErrorCollection::getInstance().addError(ErrorID::warningIfcMultipleProjections);
-			std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMultipleProjections) << std::endl;
-		}
 
-		IfcSchema::IfcMapConversion* mapConversion = *(mapList->begin());
-		metaData->setReferenceSystem(mapConversion->TargetCRS()->Name());
-
-		if (mapConversion->Scale().has_value())
-		{
-			std::array<double, 3> scaleCity = transformation->getScale();
-			double scaleIfc = mapConversion->Scale().get();
-
-			for (size_t i = 0; i < scaleCity.size(); i++)
-			{
-				scaleCity[i] = scaleCity[i] * scaleIfc;
-			}
-			transformation->setScale(scaleCity);
-		}
-	}
-	gp_XYZ invertedObjectTrsf = objectIfcTranslation_.TranslationPart();
-
-	transformation->setTranslation(
-		invertedObjectTrsf.X(),
-		invertedObjectTrsf.Y(),
-		invertedObjectTrsf.Z()
-	);
-#else
+#if defined(USE_IFC2x3)
 	IfcSchema::IfcSite::list::ptr ifcSiteList = fileObject->instances_by_type<IfcSchema::IfcSite>();
 
 	if (ifcSiteList->size() != 0) {
@@ -1334,11 +1309,48 @@ void DataManager::getProjectionData(CJT::ObjectTransformation* transformation, C
 			if (sitePropertySetData["Scale"].is_number())
 			{
 				transformation->setScale(transformation->getScale()[0] * sitePropertySetData["Scale"].get<float>());
-			}	
+			}
 		}
 	}
-	
+
 	gp_XYZ invertedObjectTrsf = objectIfcTranslation_.TranslationPart();
+	transformation->setTranslation(
+		invertedObjectTrsf.X(),
+		invertedObjectTrsf.Y(),
+		invertedObjectTrsf.Z()
+	);
+#else
+	IfcSchema::IfcMapConversion::list::ptr mapList = fileObject->instances_by_type<IfcSchema::IfcMapConversion>();
+	if (mapList->size() != 0) {
+		if (mapList->size() > 1) {
+			ErrorCollection::getInstance().addError(ErrorID::warningIfcMultipleProjections);
+			std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMultipleProjections) << std::endl;
+		}
+
+		IfcSchema::IfcMapConversion* mapConversion = *(mapList->begin());
+
+#if defined(USE_IFC4x3a2)
+		boost::optional<std::string> targetCRSOptionalName = mapConversion->TargetCRS()->Name();
+		if (targetCRSOptionalName->empty()) { return; }
+		metaData->setReferenceSystem(*targetCRSOptionalName);
+#else
+		metaData->setReferenceSystem(mapConversion->TargetCRS()->Name());
+#endif // defined(USE_IFC4x3a2)
+
+		if (mapConversion->Scale().has_value())
+		{
+			std::array<double, 3> scaleCity = transformation->getScale();
+			double scaleIfc = mapConversion->Scale().get();
+
+			for (size_t i = 0; i < scaleCity.size(); i++)
+			{
+				scaleCity[i] = scaleCity[i] * scaleIfc;
+			}
+			transformation->setScale(scaleCity);
+		}
+	}
+	gp_XYZ invertedObjectTrsf = objectIfcTranslation_.TranslationPart();
+
 	transformation->setTranslation(
 		invertedObjectTrsf.X(),
 		invertedObjectTrsf.Y(),
@@ -1589,7 +1601,6 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 {
 	// filter with lookup
 	if (product == nullptr) { return {}; }
-	std::cout << product << std::endl;
 
 	std::string objectType = product->data().type()->name();
 	const std::unordered_set<std::string>& openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();

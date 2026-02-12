@@ -3091,7 +3091,7 @@ double helperFunctions::getObjectZOffset(IfcSchema::IfcObjectPlacement* objectPl
 		if (storeyLocalPlacement->RelativePlacement()->data().type()->name() != "IfcAxis2Placement3D") { return 0.0; }
 		IfcSchema::IfcAxis2Placement3D* axisPlacement = storeyLocalPlacement->RelativePlacement()->as<IfcSchema::IfcAxis2Placement3D>();
 
-#if defined(USE_IFC4x3)
+#if defined(USE_IFC4x3) || defined (USE_IFC4x3a2)
 		offset = axisPlacement->Location()->as<IfcSchema::IfcCartesianPoint>()->Coordinates()[2];
 #else
 		try
@@ -3139,10 +3139,8 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 		{
 			return true;
 		}
-		//TODO: implement ifc4x3
-#if defined(USE_IFC4x3)
-	}
-#elif defined(USE_IFC2x3) || defined(USE_IFC4) 
+
+#if defined(USE_IFC2x3) || defined(USE_IFC4) 
 
 		// if material name is not glass or glazed search for render properties transparency
 		IfcSchema::IfcMaterialDefinitionRepresentation::list::ptr materialRepresentation = ifcMaterial->HasRepresentation();
@@ -3311,6 +3309,8 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 				}
 			}
 		}
+	}
+#else //TODO: implement for ifc4x3
 	}
 #endif
 	return false;

@@ -993,11 +993,7 @@ toggleMakeRoofOutline(toggle_makeroofprint),
 toggleMakeFootprintBased(toggle_footprint_based),
 toggleMakeInterior(toggle_makeinterior),
 toggleIgnoreIsExternal(toggle_ignore_IsExternal)
-toggleEnableDiv(message_div_objects,
-                useDefault_toggle,
-                igoreproxy_toggle,
-                div_settings.use_default,
-                div_settings.ignore_proxy)
+
 toggleManualFootprintEleve([entry_footprint,
                             button_min_footprint,
                             button_plus_footprint,

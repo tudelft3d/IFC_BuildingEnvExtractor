@@ -1,5 +1,5 @@
-#define USE_IFC4x3
-#define iterationVersion "0.3.2"
+#define USE_IFC4x3a2
+#define iterationVersion "0.3.3"
 
 #ifdef USE_IFC2x3
 #include <ifcparse/Ifc2x3.h>
@@ -20,6 +20,13 @@
 #define IfcSchema Ifc4x3
 #define buildVersion "IFC4X3"
 #define SCHEMA_VERSIONS (4x3)
+#define SCHEMA_SEQ (4x3)
+
+#elif defined(USE_IFC4x3a2)
+#include <ifcparse/Ifc4x3_add2.h>
+#define IfcSchema Ifc4x3_add2
+#define buildVersion "IFC4X3_ADD2"
+#define SCHEMA_VERSIONS (4x3 add2)
 #define SCHEMA_SEQ (4x3)
 
 #else

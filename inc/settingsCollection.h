@@ -139,7 +139,7 @@ private:
 	double gridRotation_ = 0; 
 
     // set of the supported versions of the tool (read only!)
-    std::unordered_set<std::string> ifcVersionList_ = { "IFC2X3", "IFC4X3", "IFC4"};
+    std::unordered_set<std::string> ifcVersionList_ = { "IFC2X3", "IFC4X3_ADD2", "IFC4X3", "IFC4", };
 
     // set of the ifc objects that have voids that could be closed (read only!)
     std::unordered_set<std::string> openingObjects_ = { "IfcWall", "IfcWallStandardCase", "IfcRoof", "IfcSlab" };

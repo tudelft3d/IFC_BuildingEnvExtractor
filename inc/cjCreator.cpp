@@ -2475,18 +2475,18 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeRoomObjects(Data
 			// get rooms storey
 			bool storeyFound = false;
 
-#if defined(USE_IFC4) || defined(USE_IFC4x3)
-			IfcSchema::IfcRelAggregates::list::ptr relAggregateList = spaceObject->Decomposes();
-#else
+#if defined(USE_IFC2x3)
 			IfcSchema::IfcRelDecomposes::list::ptr relAggregateList = spaceObject->Decomposes();
+#else
+			IfcSchema::IfcRelAggregates::list::ptr relAggregateList = spaceObject->Decomposes();			
 #endif
 			for (auto aggregateIt = relAggregateList->begin(); aggregateIt != relAggregateList->end(); ++aggregateIt)
 			{
-#if defined(USE_IFC4) || defined(USE_IFC4x3)
 
-				IfcSchema::IfcRelAggregates* ifcRelAggregate = *aggregateIt;
-#else
+#if defined(USE_IFC2x3)
 				IfcSchema::IfcRelDecomposes* ifcRelAggregate = *aggregateIt;
+#else
+				IfcSchema::IfcRelAggregates* ifcRelAggregate = *aggregateIt;				
 #endif
 				IfcSchema::IfcObjectDefinition* potentialStorey = ifcRelAggregate->RelatingObject();
 

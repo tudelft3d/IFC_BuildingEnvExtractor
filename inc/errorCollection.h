@@ -38,6 +38,7 @@ enum class ErrorID {
 	warningFailedObjectSimplefication,
 	warningFailedObjectConversion,
 	errorFailedInit,
+	errorNoObjects,
 
 	errorNoGroundFLoorFound,
 	errorInconsistentGroundFLoorNumbers,

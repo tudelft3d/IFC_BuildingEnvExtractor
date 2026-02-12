@@ -280,9 +280,9 @@ void DataManager::elementCountSummary()
 	}
 
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << 
-		objectCount << " objects found" << std::endl;
+		objectCount << " objects found\n";
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << 
-		proxyCount << " IfcBuildingElementProxy objects found" << std::endl;
+		proxyCount << " IfcBuildingElementProxy objects found\n\n";
 
 	SettingsCollection::getInstance().setProxyCount(proxyCount);
 	SettingsCollection::getInstance().setObjectCount(proxyCount);
@@ -900,6 +900,7 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		}
 
 		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
+		if (product == nullptr) { continue; }
 		std::string productType = product->data().type()->name();
 		std::string productGuid = product->GlobalId();
 
@@ -1042,6 +1043,21 @@ void DataManager::internalizeGeo()
 
 	objectIfcTranslation_.SetTranslationPart(-ifcTrsf + geoTrsf.TranslationPart());
 	elementCountSummary();
+
+	if (SettingsCollection::getInstance().objectCount() == 0)
+	{
+		ErrorCollection::getInstance().addError(ErrorID::errorNoObjects);
+		if (!SettingsCollection::getInstance().make42())
+		{
+			throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects));
+		}
+
+		std::cout << std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects)) << std::endl;
+		std::cout << "[INFO] continue processing LoD4.2 only\n\n";
+		SettingsCollection::getInstance().disableClassSelectiveLoD();
+		return;
+	}
+
 	try
 	{
 		computeBoundingData(&lllPoint_, &urrPoint_);
@@ -1152,6 +1168,12 @@ void DataManager::indexGeo()
 
 	if (index_.size() > 0) { return; }
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoCreateSpatialIndex) << std::endl;
+
+	if (!settingsCollection.requireIndex())
+	{
+		std::cout << "[INFO] No index required\n\n";
+		return;
+	}
 
 	std::set<std::string> uniqueKeySet;
 	if (settingsCollection.useDefaultDiv())
@@ -1566,6 +1588,9 @@ TopoDS_Shape DataManager::getObjectShapeFromMem(IfcSchema::IfcProduct* product, 
 TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool getNested, bool isSimple, bool fromMemOnly)
 {
 	// filter with lookup
+	if (product == nullptr) { return {}; }
+	std::cout << product << std::endl;
+
 	std::string objectType = product->data().type()->name();
 	const std::unordered_set<std::string>& openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();
 

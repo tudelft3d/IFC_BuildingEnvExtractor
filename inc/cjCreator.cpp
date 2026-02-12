@@ -6249,6 +6249,7 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, c
 
 		if (!brepElem) { continue; }
 		auto product = brepElem->product()->as<IfcSchema::IfcProduct>();
+		if (product == nullptr) { continue; } //TODO: check why this can happen
 		TopoDS_Shape shape = brepElem->geometry().as_compound();
 		gp_Trsf ifcPlacement = brepElem->transformation().data();
 		shape = shape.Moved(ifcPlacement);

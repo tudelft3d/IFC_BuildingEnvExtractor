@@ -241,39 +241,6 @@ void SettingsCollection::setTolerances(const nlohmann::json& json)
 
 void SettingsCollection::generateGeneralSettings()
 {
-	// set generated settings
-	if (make00() || make10() || make41() || make42())
-	{
-		if (!make02() &&
-			!make03() &&
-			!make04() &&
-			!make12() &&
-			!make13() &&
-			!make22() &&
-			!makeb0() &&
-			!makec1() &&
-			!makec2() &&
-			!maked1() &&
-			!maked2() &&
-			!make32() &&
-			!makee1() &&
-			!makeV() &&
-			!summaryVoxels())
-		{
-			setRequireVoxels(false);
-		}
-	}
-
-	if (!make32() && !make40() && !makeV() && !summaryVoxels() &&
-		!makec1() && !makec2() && !maked1() && !maked2() &&
-		!makee1())
-	{
-		if (!makeFootPrint() && !makeInterior() && !footPrintBased())
-		{
-			setRequireFullVoxels(false);
-		}
-	}
-
 	// set ifcGeomsettings
 	IfcGeom::IteratorSettings iteratorSettings;
 
@@ -1253,6 +1220,93 @@ void SettingsCollection::setThreadcount(const nlohmann::json& json)
 		if (availableThreads - 2 > 0) { setThreadcount(availableThreads - 2); }
 		else { setThreadcount(availableThreads); }
 	}
+	return;
+}
+
+bool SettingsCollection::requireVoxels() const
+{
+	// set generated settings
+	if (make00() || make10() || make41() || make42())
+	{
+		if (!make02() &&
+			!make03() &&
+			!make04() &&
+			!make12() &&
+			!make13() &&
+			!make22() &&
+			!makeb0() &&
+			!makec1() &&
+			!makec2() &&
+			!maked1() &&
+			!maked2() &&
+			!make32() &&
+			!makee1() &&
+			!makeV() &&
+			!summaryVoxels())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool SettingsCollection::requireFullVoxels() const
+{
+	if (!make32() && !make40() && !makeV() && !summaryVoxels() &&
+		!makec1() && !makec2() && !maked1() && !maked2() &&
+		!makee1())
+	{
+		if (!makeFootPrint() && !makeInterior() && !footPrintBased())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool SettingsCollection::requireIndex() const
+{
+	if (make00() || make02() || make03() || make04() ||
+		make10() || make12() || make13() || make22() || 
+		make32() || makeV() || make40() || make41() ||
+		makeb0() || makec1() || makec2() || makee1())
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void SettingsCollection::disableClassSelectiveLoD()
+{
+	bool makeLoD42 = make42();
+
+	setAllLoDOutputFalse();
+	setMake42(makeLoD42);
+
+	return;
+}
+
+void SettingsCollection::setAllLoDOutputFalse()
+{
+	setMake00(false);
+	setMake02(false);
+	setMake03(false);
+	setMake04(false);
+	setMake10(false);
+	setMake12(false);
+	setMake13(false);
+	setMake22(false);
+	setMake32(false);
+	setMake40(false);
+	setMake41(false);
+	setMake42(false);
+	setMakeV(false);
+	setMakeb0(false);
+	setMakec1(false);
+	setMakec2(false);
+	setMaked1(false);
+	setMaked2(false);
 	return;
 }
 

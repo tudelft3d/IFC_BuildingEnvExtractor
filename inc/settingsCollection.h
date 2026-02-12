@@ -189,6 +189,12 @@ public:
     // set the generative settings related to the user submitted settings
     void generateGeneralSettings();
 
+    bool requireVoxels() const;
+    bool requireFullVoxels() const;
+    bool requireIndex() const;
+
+    void disableClassSelectiveLoD();
+    void setAllLoDOutputFalse();
 
     bool isSilent() const { return isSilent_; }
     void setSilent(bool value) { isSilent_ = value; }
@@ -446,12 +452,6 @@ public:
 
     int objectCount() const { return objectCount_; }
     void setObjectCount(int value) { objectCount_ = value; }
-
-    bool requireVoxels() const { return requireVoxels_; }
-    void setRequireVoxels(bool value) { requireVoxels_ = value; }
-
-    bool requireFullVoxels() const { return requireFullVoxels_; }
-    void setRequireFullVoxels(bool value) { requireFullVoxels_ = value; }
 
     bool Lod123IsFlat() const { return Lod123IsFlat_; }
     void setLod123IsFlat(bool value) { Lod123IsFlat_ = value; }

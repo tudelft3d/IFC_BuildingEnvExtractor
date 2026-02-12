@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
 	if (!manager.run())
 	{
 		std::cout << errorWarningStringEnum::getString(ErrorID::errorUnableToProcessFile) << std::endl;
-		manager.write();
+		manager.write(true);
 		return 1;
 	}
 	manager.write();	

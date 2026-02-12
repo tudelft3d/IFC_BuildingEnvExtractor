@@ -295,7 +295,7 @@ The configuration json has a very simple structure. An example can be found belo
         "Ignore proxy": true,
         "Div objects" : [],
         "Ignore voids" : 0,
-        "Ignore IsExternal" : false,
+        "Ignore IsExternal" : true,
         "Simplify geometry" : true,
         "Ignore simplification" : [],
         "Correct placement" : true,
@@ -385,7 +385,7 @@ Optional:
   * Default value = false
 * :white_check_mark: "Ignore IsExternal":white_check_mark:
   * Boolean
-  * Toggles the use of the IsExternal object property. If not use the software will determine itself if an object is external or not. Currently this is only implemented for LoD4.0
+  * Toggles the use of the IsExternal object property. If not used the software will determine itself if an object is external or not. Currently this is only implemented for LoD4.0
   * Default value = true
 * :ballot_box_with_check: "IFC" "Simplify geometry" :ballot_box_with_check:
   * Boolean

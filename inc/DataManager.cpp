@@ -1329,13 +1329,13 @@ void DataManager::getProjectionData(CJT::ObjectTransformation* transformation, C
 
 		IfcSchema::IfcMapConversion* mapConversion = *(mapList->begin());
 
-#if defined(USE_IFC4x3a2)
+#if defined(USE_IFC4x3add2)
 		boost::optional<std::string> targetCRSOptionalName = mapConversion->TargetCRS()->Name();
 		if (targetCRSOptionalName->empty()) { return; }
 		metaData->setReferenceSystem(*targetCRSOptionalName);
 #else
 		metaData->setReferenceSystem(mapConversion->TargetCRS()->Name());
-#endif // defined(USE_IFC4x3a2)
+#endif // defined(USE_IFC4x3add2)
 
 		if (mapConversion->Scale().has_value())
 		{

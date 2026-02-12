@@ -41,6 +41,7 @@ Current supported IFC versions:
 * IFC2x3
 * IFC4
 * IFC4x3 (Partial material support)
+* IFC4x3 ADD2 (Partial material support)
 
 A video summary covering the tool and GUI can be found [here](https://www.youtube.com/watch?v=3bJyBj61a-Y)
 
@@ -82,9 +83,10 @@ The tool can be used directly with the executables located in the release tab. F
 * Ifc_Envelope_Extractor_ifc2x3(.exe)
 * Ifc_Envelope_Extractor_ifc4(.exe)
 * Ifc_Envelope_Extractor_ifc4x3(.exe)
+* IFC_Envelope_Extractor_ifc4x3add2(.exe)
 * Ext_GUI.exe (windows only)
 
-The *Ifc_Envelope_Extractor_ifc2x3*, *Ifc_Envelope_Extractor_ifc4* or *Ifc_Envelope_Extractor_ifc4x3* application can be called with a path to a configuration JSON file. This config file is used to supply the tool the needed information related to the input IFC model and the desired output ([more info](#configuration-json)). It is important to make sure that the correct executable for the IFC version of the model is used. An IFC4 file will not be processed by the IFC2x3 version of the tool.
+The *Ifc_Envelope_Extractor_ifc2x3*, *Ifc_Envelope_Extractor_ifc4*, *Ifc_Envelope_Extractor_ifc4x3*, and *Ifc_Envelope_Extractor_ifc4x3add2*  application can be called with a path to a configuration JSON file. This config file is used to supply the tool the needed information related to the input IFC model and the desired output ([more info](#configuration-json)). It is important to make sure that the correct executable for the IFC version of the model is used. An IFC4 file will not be processed by the IFC2x3 version of the tool.
 
 If a more direct (human) user friendly approach is desired on windows, the extractors can be configured with the help of the *Ext_GUI.exe* ([more info](#gui)).
 
@@ -98,27 +100,37 @@ If it is desired to compile the code locally the following libraries are require
 * [Boost](https://www.boost.org/)
 * [OpenCASCADE](https://dev.opencascade.org/)
 
-To set the IFC version a single line has to be changed. In *helper.h* the first line is "#define *IfcVersion*". The *IfcVersion* can be changed to the supported IFC versions preceded by USE_. The currently supported versions are: *USE_IFC2x3*, *USE_IFC4* and *USE_IFC4x3*. Each version creates an executable that can ONLY process IFC files of the version that the executable was created for.
+To set the IFC version a single line has to be changed. In *helper.h* the first line is "#define *IfcVersion*". The *IfcVersion* can be changed to the supported IFC versions preceded by USE_. The currently supported versions are: *USE_IFC2x3*, *USE_IFC4*, *USE_IFC4x3*, and USE_IFC4x3a2. Each version creates an executable that can ONLY process IFC files of the version that the executable was created for.
 
 ```c++
 #define USE_IFC4x3 //<- change this line to change supported ifc version
 
 #ifdef USE_IFC2x3
+#include <ifcparse/Ifc2x3.h>
 #define IfcSchema Ifc2x3
 #define buildVersion "IFC2X3"
 #define SCHEMA_VERSIONS (2x3)
 #define SCHEMA_SEQ (2x3)
 
 #elif defined(USE_IFC4)
+#include <ifcparse/Ifc4.h>
 #define IfcSchema Ifc4
 #define buildVersion "IFC4"
 #define SCHEMA_VERSIONS (4)
 #define SCHEMA_SEQ (4)
 
 #elif defined(USE_IFC4x3)
+#include <ifcparse/Ifc4x3.h>
 #define IfcSchema Ifc4x3
 #define buildVersion "IFC4X3"
 #define SCHEMA_VERSIONS (4x3)
+#define SCHEMA_SEQ (4x3)
+
+#elif defined(USE_IFC4x3a2)
+#include <ifcparse/Ifc4x3_add2.h>
+#define IfcSchema Ifc4x3_add2
+#define buildVersion "IFC4X3_ADD2"
+#define SCHEMA_VERSIONS (4x3 add2)
 #define SCHEMA_SEQ (4x3)
 
 #else
@@ -149,7 +161,7 @@ The algorithms in this tool have been developed to work with models created by p
 
 Low geometric dependent abstraction (LoD 0.0, 1.0 & voxel shells):
 
-* Valid IFC4x3, IFC4 or IFC2x3 file
+* Valid IFC4x3 ADD2, IFC4x3, IFC4, or IFC2x3 file
 * Valid units
 * Correctly IFC class use<sup>1</sup>
 * No or limited use of *IfcBuildingElementProxy* objects<sup>2</sup>

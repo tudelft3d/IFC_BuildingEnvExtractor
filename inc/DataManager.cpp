@@ -904,6 +904,15 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 
 		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
 		if (product == nullptr) { continue; }
+
+		if (!SettingsCollection::getInstance().ignoreIsExternal())
+		{
+			if (!helperFunctions::isExternal(product))
+			{
+				continue;
+			}
+		}
+
 		std::string productType = product->data().type()->name();
 		std::string productGuid = product->GlobalId();
 
@@ -1049,6 +1058,12 @@ void DataManager::internalizeGeo()
 
 	if (SettingsCollection::getInstance().objectCount() == 0)
 	{
+		if (!SettingsCollection::getInstance().ignoreIsExternal())
+		{
+			std::cout << "[WARNING] No objects could be found, possibly IsExternal is not well set in file" << std::endl;
+			std::cout << "\tConsider enable ignoring the IsExternal attribute in the configuration" << std::endl;
+		}
+
 		ErrorCollection::getInstance().addError(ErrorID::errorNoObjects);
 		if (!SettingsCollection::getInstance().make42())
 		{
@@ -1056,7 +1071,7 @@ void DataManager::internalizeGeo()
 		}
 
 		std::cout << std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects)) << std::endl;
-		std::cout << "[INFO] continue processing LoD4.2 only\n\n";
+		std::cout << "[INFO] Continue processing LoD4.2 only\n\n";
 		SettingsCollection::getInstance().disableClassSelectiveLoD();
 		return;
 	}

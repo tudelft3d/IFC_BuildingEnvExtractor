@@ -1,4 +1,4 @@
-#define USE_IFC4x3add1
+#define USE_IFC4
 #define iterationVersion "0.3.3"
 
 #ifdef USE_IFC2x3
@@ -297,6 +297,8 @@ struct helperFunctions{
 	static double getObjectZOffset(IfcSchema::IfcObjectPlacement* objectPlacement, bool deepOnly);
 	/// evaluates if product has glass material related to it
 	static bool hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct);
+	/// evaluates if product has the IsExternal attribute set to true
+	static bool isExternal(const IfcSchema::IfcProduct* ifcProduct);
 
 	/// write to file code
 

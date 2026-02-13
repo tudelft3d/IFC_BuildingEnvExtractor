@@ -4347,22 +4347,16 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 
 	finishedLoD40_ = true;
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+	auto spatialIndx = h->getIndexPointer();
 
 	std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>> shapeProductList;
+	std::vector<Value> allEntries(spatialIndx->begin(), spatialIndx->end());
+
 	if (!settingsCollection.ignoreIsExternal())
 	{
-		std::cout << "\tTest if IfExternal properties are utilized\n";
-		auto spatialIndx = h->getIndexPointer();
-		std::vector<Value> allEntries(spatialIndx->begin(), spatialIndx->end());
-
 		for (const Value& value : allEntries)
 		{
 			const IfcProductSpatialData& lookup = h->getLookup(value.second);
-			nlohmann::json attributeList = h->collectPropertyValues(lookup.getProductPtr()->GlobalId()); //TODO: this could be written faster
-
-			if (!attributeList.contains("IsExternal")) { continue; }
-			if (attributeList["IsExternal"] == false) { continue; }
-
 			TopoDS_Shape currentShape = lookup.getProductShape();
 			IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
 			shapeProductList.emplace_back(std::make_pair(currentShape, currentProduct));
@@ -4513,7 +4507,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 
 	std::vector<int> scoreList;
 	int totalScore = 0;
-	std::vector<Value> allEntries(spatialIndx->begin(), spatialIndx->end());
+	std::vector<Value> allEntries(spatialIndx->begin(), spatialIndx->end()); //TODO: make this fetch all the data
 	for (const Value& value : allEntries)
 	{
 		const IfcProductSpatialData& lookup = h->getLookup(value.second);

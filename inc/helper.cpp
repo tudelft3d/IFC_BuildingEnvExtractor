@@ -3316,6 +3316,41 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 	return false;
 }
 
+bool helperFunctions::isExternal(const IfcSchema::IfcProduct* ifcProduct)
+{
+	auto propertyDefinesList = ifcProduct->IsDefinedBy();
+	for (auto propertyDefines = propertyDefinesList->begin(); propertyDefines != propertyDefinesList->end(); ++propertyDefines)
+	{
+		IfcSchema::IfcPropertySet* pset = (*propertyDefines)->RelatingPropertyDefinition()->as<IfcSchema::IfcPropertySet>();
+		if (pset == nullptr) { continue; }
+
+		boost::optional<std::string> optionalName = pset->Name();
+		if (!optionalName.has_value()) { continue; }
+		if ((*optionalName).find("Common") == std::string::npos) { continue; }
+
+
+		IfcSchema::IfcProperty::list::ptr propertyList = pset->HasProperties();
+
+		for (auto propertyIt = propertyList->begin(); propertyIt != propertyList->end(); ++propertyIt)
+		{
+			IfcSchema::IfcProperty* currentProperty = *propertyIt;
+			if (currentProperty->Name().find("IsExternal") == std::string::npos) { continue; }
+
+			IfcSchema::IfcPropertySingleValue* propertyItem = (*propertyIt)->as<IfcSchema::IfcPropertySingleValue>();
+
+			if (propertyItem == nullptr) { continue; }
+
+			IfcSchema::IfcValue* ifcValue = ifcValue = propertyItem->NominalValue();
+			if (ifcValue == nullptr) { continue; }
+
+			std::string propertyIdName = ifcValue->data().type()->name();
+			if (propertyIdName != "IfcBoolean") { continue; }
+			return ifcValue->as<IfcSchema::IfcBoolean>()->operator bool();
+		}
+	}
+	return false;
+}
+
 
 void helperFunctions::writeToSTEP(const TopoDS_Shape& theShape, const std::string& targetPath)
 {

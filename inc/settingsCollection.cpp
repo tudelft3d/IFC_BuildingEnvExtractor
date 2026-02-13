@@ -1225,6 +1225,11 @@ void SettingsCollection::setThreadcount(const nlohmann::json& json)
 
 bool SettingsCollection::requireVoxels() const
 {
+	if (ignoreIsExternal() && make40())
+	{
+		return true;
+	}
+
 	// set generated settings
 	if (make00() || make10() || make41() || make42())
 	{
@@ -1252,7 +1257,12 @@ bool SettingsCollection::requireVoxels() const
 
 bool SettingsCollection::requireFullVoxels() const
 {
-	if (!make32() && !make40() && !makeV() && !summaryVoxels() &&
+	if (ignoreIsExternal() && make40())
+	{
+		return true;
+	}
+
+	if (!make32() && !makeV() && !summaryVoxels() &&
 		!makec1() && !makec2() && !maked1() && !maked2() &&
 		!makee1())
 	{
@@ -1280,9 +1290,11 @@ bool SettingsCollection::requireIndex() const
 void SettingsCollection::disableClassSelectiveLoD()
 {
 	bool makeLoD42 = make42();
+	bool makeLoD41 = make41();
 
 	setAllLoDOutputFalse();
 	setMake42(makeLoD42);
+	setMake41(makeLoD41);
 
 	return;
 }

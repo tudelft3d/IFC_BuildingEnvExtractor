@@ -230,6 +230,8 @@ public:
 	/// get the pointer to the space objects index
 	const bgi::rtree<Value, bgi::rstar<treeDepth>>* getSpaceIndexPointer() { return &spaceIndex_; }
 	/// get the spatial/product data related to the space dividing objects index
+	const std::vector<std::unique_ptr<IfcProductSpatialData>>& getLookup() { return productLookup_; }
+	/// get the spatial/product data related to the space dividing objects index
 	const IfcProductSpatialData& getLookup(int i) { return *productLookup_.at(i); }
 	/// get the spatial/product data related to the space dividing objects index
 	IfcProductSpatialData* getLookupPtr(int i) { return productLookup_.at(i).get(); }

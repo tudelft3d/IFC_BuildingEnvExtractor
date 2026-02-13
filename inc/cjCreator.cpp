@@ -281,6 +281,11 @@ void CJGeoCreator::garbageCollection()
 		std::vector<std::shared_ptr<CJT::CityObject>>().swap(storeyObjects_);
 	}
 
+	if (!settingsCollection.make40() || finishedLoD40_)
+	{
+		std::vector<Value>().swap(externalValueList_);
+	}
+
 	return;
 }
 
@@ -4361,27 +4366,12 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 			IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
 			shapeProductList.emplace_back(std::make_pair(currentShape, currentProduct));
 		}
-
-		if (shapeProductList.empty())
-		{
-			ErrorCollection::getInstance().addError(ErrorID::warningIfcMissingIsExternal);
-			std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMissingIsExternal) << std::endl;
-		}
 	}
-
-	if (shapeProductList.empty())
+	else
 	{
 		if (externalValueList_.empty())
 		{
-			if (!settingsCollection.ignoreIsExternal())
-			{
-				std::cout << "\tRay casting processing as alternative\n";
-			}
-			else
-			{
-				std::cout << "\tRay casting processing\n";
-			}
-			
+			std::cout << "\tRay casting processing\n";
 
 			bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>> voxelIndex;
 			// collect and index the voxels to which rays are cast
@@ -4393,15 +4383,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 		}
 		else
 		{
-			if (!settingsCollection.ignoreIsExternal())
-			{
-				std::cout << "\tRay casting data is utilized as alternative\n";
-			}
-			else
-			{
-				std::cout << "\tRay casting data is utilized\n";
-			}
-
+			std::cout << "\tRay casting data from LoDe.1 and/or 3.2 is used\n";
 			for (const Value& currentValue : externalValueList_)
 			{
 				const IfcProductSpatialData& lookup = h->getLookup(currentValue.second);
@@ -4411,9 +4393,9 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 			}
 		}
 	}
+
+	
 	std::cout << "\tprocessing IFC objects\r";
-
-
 	auto startTime = std::chrono::steady_clock::now();
 	finishedLoD41_ = true;
 
@@ -4505,33 +4487,37 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 	}
 	coreUse -= 1;
 
+	const std::vector<std::unique_ptr<IfcProductSpatialData>>& allSpatialObjects = h->getLookup();
+
+	std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>> shapeProductList;
 	std::vector<int> scoreList;
 	int totalScore = 0;
-	std::vector<Value> allEntries(spatialIndx->begin(), spatialIndx->end()); //TODO: make this fetch all the data
-	for (const Value& value : allEntries)
+	for (const std::unique_ptr<IfcProductSpatialData>& spatialObjects : allSpatialObjects)
 	{
-		const IfcProductSpatialData& lookup = h->getLookup(value.second);
-		TopoDS_Shape currentShape = lookup.getProductShape();
+		TopoDS_Shape currentShape = spatialObjects->getProductShape();
+		IfcSchema::IfcProduct* currentProduct = spatialObjects->getProductPtr();
+		shapeProductList.emplace_back(std::make_pair(currentShape, currentProduct));
+
 		int localScore = helperFunctions::getPointCount(currentShape);
 		scoreList.emplace_back(localScore);
 		totalScore += localScore;
 	}
 	int targetScore = static_cast<int>(std::floor(totalScore / coreUse));
 
-	std::vector<std::vector<Value>> sublists = subListScore(allEntries, scoreList, targetScore);
+	std::vector<std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>>> sublists = subListScore(shapeProductList, scoreList, targetScore);
 	std::vector< CJT::GeoObject> geoObjectList; // final output collection
 	std::vector<TopoDS_Shape> collectionShape;
 	int counter = 0;
 	std::vector<std::thread> threadList;
 	std::mutex countMutex;
 	std::mutex listMutex;
-	auto lastStart = allEntries.begin();
+	auto lastStart = shapeProductList.begin();
 	for (size_t i = 0; i < sublists.size(); i++)
 	{
-		threadList.emplace_back([&, i] {valueToGeoObject(h, kernel, sublists[i], localRotationTrsf, false, listMutex, countMutex, counter, geoObjectList, collectionShape, i); });
+		threadList.emplace_back([&, i] {productToGeoObject(h, kernel, sublists[i], localRotationTrsf, false, listMutex, countMutex, counter, geoObjectList, collectionShape, i); });
 	}
 
-	threadList.emplace_back([&] {updateCounter("processing IFC objects", allEntries.size(), counter, countMutex); });
+	threadList.emplace_back([&] {updateCounter("processing IFC objects", shapeProductList.size(), counter, countMutex); });
 
 	for (auto& thread : threadList) {
 		if (thread.joinable()) {

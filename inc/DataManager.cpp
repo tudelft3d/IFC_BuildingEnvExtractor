@@ -285,7 +285,7 @@ void DataManager::elementCountSummary()
 		proxyCount << " IfcBuildingElementProxy objects found\n\n";
 
 	SettingsCollection::getInstance().setProxyCount(proxyCount);
-	SettingsCollection::getInstance().setObjectCount(proxyCount);
+	SettingsCollection::getInstance().setObjectCount(objectCount);
 	return;
 }
 
@@ -905,11 +905,13 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
 		if (product == nullptr) { continue; }
 
+		bool storeLookupOnly = false;
 		if (!SettingsCollection::getInstance().ignoreIsExternal())
 		{
-			if (!helperFunctions::isExternal(product))
-			{
-				continue;
+			if (!helperFunctions::isExternal(product)) 
+			{ 
+				if (!SettingsCollection::getInstance().make41()) { continue; }
+				storeLookupOnly = true;
 			}
 		}
 
@@ -975,10 +977,14 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		}
 
 		indexMutex_.lock();
-		int locationIdx = (int)index_.size();
-		index_.insert(std::make_pair(box, locationIdx));
+		int locationIdx = (int)productLookup_.size();
+		if (!storeLookupOnly)
+		{
+			index_.insert(std::make_pair(box, locationIdx));
+			updateBoudingData(box);
+		}
+
 		productLookup_.emplace_back(std::move(lookup));
-		updateBoudingData(box);
 
 		auto typeSearch = productIndxLookup_.find(productType);
 		if (typeSearch == productIndxLookup_.end())
@@ -1058,22 +1064,8 @@ void DataManager::internalizeGeo()
 
 	if (SettingsCollection::getInstance().objectCount() == 0)
 	{
-		if (!SettingsCollection::getInstance().ignoreIsExternal())
-		{
-			std::cout << "[WARNING] No objects could be found, possibly IsExternal is not well set in file" << std::endl;
-			std::cout << "\tConsider enable ignoring the IsExternal attribute in the configuration" << std::endl;
-		}
-
 		ErrorCollection::getInstance().addError(ErrorID::errorNoObjects);
-		if (!SettingsCollection::getInstance().make42())
-		{
-			throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects));
-		}
-
-		std::cout << std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects)) << std::endl;
-		std::cout << "[INFO] Continue processing LoD4.2 only\n\n";
-		SettingsCollection::getInstance().disableClassSelectiveLoD();
-		return;
+		throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects));
 	}
 
 	try
@@ -1230,10 +1222,31 @@ void DataManager::indexGeo()
 		timedAddObjectListToIndex("IfcSpace", uniqueKeySet, addToRoomIndex);
 	}
 	std::cout << std::endl;
+
 	// find valid voids
 	if (settingsCollection.ignoreVoidGrade() == 1)
 	{
 		applyVoids();
+	}
+
+	if (index_.empty())
+	{
+		if (!SettingsCollection::getInstance().ignoreIsExternal())
+		{
+			std::cout << "[WARNING] No objects could be found, possibly IsExternal is not well set in file" << std::endl;
+			std::cout << "\tConsider enable ignoring the IsExternal attribute in the configuration" << std::endl;
+		}
+
+		ErrorCollection::getInstance().addError(ErrorID::errorNoObjects);
+		if (!SettingsCollection::getInstance().make42() && !SettingsCollection::getInstance().make41())
+		{
+			throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects));
+		}
+
+		std::cout << std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects)) << std::endl;
+		std::cout << "[INFO] Continue processing LoD4.1 and/or LoD4.2 only\n\n";
+		SettingsCollection::getInstance().disableClassSelectiveLoD();
+		return;
 	}
 	return;
 }

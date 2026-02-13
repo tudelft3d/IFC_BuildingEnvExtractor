@@ -3318,19 +3318,28 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 
 bool helperFunctions::isExternal(const IfcSchema::IfcProduct* ifcProduct)
 {
-	auto propertyDefinesList = ifcProduct->IsDefinedBy();
+#if defined(USE_IFC2x3)
+	IfcSchema::IfcRelDefines::list::ptr propertyDefinesList = ifcProduct->IsDefinedBy();
+#else
+	IfcSchema::IfcRelDefinesByProperties::list::ptr propertyDefinesList = ifcProduct->IsDefinedBy();
+#endif
 	for (auto propertyDefines = propertyDefinesList->begin(); propertyDefines != propertyDefinesList->end(); ++propertyDefines)
 	{
+#if defined(USE_IFC2x3)
+		IfcSchema::IfcRelDefinesByProperties* prop = (*propertyDefines)->as<IfcSchema::IfcRelDefinesByProperties>();
+		if (prop == nullptr) { continue; }
+		IfcSchema::IfcPropertySet* pset = prop->RelatingPropertyDefinition()->as<IfcSchema::IfcPropertySet>();
+#else
 		IfcSchema::IfcPropertySet* pset = (*propertyDefines)->RelatingPropertyDefinition()->as<IfcSchema::IfcPropertySet>();
+#endif
+
 		if (pset == nullptr) { continue; }
 
 		boost::optional<std::string> optionalName = pset->Name();
 		if (!optionalName.has_value()) { continue; }
 		if ((*optionalName).find("Common") == std::string::npos) { continue; }
 
-
 		IfcSchema::IfcProperty::list::ptr propertyList = pset->HasProperties();
-
 		for (auto propertyIt = propertyList->begin(); propertyIt != propertyList->end(); ++propertyIt)
 		{
 			IfcSchema::IfcProperty* currentProperty = *propertyIt;

@@ -6272,14 +6272,21 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, c
 		int faceCount = 0;
 		for (TopExp_Explorer explorer(cleanShape, TopAbs_FACE); explorer.More(); explorer.Next()) { faceCount++; }
 		std::vector<int>TypeValueList(faceCount, 0);
+		
+		try
+		{
+			CJT::GeoObject geoObject = kernel->convertToJSON(cleanShape, LoDnr);
+			geoObject.setSurfaceTypeValues(TypeValueList);
+			geoObject.appendSurfaceData(attributeMap);
 
-		CJT::GeoObject geoObject = kernel->convertToJSON(cleanShape, LoDnr);
-		geoObject.setSurfaceTypeValues(TypeValueList);
-		geoObject.appendSurfaceData(attributeMap);
-
-		std::lock_guard<std::mutex> listGuard(listMutex);
-		geoObjectListOut.emplace_back(geoObject);
-		collectionShapeOut.emplace_back(cleanShape);
+			std::lock_guard<std::mutex> listGuard(listMutex);
+			geoObjectListOut.emplace_back(geoObject);
+			collectionShapeOut.emplace_back(cleanShape);
+		}
+		catch (const std::exception&)
+		{
+			//TODO: add error
+		}		
 	}
 	return;
 }

@@ -143,7 +143,10 @@ def toggleMakeInterior(interior_widget):
 
 def toggleIgnoreIsExternal(ignore_IsExternal_widget):
     # the relevant bools:
-    rel_lod = {lod_settings.lod40.get()}
+    rel_lod = {lod_settings.lod00.get(), lod_settings.lod02.get(), lod_settings.lod03.get(),
+               lod_settings.lod10.get(), lod_settings.lod12.get(), lod_settings.lod13.get(),
+               lod_settings.lod22.get(), lod_settings.lode1.get(), lod_settings.lod32.get(),
+               lod_settings.lod50.get(), lod_settings.lod40.get()}
 
     if any(b == True for b in rel_lod):
         ignore_IsExternal_widget['state'] = tkinter.NORMAL
@@ -622,28 +625,32 @@ toggle_makelod00 = ttk.Checkbutton(frame_lod_settings1, text="LoD0.0", variable=
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 toggle_makelod02 = ttk.Checkbutton(frame_lod_settings1, text="LoD0.2", variable=lod_settings.lod02,
                                    command=lambda: [
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 toggle_makelod03 = ttk.Checkbutton(frame_lod_settings1, text="LoD0.3", variable=lod_settings.lod03,
                                    command=lambda: [
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 toggle_makelod04 = ttk.Checkbutton(frame_lod_settings1, text="LoD0.4", variable=lod_settings.lod04,
                                    command=lambda: [
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 
 toggle_makelod10 = ttk.Checkbutton(frame_lod_settings2, text="LoD1.0", variable=lod_settings.lod10,
@@ -651,28 +658,32 @@ toggle_makelod10 = ttk.Checkbutton(frame_lod_settings2, text="LoD1.0", variable=
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 toggle_makelod12 = ttk.Checkbutton(frame_lod_settings2, text="LoD1.2", variable=lod_settings.lod12,
                                    command=lambda: [
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 toggle_makelod13 = ttk.Checkbutton(frame_lod_settings2, text="LoD1.3", variable=lod_settings.lod13,
                                    command=lambda: [
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 toggle_makelod22 = ttk.Checkbutton(frame_lod_settings2, text="LoD2.2", variable=lod_settings.lod22,
                                    command=lambda: [
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 
 toggle_makelode1 = ttk.Checkbutton(frame_lod_settings3, text="LoDe.1", variable=lod_settings.lode1,
@@ -680,7 +691,8 @@ toggle_makelode1 = ttk.Checkbutton(frame_lod_settings3, text="LoDe.1", variable=
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 
 toggle_makelod32 = ttk.Checkbutton(frame_lod_settings3, text="LoD3.2", variable=lod_settings.lod32,
@@ -688,7 +700,8 @@ toggle_makelod32 = ttk.Checkbutton(frame_lod_settings3, text="LoD3.2", variable=
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 
 toggle_makelod50 = ttk.Checkbutton(frame_lod_settings3,
@@ -698,7 +711,8 @@ toggle_makelod50 = ttk.Checkbutton(frame_lod_settings3,
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 
 toggle_makelod40 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.0",  variable=lod_settings.lod40,
@@ -715,7 +729,8 @@ toggle_makelod41 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.1",  variable
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 
 toggle_makelod42 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.2",  variable=lod_settings.lod42,
@@ -723,7 +738,8 @@ toggle_makelod42 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.2",  variable
                                        toggleMakeFootprint(toggle_makefootprint),
                                        toggleMakeRoofOutline(toggle_makeroofprint),
                                        toggleMakeFootprintBased(toggle_footprint_based),
-                                       toggleMakeInterior(toggle_makeinterior)
+                                       toggleMakeInterior(toggle_makeinterior),
+                                       toggleIgnoreIsExternal(toggle_ignore_IsExternal)
                                    ])
 
 toggle_makelod00.pack(side=tkinter.LEFT)

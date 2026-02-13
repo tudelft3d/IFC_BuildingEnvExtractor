@@ -3091,7 +3091,7 @@ double helperFunctions::getObjectZOffset(IfcSchema::IfcObjectPlacement* objectPl
 		if (storeyLocalPlacement->RelativePlacement()->data().type()->name() != "IfcAxis2Placement3D") { return 0.0; }
 		IfcSchema::IfcAxis2Placement3D* axisPlacement = storeyLocalPlacement->RelativePlacement()->as<IfcSchema::IfcAxis2Placement3D>();
 
-#if defined(USE_IFC4x3) || defined (USE_IFC4x3add2)
+#if defined(USE_IFC4x3) || defined (USE_IFC4x3add1)|| defined (USE_IFC4x3add2)
 		offset = axisPlacement->Location()->as<IfcSchema::IfcCartesianPoint>()->Coordinates()[2];
 #else
 		try

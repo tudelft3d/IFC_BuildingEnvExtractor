@@ -200,7 +200,13 @@ void IOManager::printSummary()
 	std::cout << "- angular tolerance:\n";
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.angularTolerance() << "\n";
 	std::cout << "- area tolerance:\n";
-	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.areaTolerance() << "\n\n";
+	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.areaTolerance() << "\n";
+	std::cout << "- mesh linear deflection:\n";
+	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.meshLinearDeflection() << "\n";
+	std::cout << "- mesh angular deflection:\n";
+	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.meshAngularDeflection() << "\n";
+	std::cout << "- refine mesh parameters:\n";
+	std::cout << boolToString(settingsCollection.refineMesh()) << "\n\n";
 
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "IFC settings\n";
 	std::cout << "- Model rotation:\n";

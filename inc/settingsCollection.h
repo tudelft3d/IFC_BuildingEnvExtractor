@@ -118,6 +118,9 @@ private:
     double angularTolerance_ = 1e-4;
     double areaTolerance_ = 1e-4;
     double windowBuffer_ = 0.001;
+    double meshLinearDeflection_ = 0.01;
+    double meshAngularDeflection_ = 0.5;
+    double refineMesh_ = true;
 
     // unexposed settings
     bool addCustomWallAttributes_ = false;
@@ -126,12 +129,6 @@ private:
     double thinTriangleAngle_ = 0.1745;
 
 	// \/ generated settings \/
-	// if LoD0.0 and 1.0 is generated only no voxels are required
-	bool requireVoxels_ = true;
-
-	// if Only roof outlines are required no full voxelization is needed.
-	bool requireFullVoxels_ = true;
-
 	// if LoD13 output is done and the same as LoD22, copy the data
 	bool Lod123IsFlat_ = false;
 	
@@ -434,6 +431,17 @@ public:
     void setAreaTolerance(const nlohmann::json& json);
 
     double windowBuffer() const { return windowBuffer_; }
+
+    double meshLinearDeflection() const { return meshLinearDeflection_; }
+    void setMeshLinearDeflection(double value) { meshLinearDeflection_ = value; }
+    void setMeshLinearDeflection(const nlohmann::json& json);
+
+    double meshAngularDeflection() const { return meshAngularDeflection_; }
+    void setMeshAngularDeflection(double value) { meshAngularDeflection_ = value; }
+    void setMeshAngularDeflection(const nlohmann::json& json);
+
+    double refineMesh() const { return refineMesh_; }
+    void setRefineMesh(bool value) { refineMesh_ = value; }
 
     double maxProxyPercentage() const { return maxProxyPercentage_; }
     void setMaxProxyPercentage(double value) { maxProxyPercentage_ = value; }

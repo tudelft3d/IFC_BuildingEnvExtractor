@@ -3553,7 +3553,11 @@ double helperFunctions::computeArea(const TopoDS_Face& theFace)
 
 void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 {
-	std::mutex* triangleMutex = SettingsCollection::getInstance().getTriangleMutex();
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+	std::mutex* triangleMutex = settingsCollection.getTriangleMutex();
+
+	double setDeflection = settingsCollection.meshLinearDeflection();
+	double setAngDeflection = settingsCollection.meshAngularDeflection();
 	for (TopExp_Explorer faceExpl(shape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 	{
 		TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
@@ -3600,7 +3604,7 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 		for (size_t i = 1; i <= 3; i++)
 		{
 			double refinement = 1 / i;
-			double deflection = 0.01 * refinement;
+			double deflection = setDeflection * refinement;
 			double triangleCount = area / (0.5 * deflection * deflection * std::sqrt(3.0));
 			if (std::isinf(triangleCount))
 			{
@@ -3610,12 +3614,17 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 			BRepTools::Clean(currentFace);
 
 			triangleMutex->lock();
-			BRepMesh_IncrementalMesh(currentFace, deflection, Standard_False, 0.5 * refinement, Standard_True);
+			BRepMesh_IncrementalMesh(currentFace, deflection, Standard_False, setAngDeflection * refinement, Standard_True);
 			triangleMutex->unlock();
 
 			TopLoc_Location locLocal;
 			Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(currentFace, loc);
 			if (!BRep_Tool::Triangulation(currentFace, locLocal).IsNull()) {
+				break;
+			}
+
+			if (!settingsCollection.refineMesh())
+			{
 				break;
 			}
 		}

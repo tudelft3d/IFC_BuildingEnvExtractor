@@ -214,6 +214,8 @@ enum class JsonObjectInID {
 	tolerancesSpatial,
 	tolerancesAngular,
 	tolerancesArea,
+	meshLinearDeflection,
+	meshAngularDeflection,
 
 	voxel,
 	voxelSize,

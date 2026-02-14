@@ -616,6 +616,10 @@ std::string JsonObjectInEnum::getString(JsonObjectInID id)
 		return "Angular tolerance";
 	case JsonObjectInID::tolerancesArea:
 		return "Area tolerance";
+	case JsonObjectInID::meshLinearDeflection:
+		return "Mesh linear deflection";	
+	case JsonObjectInID::meshAngularDeflection:
+		return "Mesh angular deflection";
 
 	case JsonObjectInID::IFC:
 		return "IFC";

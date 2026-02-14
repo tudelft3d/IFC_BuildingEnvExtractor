@@ -3446,6 +3446,7 @@ void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::
 				triangulateShape(face);
 				mesh = BRep_Tool::Triangulation(face, loc);
 			}
+			if (mesh.IsNull()) { continue; }
 
 			bool flipTriangle = false;
 			if (face.Orientation() == TopAbs_REVERSED)

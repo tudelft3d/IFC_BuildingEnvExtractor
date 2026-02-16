@@ -203,6 +203,7 @@ def runCode(input_path,
     ifc2_exe_path = "Ifc_Envelope_Extractor_ifc2x3.exe"
     ifc4_exe_path = "Ifc_Envelope_Extractor_ifc4.exe"
     ifc4x3_exe_path = "Ifc_Envelope_Extractor_ifc4x3.exe"
+    ifc4x3ADD2_exe_path = "Ifc_Envelope_Extractor_ifc4x3add2.exe"
 
     # check voxel input
     try:
@@ -377,9 +378,14 @@ def runCode(input_path,
                     runExe(code_path, json_path)
                     scheme_found = True
                 break
-            if "FILE_SCHEMA(('IFC4X3'))" in line or "FILE_SCHEMA (('IFC4X3'))" in line \
-                    or "FILE_SCHEMA(('IFC4X3_ADD2'));" in line:
+            if "FILE_SCHEMA(('IFC4X3'))" in line or "FILE_SCHEMA (('IFC4X3'))" in line:
                 code_path = findValidPath(ifc4x3_exe_path, "Ifc4x3")
+                if not (code_path == None):
+                    runExe(code_path, json_path)
+                    scheme_found = True
+                break
+            if "FILE_SCHEMA(('IFC4X3_ADD2'))" in line or "FILE_SCHEMA (('IFC4X3_ADD2'))" in line:
+                code_path = findValidPath(ifc4x3ADD2_exe_path, "IFC4X3_ADD2")
                 if not (code_path == None):
                     runExe(code_path, json_path)
                     scheme_found = True

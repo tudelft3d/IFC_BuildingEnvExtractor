@@ -2473,7 +2473,7 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeRoomObjects(Data
 			cjRoomObject->setType(CJT::Building_Type::BuildingRoom);
 
 			//store added data
-			nlohmann::json attributeList = h->collectPropertyValues(spaceObject->GlobalId(), currentSpacePair.first);
+			nlohmann::json attributeList = helperFunctions::getAttributes(spaceObject);
 			for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
 				cjRoomObject->addAttribute(jsonObIt.key(), jsonObIt.value());
 			}
@@ -2592,7 +2592,7 @@ void CJGeoCreator::setLoD32SurfaceAttributes(
 				objectMap[CJObjectEnum::getString(CJObjectID::CJType)] = CJObjectEnum::getString(CJObjectID::CJTypeDoor);
 			}
 
-			nlohmann::json attributeList = h->collectPropertyValues(product->GlobalId());
+			nlohmann::json attributeList = helperFunctions::getAttributes(product);
 			for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
 				objectMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();
 			}
@@ -6084,7 +6084,7 @@ void CJGeoCreator::valueToGeoObject(
 
 		nlohmann::json attributeMap;
 		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->data().type()->name();
-		nlohmann::json attributeList = h->collectPropertyValues(currentProduct->GlobalId()); //TODO: this could be written faster
+		nlohmann::json attributeList = helperFunctions::getAttributes(currentProduct);
 
 		for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
 			attributeMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();
@@ -6131,7 +6131,7 @@ void CJGeoCreator::productToGeoObject(DataManager* h, CJT::Kernel* kernel, const
 
 		nlohmann::json attributeMap;
 		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->data().type()->name();
-		nlohmann::json attributeList = h->collectPropertyValues(currentProduct->GlobalId()); //TODO: this could be written faster
+		nlohmann::json attributeList = helperFunctions::getAttributes(currentProduct); //TODO: this could be written faster
 
 		for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
 			attributeMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();
@@ -6188,6 +6188,9 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, s
 		localRotationTrsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
 
 		int coreUse = settingsCollection.threadcount();
+
+		coreUse = 1;
+
 		if (shapeList.size() < coreUse) { coreUse = shapeList.size(); }
 		int splitListSize = static_cast<int>(std::floor(shapeList.size() / coreUse));
 
@@ -6264,7 +6267,7 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, c
 
 		nlohmann::json attributeMap;
 		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + product->data().type()->name();
-		nlohmann::json attributeList = h->collectPropertyValues(product->GlobalId());
+		nlohmann::json attributeList = helperFunctions::getAttributes(product);
 		for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
 			attributeMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();
 		}

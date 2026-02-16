@@ -265,13 +265,6 @@ public:
 	template <typename T>
 	std::string getIfcObjectName(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
 
-	/// collects the non-standard property data in the ifc file of an object 
-	nlohmann::json collectPropertyValues(const std::string& objectId, const std::string& psetName = "");
-	/// collects the non-standard property data in the ifc file of an object 
-	nlohmann::json collectPropertyValues(const std::string& objectId, int location, const std::string& psetName = "");
-	/// collects the non-standard property data in the ifc file of an object 
-	nlohmann::json collectPropertyValues(const std::string& objectId, IfcParse::IfcFile* ifcFile, const std::string& psetName = "");
-
 	/// search the object shape from memory only
 	TopoDS_Shape getObjectShapeFromMem(IfcSchema::IfcProduct* product, bool isSimple);
 

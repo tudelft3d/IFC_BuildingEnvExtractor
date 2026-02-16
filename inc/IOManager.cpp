@@ -670,7 +670,7 @@ std::unique_ptr<gp_Pnt> IOManager::FetchMainEntranceLocation(std::unique_ptr<gp_
 		for (auto it = doorlist->begin(); it != doorlist->end(); ++it)
 		{
 			IfcSchema::IfcDoor* currentDoor = *it;
-			nlohmann::json attributeList = internalDataManager_->collectPropertyValues(currentDoor->GlobalId(), currentFile);
+			nlohmann::json attributeList = helperFunctions::getAttributes(currentDoor);
 
 			if (!attributeList.contains("CHEK_IsMainEntrance"))
 			{

@@ -1,4 +1,4 @@
-#define USE_IFC2x3
+#define USE_IFC4x3add2
 #define iterationVersion "0.3.3"
 
 #ifdef USE_IFC2x3
@@ -53,6 +53,7 @@
 #include <gp_Vec.hxx>
 #include <TopoDS.hxx>
 #include <Poly_Triangulation.hxx>
+#include <nlohmann/json.hpp>
 
 #include <CJT.h>
 #include <CJToKernel.h>
@@ -299,6 +300,8 @@ struct helperFunctions{
 	static bool hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct);
 	/// evaluates if product has the IsExternal attribute set to true
 	static bool isExternal(const IfcSchema::IfcProduct* ifcProduct);
+	/// returns all the attributes in json format
+	static nlohmann::json getAttributes(const IfcSchema::IfcProduct* ifcProduct);
 
 	/// write to file code
 

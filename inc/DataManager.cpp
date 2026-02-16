@@ -1265,7 +1265,7 @@ gp_Trsf DataManager::getProjectionTransformation()
 	IfcSchema::IfcSite* ifcSite = *ifcSiteList->begin();
 	IfcSchema::IfcRelDefines::list::ptr relDefinesList = ifcSite->IsDefinedBy();
 
-	nlohmann::json sitePropertySetData = collectPropertyValues(ifcSite->GlobalId(), "ePSet_MapConversion");
+	nlohmann::json sitePropertySetData = helperFunctions::getAttributes(ifcSite, "ePSet_MapConversion");
 	if (sitePropertySetData.empty()) { return gp_Trsf(); }
 	if (validateProjectionData(sitePropertySetData)) { return gp_Trsf(); }
 
@@ -1322,7 +1322,8 @@ void DataManager::getProjectionData(CJT::ObjectTransformation* transformation, C
 		IfcSchema::IfcSite* ifcSite = *ifcSiteList->begin();
 		IfcSchema::IfcRelDefines::list::ptr relDefinesList = ifcSite->IsDefinedBy();
 
-		nlohmann::json sitePropertySetData = collectPropertyValues(ifcSite->GlobalId(), "ePSet_MapConversion");
+		nlohmann::json sitePropertySetData = helperFunctions::getAttributes(ifcSite, "ePSet_MapConversion");
+
 		if (sitePropertySetData.empty()) { return; }
 
 		if (sitePropertySetData.contains("TargetCRS"))

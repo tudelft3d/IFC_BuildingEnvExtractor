@@ -3360,25 +3360,31 @@ bool helperFunctions::isExternal(const IfcSchema::IfcProduct* ifcProduct)
 	return false;
 }
 
-nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcProduct* ifcProduct)
+nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcProduct* ifcProduct, const std::string& PsetName)
 {
 	nlohmann::json attributesList;
+
+	bool filter = !PsetName.empty();
 
 	std::string noneType = "None";
 
 	// get object data
-	attributesList["Guid"] = ifcProduct->GlobalId();
-	attributesList["IfcEntity"] = ifcProduct->data().type()->name();
 
-	boost::optional<std::string> optionalName = ifcProduct->Name();
-	if (optionalName.has_value()) { attributesList["Name"] = optionalName.get(); }
-	else { attributesList["Name"] = "None"; }
+	if (!filter || PsetName == "Element Specific")
+	{
+		attributesList["Guid"] = ifcProduct->GlobalId();
+		attributesList["IfcEntity"] = ifcProduct->data().type()->name();
 
-	boost::optional<std::string> optionalType = ifcProduct->ObjectType();
-	if (optionalType.has_value()) { attributesList["ObjectType"] = optionalType.get(); }
-	else { attributesList["ObjectType"] = "None"; }
+		boost::optional<std::string> optionalName = ifcProduct->Name();
+		if (optionalName.has_value()) { attributesList["Name"] = optionalName.get(); }
+		else { attributesList["Name"] = "None"; }
 
-	attributesList["Tag"] = ifcProduct->identity();
+		boost::optional<std::string> optionalType = ifcProduct->ObjectType();
+		if (optionalType.has_value()) { attributesList["ObjectType"] = optionalType.get(); }
+		else { attributesList["ObjectType"] = "None"; }
+
+		attributesList["Tag"] = ifcProduct->identity();
+	}
 
 	// get pset data
 #if defined(USE_IFC2x3)
@@ -3395,6 +3401,12 @@ nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcProduct* ifcPr
 #else
 		IfcSchema::IfcPropertySet* pset = (*propertyDefines)->RelatingPropertyDefinition()->as<IfcSchema::IfcPropertySet>();
 #endif
+		if (filter)
+		{
+			boost::optional<std::string> optionalPsetName = pset->Name();
+			if (!optionalPsetName.has_value()) { continue; }
+			if (optionalPsetName.get() != PsetName) { continue; }
+		}
 
 		IfcSchema::IfcProperty::list::ptr propertyList = pset->HasProperties();
 

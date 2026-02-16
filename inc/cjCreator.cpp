@@ -6189,8 +6189,6 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, s
 
 		int coreUse = settingsCollection.threadcount();
 
-		coreUse = 1;
-
 		if (shapeList.size() < coreUse) { coreUse = shapeList.size(); }
 		int splitListSize = static_cast<int>(std::floor(shapeList.size() / coreUse));
 

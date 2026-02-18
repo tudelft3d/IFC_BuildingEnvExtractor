@@ -202,6 +202,8 @@ def runCode(input_path,
 
     ifc2_exe_path = "Ifc_Envelope_Extractor_ifc2x3.exe"
     ifc4_exe_path = "Ifc_Envelope_Extractor_ifc4.exe"
+    ifc4x1_exe_path = "Ifc_Envelope_Extractor_ifc4x1.exe"
+    ifc4x2_exe_path = "Ifc_Envelope_Extractor_ifc4x2.exe"
     ifc4x3_exe_path = "Ifc_Envelope_Extractor_ifc4x3.exe"
     ifc4x3ADD2_exe_path = "Ifc_Envelope_Extractor_ifc4x3add2.exe"
 
@@ -378,6 +380,18 @@ def runCode(input_path,
                     runExe(code_path, json_path)
                     scheme_found = True
                 break
+            if  "FILE_SCHEMA(('IFC4X1'))" in line or "FILE_SCHEMA (('IFC4X1'))" in line:
+                code_path = findValidPath(ifc4x1_exe_path, "Ifc4x1")
+                if not (code_path == None):
+                    runExe(code_path, json_path)
+                    scheme_found = True
+                break
+            if  "FILE_SCHEMA(('IFC4X2'))" in line or "FILE_SCHEMA (('IFC4X2'))" in line:
+                code_path = findValidPath(ifc4x2_exe_path, "Ifc4x2")
+                if not (code_path == None):
+                    runExe(code_path, json_path)
+                    scheme_found = True
+                break
             if "FILE_SCHEMA(('IFC4X3'))" in line or "FILE_SCHEMA (('IFC4X3'))" in line:
                 code_path = findValidPath(ifc4x3_exe_path, "Ifc4x3")
                 if not (code_path == None):
@@ -457,8 +471,6 @@ def runExe(code_path, json_path):
             ))
             generate_button.config(state="normal")
             close_button.config(state="normal")
-
-
         def stop_process():
             stop_event.set()
 

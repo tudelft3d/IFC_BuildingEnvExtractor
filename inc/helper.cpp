@@ -2284,6 +2284,41 @@ std::vector<TopoDS_Face> helperFunctions::TriangulateFace(const TopoDS_Face& the
 	return collapsedTriangles;
 }
 
+TopoDS_Shape helperFunctions::TriangulateShape(const TopoDS_Shape& theShape)
+{
+	bool isSolid = (theShape.ShapeType() == TopAbs_SOLID);
+
+	BRep_Builder brepBuilder;
+	TopoDS_Compound compoundShape;
+	brepBuilder.MakeCompound(compoundShape);
+	TopoDS_Solid SolidShape;
+	brepBuilder.MakeSolid(SolidShape);
+
+	for (TopExp_Explorer faceExpl(theShape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
+	{
+		TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
+		std::vector<TopoDS_Face> meshFaceList = TriangulateFace(currentFace);
+
+		for (const TopoDS_Face& currentFace : meshFaceList)
+		{
+			if (isSolid)
+			{
+				brepBuilder.Add(SolidShape, currentFace);
+			}
+			else
+			{
+				brepBuilder.Add(compoundShape, currentFace);
+			}
+		}
+	}
+
+	if (isSolid)
+	{
+		return SolidShape;
+	}
+	return compoundShape;
+}
+
 std::vector<TopoDS_Wire> helperFunctions::growWires(const std::vector<TopoDS_Edge>& edgeList) {
 	std::vector<TopoDS_Wire> wireCollection;
 	std::vector<TopoDS_Wire> wireCollectionClosed;
@@ -3401,10 +3436,11 @@ nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcProduct* ifcPr
 #else
 		IfcSchema::IfcPropertySet* pset = (*propertyDefines)->RelatingPropertyDefinition()->as<IfcSchema::IfcPropertySet>();
 #endif
+		if (pset == nullptr) { continue; }
+
 		if (filter)
 		{
 			boost::optional<std::string> optionalPsetName = pset->Name();
-			if (!optionalPsetName.has_value()) { continue; }
 			if (optionalPsetName.get() != PsetName) { continue; }
 		}
 

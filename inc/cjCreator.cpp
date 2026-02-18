@@ -6258,7 +6258,11 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, c
 
 		TopoDS_Shape cleanShape = helperFunctions::TesselateShape(shape);
 		if (cleanShape.IsNull()) {
-			cleanShape = shape;
+			cleanShape = helperFunctions::TriangulateShape(shape);
+
+			if (cleanShape.IsNull()) {
+				cleanShape = shape;
+			}			
 		}
 
 		cleanShape.Move(localTrans);

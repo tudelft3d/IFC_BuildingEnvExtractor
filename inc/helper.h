@@ -1,4 +1,4 @@
-#define USE_IFC4
+#define USE_IFC4x3add2
 #define iterationVersion "0.3.3"
 
 #ifdef USE_IFC2x3
@@ -7,6 +7,20 @@
 #define buildVersion "IFC2X3"
 #define SCHEMA_VERSIONS (2x3)
 #define SCHEMA_SEQ (2x3)
+
+#elif defined(USE_IFC4x1)
+#include <ifcparse/Ifc4x1.h>
+#define IfcSchema Ifc4x1
+#define buildVersion "IFC4X1"
+#define SCHEMA_VERSIONS (4x1)
+#define SCHEMA_SEQ (4x1)
+
+#elif defined(USE_IFC4x2)
+#include <ifcparse/Ifc4x2.h>
+#define IfcSchema Ifc4x2
+#define buildVersion "IFC4X2"
+#define SCHEMA_VERSIONS (4x2)
+#define SCHEMA_SEQ (4x2)
 
 #elif defined(USE_IFC4)
 #include <ifcparse/Ifc4.h>
@@ -267,6 +281,8 @@ struct helperFunctions{
 	static std::vector<TopoDS_Face> TessellateFace(const std::vector<TopoDS_Face>& theFaceList, bool knownIsFlat = false);
 	/// creates a clean mesh approximation of the input face
 	static std::vector<TopoDS_Face> TriangulateFace(const TopoDS_Face& theFace);
+	/// creates a mesh approximation of the input face stored as shape
+	static TopoDS_Shape TriangulateShape(const TopoDS_Shape& theShape);
 	/// fixes face if face is broken
 	static bool fixFace(TopoDS_Face* theFace);
 

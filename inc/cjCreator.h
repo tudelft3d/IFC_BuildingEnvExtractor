@@ -58,6 +58,8 @@ private:
 
 	// surface collecting code
 
+	bool finishedLoD02_ = false;
+	bool finishedLoD03_ = false;
 	bool finishedLoD13_ = false;
 	bool finishedLoD22_ = false;
 	bool finishedLoD32_ = false;

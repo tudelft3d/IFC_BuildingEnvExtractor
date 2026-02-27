@@ -265,7 +265,9 @@ void CJGeoCreator::garbageCollection()
 
 	// check if storey objects can be released
 	bool requireStoreyObjects = false;
-	if (!finishedLoDc1_ && settingsCollection.makec1() ||
+	if (!finishedLoD02_ && settingsCollection.make02() ||
+		!finishedLoD03_ && settingsCollection.make03() ||
+		!finishedLoDc1_ && settingsCollection.makec1() ||
 		!finishedLoDc2_ && settingsCollection.makec2() ||
 		!finishedLoDd1_ && settingsCollection.maked1() ||
 		!finishedLoDd2_ && settingsCollection.maked2() ||
@@ -1028,7 +1030,6 @@ void CJGeoCreator::makeFloorSection(std::vector<TopoDS_Face>& facesOut, DataMana
 		//TODO: add error
 		return;
 	}
-
 	facesOut = helperFunctions::planarFaces2Outline(cleanedFaceList);
 	return;
 }
@@ -2804,6 +2805,7 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD02(DataManager* h, CJT::Kernel
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
+	finishedLoD02_ = true;
 	garbageCollection();
 	return geoObjectCollection;
 }
@@ -2871,7 +2873,6 @@ void CJGeoCreator::make2DStoreys(
 	{
 		return;
 	}
-
 
 	std::vector<std::thread> threadList;
 	std::mutex storeyMutex;
@@ -3079,7 +3080,7 @@ void CJGeoCreator::make2DStorey(
 					continue;
 				}
 			}
-
+			
 			TopoDS_Shape movedStoreyFace = currentStoreyFace.Moved(trsf);
 
 			if (SettingsCollection::getInstance().createSTEP() || SettingsCollection::getInstance().createOBJ())
@@ -3459,6 +3460,7 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD03(DataManager* h, CJT::Kernel
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
+	finishedLoD03_ = true;
 	garbageCollection();
 	return geoObjectCollection;
 }

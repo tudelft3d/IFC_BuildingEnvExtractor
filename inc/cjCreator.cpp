@@ -610,7 +610,6 @@ void CJGeoCreator::initializeBasic(DataManager* cluster)
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofOutlineConstruction) << std::endl;
 	std::vector<TopoDS_Face> roofOutlines = createRoofOutline(mergedSurfaceRList);
 
-
 	// sort surface groups based on the roof/footprints
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureSorting) << std::endl;
 	buildingSurfaceDataList_ = sortRoofStructures(roofOutlines, mergedSurfaceRList);
@@ -1029,19 +1028,8 @@ void CJGeoCreator::makeFloorSection(std::vector<TopoDS_Face>& facesOut, DataMana
 		//TODO: add error
 		return;
 	}
-	std::vector<TopoDS_Face> floorSectionList = helperFunctions::planarFaces2Outline(cleanedFaceList, cuttingPlane);
 
-	facesOut.reserve(floorSectionList.size());
-	for (const TopoDS_Face& currentOutFace : floorSectionList)
-	{
-		std::vector<TopoDS_Face> cleanedOutFaceList = helperFunctions::TessellateFace(currentOutFace, true);
-
-		for (const TopoDS_Face& cleanedOutFace : cleanedOutFaceList)
-		{
-			if (cleanedOutFace.IsNull()) { continue; }
-			facesOut.emplace_back(cleanedOutFace);
-		}
-	}
+	facesOut = helperFunctions::planarFaces2Outline(cleanedFaceList);
 	return;
 }
 
@@ -1168,7 +1156,7 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitFaces(
 	{
 		while (coreUse > inputFaceList.size()) { coreUse /= 2; }
 	}
-	int splitListSize = static_cast<int>(floor(inputFaceList.size() / coreUse));
+ 	int splitListSize = static_cast<int>(floor(inputFaceList.size() / coreUse));
 
 	std::vector<std::thread> threadList;
 	std::mutex processMutex;
@@ -1532,7 +1520,6 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 {
 	double precision = SettingsCollection::getInstance().spatialTolerance();
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
-
 
 	bool allFlat = true; // if all surfaces horizontal only projected intersections are required
 	gp_Vec horizontalVec(0, 0, 1);
@@ -2100,17 +2087,7 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<RColl
 		if (helperFunctions::surfaceIsIncapsulated(currentFace, cleanProjectedFaceList)) { continue; }
 		cleanProjectedFaceList.emplace_back(currentFace);
 	}
-
-	// create plane on which the projection has to be made
-	gp_Pnt lll;
-	gp_Pnt urr;
-	helperFunctions::bBoxDiagonal(cleanProjectedFaceList, &lll, &urr);
-
-	gp_Pnt p0 = gp_Pnt(lll.X() - 10, lll.Y() - 10, 0);
-	gp_Pnt p1 = gp_Pnt(urr.X() + 10, urr.Y() + 10, 0);
-
-	TopoDS_Face cuttingPlane = helperFunctions::createHorizontalFace(p0, p1, 0, 0);
-	std::vector<TopoDS_Face> mergedSurfaces = helperFunctions::planarFaces2Outline(cleanProjectedFaceList, cuttingPlane);
+	std::vector<TopoDS_Face> mergedSurfaces = helperFunctions::planarFaces2Outline(cleanProjectedFaceList);
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return mergedSurfaces;
 }
@@ -6168,46 +6145,73 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, s
 
 	std::vector<IfcGeom::filter_t> filterFuncs;
 	filterFuncs.emplace_back(IfcGeom::entity_filter(true, false, { "IfcElement" }));
+
+	int threadCount = settingsCollection.threadcount();
 	
 	std::set<std::string> uniqueKeySet;
 	for (size_t i = 0; i < h->getSourceFileCount(); i++)
 	{
 		std::vector<IfcGeom::BRepElement*> shapeList;
 
+		int itThread = threadCount;
+		if (itThread < 2) { itThread = 2; } // ifcopenshell doesnt work on 1 thread
+
 		IfcGeom::Iterator it(
 			settingsCollection.iteratorSettings(),
 			h->getSourceFile(i),
 			filterFuncs,
-			settingsCollection.threadcount()
+			itThread
 		);
 		if (!it.initialize()) { continue; }
 
 		do { shapeList.emplace_back(it.get_native()); } while (it.next());
-
 		gp_Trsf localRotationTrsf;
 		localRotationTrsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
 
-		int coreUse = settingsCollection.threadcount();
-
-		if (shapeList.size() < coreUse) { coreUse = shapeList.size(); }
-		int splitListSize = static_cast<int>(std::floor(shapeList.size() / coreUse));
-
-		std::vector<std::thread> threadList;
+		int coreUse = threadCount;
+		double maxSplit = 300;
+		int maxBinNr = static_cast<int>(std::ceil(shapeList.size() / maxSplit));
+		
+		std::vector<std::thread> counterThreadList;
+		std::string communicationString = "File " + std::to_string((int)i + 1) + std::string(" - processing IFC objects");
+		
 		int counter = 0;
+		int activeThreads = 0;
+		int currentBin = 0;
 		std::mutex countMutex;
 		std::mutex listMutex;
-		for (size_t j = 0; j < coreUse; j++)
+		counterThreadList.emplace_back([&] {updateCounter(communicationString, shapeList.size(), counter, countMutex); });
+
+		for (size_t i = 0; i < maxBinNr; i++)
 		{
-			auto startIdx = shapeList.begin() + j * splitListSize;
-			auto endIdx = (j == coreUse - 1) ? shapeList.end() : startIdx + splitListSize;
-			std::vector<IfcGeom::BRepElement*> sublist(startIdx, endIdx);
-			threadList.emplace_back([&, sublist]() { brepIFcElemToGeoObject(h, kernel, sublist, countMutex, counter, listMutex, "4.2", uniqueKeySet, geoObjectList, collectionShape); });
+			currentBin++;
+
+			auto startIdx = shapeList.begin() + i * maxSplit;
+			auto endIdx = (i == maxBinNr - 1) ? shapeList.end() : startIdx + maxSplit;
+			std::vector<IfcGeom::BRepElement*> binList(startIdx, endIdx);
+
+			if (binList.size() < coreUse) { coreUse = binList.size(); }
+			int splitListSize = static_cast<int>(std::floor(binList.size() / coreUse));
+
+			std::vector<std::thread> threadList;
+
+			for (size_t j = 0; j < coreUse; j++)
+			{
+				auto startIdx = binList.begin() + j * splitListSize;
+				auto endIdx = (j == coreUse - 1) ? binList.end() : startIdx + splitListSize;
+				std::vector<IfcGeom::BRepElement*> sublist(startIdx, endIdx);
+				threadList.emplace_back([&, sublist]() { brepIFcElemToGeoObject(h, kernel, sublist, countMutex, counter, listMutex, "4.2", uniqueKeySet, geoObjectList, collectionShape); });
+				activeThreads++;
+			}
+
+			for (auto& thread : threadList) {
+				if (thread.joinable()) {
+					thread.join();
+					activeThreads--;
+				}
+			}
 		}
-
-		std::string communicationString = "File " + std::to_string((int)i + 1) + std::string(" - processing IFC objects");
-		threadList.emplace_back([&] {updateCounter(communicationString, shapeList.size(), counter, countMutex); });
-
-		for (auto& thread : threadList) {
+		for (auto& thread : counterThreadList) {
 			if (thread.joinable()) {
 				thread.join();
 			}
@@ -6228,10 +6232,13 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, c
 		counter++;
 		countMutex.unlock();
 
-		if (!brepElem) { continue; }
+		if (!brepElem || brepElem == nullptr) { continue; }
+		IfcUtil::IfcBaseEntity* brepBaseEntity = brepElem->product();
+		if (!brepBaseEntity || brepBaseEntity == nullptr) { continue; }
 		auto product = brepElem->product()->as<IfcSchema::IfcProduct>();
 		if (product == nullptr) { continue; } //TODO: check why this can happen
 		TopoDS_Shape shape = brepElem->geometry().as_compound();
+		if (shape.IsNull()) { continue; }
 		gp_Trsf ifcPlacement = brepElem->transformation().data();
 		shape = shape.Moved(ifcPlacement);
 		shape.Move(objectTranslation);
@@ -6258,12 +6265,9 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, c
 
 		TopoDS_Shape cleanShape = helperFunctions::TesselateShape(shape);
 		if (cleanShape.IsNull()) {
-			cleanShape = helperFunctions::TriangulateShape(shape);
-
-			if (cleanShape.IsNull()) {
-				cleanShape = shape;
-			}			
-		}
+			cleanShape = shape;
+		}			
+		
 
 		cleanShape.Move(localTrans);
 

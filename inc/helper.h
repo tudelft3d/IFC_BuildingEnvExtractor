@@ -1,4 +1,4 @@
-#define USE_IFC4x3add2
+#define USE_IFC4
 #define iterationVersion "0.3.3"
 
 #ifdef USE_IFC2x3
@@ -90,6 +90,42 @@ struct FaceComplex { //TODO: find better location for this
 	std::vector<TopoDS_Face> faceList_;
 };
 
+struct HalfEdge
+{
+	gp_Pnt p1_;
+	gp_Pnt p2_;
+
+	bool isUsed_ = false;
+
+	HalfEdge(const gp_Pnt& p1, const gp_Pnt& p2) {
+		p1_ = p1; p2_ = p2;
+	}
+
+	gp_Vec getDir() const { return gp_Vec(p1_, p2_).Normalized(); }
+
+	bool isPartner(const HalfEdge& otherEdge) const { return (otherEdge.p1_.IsEqual(p2_, 1e-6) && otherEdge.p2_.IsEqual(p1_, 1e-6)); }
+	bool isSame(const HalfEdge& otherEdge) const { return (otherEdge.p1_.IsEqual(p1_, 1e-6) && otherEdge.p2_.IsEqual(p2_, 1e-6)); }
+};
+
+struct HalfEdgeLoop
+{
+	std::vector<HalfEdge> halfEdgeList_;
+
+	HalfEdgeLoop(const std::vector<HalfEdge>& HalfEdgeList) { halfEdgeList_ = HalfEdgeList; }
+
+	int size() const { return halfEdgeList_.size(); }
+
+	TopoDS_Wire getWire() const {
+		BRepBuilderAPI_MakeWire wireBuilder;
+		for (const HalfEdge currentEdge : halfEdgeList_) {
+			TopoDS_Edge segment = BRepBuilderAPI_MakeEdge(currentEdge.p1_, currentEdge.p2_);
+			wireBuilder.Add(segment);
+		}
+		wireBuilder.Build();
+		return wireBuilder.Wire();
+	}
+};
+
 // helper functions that can be utilised everywhere
 struct helperFunctions{
 	
@@ -168,6 +204,9 @@ struct helperFunctions{
 	/// get the average height of a shape, computed by taking the average height of all the object's vertices
 	template<typename T>
 	static double getAverageZ(const T& shape);
+	/// get the first vertex height of a shape
+	template<typename T>
+	static double getAZ(const T& shape);
 
 	/// point on shape code
 
@@ -222,6 +261,8 @@ struct helperFunctions{
 	static bool shareEdge(const TopoDS_Face& theFace, const TopoDS_Face& theotherFace);
 	/// check if edges overlap by checking the endpoints triangular distance
 	static bool edgeEdgeOVerlapping(const TopoDS_Edge& currentEdge, const TopoDS_Edge& otherEdge);
+	/// check if edges are the same by checking their endpoints
+	static bool edgeEdgeAreSame(const TopoDS_Edge& currentEdge, const TopoDS_Edge& otherEdge);
 	/// check if upperface overlaps the lower face by checking the edges
 	static bool faceFaceOverlapping(const TopoDS_Face& upperFace, const TopoDS_Face& lowerFace);
 	/// check if coplanar surfaces overlap based on points
@@ -281,6 +322,7 @@ struct helperFunctions{
 	static std::vector<TopoDS_Face> TessellateFace(const std::vector<TopoDS_Face>& theFaceList, bool knownIsFlat = false);
 	/// creates a clean mesh approximation of the input face
 	static std::vector<TopoDS_Face> TriangulateFace(const TopoDS_Face& theFace);
+	static std::vector<TopoDS_Face> TriangulateFace2(const TopoDS_Face& theFace);
 	/// creates a mesh approximation of the input face stored as shape
 	static TopoDS_Shape TriangulateShape(const TopoDS_Shape& theShape);
 	/// fixes face if face is broken
@@ -300,11 +342,19 @@ struct helperFunctions{
 	// planar simplification code
 
 	/// creates face collection that represent the merged input shapes
-	static std::vector<TopoDS_Face> planarFaces2Outline(const std::vector<TopoDS_Face>& planarFaces, const TopoDS_Face& boundingFace);
-	/// creates face collection that represent the merged input shapes
 	static std::vector<TopoDS_Face> planarFaces2Outline(const std::vector<TopoDS_Face>& planarFaces);
 	/// fuses all the planar faces into a complex planar face structure
-	static std::vector<TopoDS_Shape> planarFaces2Cluster(const std::vector<TopoDS_Face>& planarFaces);
+	static std::vector<TopoDS_Shape> planarFaces2Cluster(const std::vector<TopoDS_Face>& planarFaces); //TODO: i want this removed
+	/// creates a cluster of non-intersecting and non-overlapping edges
+	static std::vector<TopoDS_Edge> planarFaces2EdgeCluster(const std::vector<TopoDS_Face>& planarFaces);
+	/// create loops or of a planar edge cluster
+	static std::vector<HalfEdgeLoop> planarEdgeCluster2Loops(const std::vector<TopoDS_Edge>& planarEdgeCluster);
+	/// eliminate the non-vital loops
+	static std::vector<HalfEdgeLoop> loops2Outer(const std::vector<HalfEdgeLoop>& planarLoopList, const std::vector<TopoDS_Face>& planarFaces);
+	/// construct planar faces from the outerLoops
+	static std::vector<TopoDS_Face> outerLoops2Faces(const std::vector<HalfEdgeLoop>& outerLoopList);
+
+
 	/// creates faces from the inner wires of a face
 	static std::vector<TopoDS_Face> invertFace(const TopoDS_Face& inputFace);
 
@@ -356,6 +406,9 @@ struct helperFunctions{
 	static bool isStraight(const TopoDS_Edge& theEdge);
 
 	/// other code
+
+	// check if face is valid
+	static bool faceIsValid(const TopoDS_Face& theFace);
 
 	/// outputs the time delta between the start and end time
 	static void printTime(std::chrono::steady_clock::time_point startTime, std::chrono::steady_clock::time_point endTime);

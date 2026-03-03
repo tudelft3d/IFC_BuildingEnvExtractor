@@ -623,13 +623,6 @@ void CJGeoCreator::initializeBasic(DataManager* cluster)
 
 std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<Value>& productLookupValues, DataManager* h, double cutlvl)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
-
-	// make a cutting plane 
-	gp_Pnt p0(-1000, -1000, cutlvl);
-	gp_Pnt p2(1000, 1000, cutlvl);
-	TopoDS_Face cuttingFace = helperFunctions::createHorizontalFace(p0, p2, 0, cutlvl);
-
 	std::vector<TopoDS_Shape> shapeList;
 	for (size_t i = 0; i < productLookupValues.size(); i++)
 	{
@@ -657,69 +650,80 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<T>& shape
 	gp_Pnt p2 = gp_Pnt(urr.X() + 10, urr.Y() + 10, cutlvl);
 	TopoDS_Face cuttingFace = helperFunctions::createHorizontalFace(p0, p2, 0, cutlvl);
 
+
+
 	for (const TopoDS_Shape& currentShape : shapes)
 	{
-		gp_Pnt objectLll;
-		gp_Pnt objectUrr;
-		helperFunctions::bBoxDiagonal(currentShape, &objectLll, &objectUrr);
-		if (cutlvl + buffer < objectLll.Z() || cutlvl - buffer > objectUrr.Z()) { continue; }
-
-		for (TopExp_Explorer expl(currentShape, TopAbs_FACE); expl.More(); expl.Next())
+		for (TopExp_Explorer solidExpl(currentShape, TopAbs_SOLID); solidExpl.More(); solidExpl.Next())
 		{
-			TopoDS_Face face = TopoDS::Face(expl.Current());
-			// ignore extremely small surfaces
-			if (helperFunctions::computeArea(face) < 0.005) { continue; }
+			TopoDS_Solid currentSolid = TopoDS::Solid(solidExpl.Current());
 
-			// check if the face is flush to the cuttting plane if flat 
-			gp_Vec faceNormal = helperFunctions::computeFaceNormal(face);
+			gp_Pnt objectLll;
+			gp_Pnt objectUrr;
+			helperFunctions::bBoxDiagonal(currentSolid, &objectLll, &objectUrr);
+			if (cutlvl + buffer < objectLll.Z() || cutlvl - buffer > objectUrr.Z()) { continue; }
 
-			if (std::abs(faceNormal.X()) < 0.05 && std::abs(faceNormal.Y()) < 0.05)
+			for (TopExp_Explorer expl(currentSolid, TopAbs_FACE); expl.More(); expl.Next())
 			{
-				// if flush store as is
-				std::vector<gp_Pnt> facePoints = helperFunctions::getUniquePoints(face);
+				TopoDS_Face face = TopoDS::Face(expl.Current());
+				// ignore extremely small surfaces
+				if (helperFunctions::computeArea(face) < 0.005) { continue; }
 
-				for (const gp_Pnt& currentFacePoint : facePoints)
+				// check if the face is flush to the cuttting plane if flat 
+				gp_Vec faceNormal = helperFunctions::computeFaceNormal(face);
+
+				if (std::abs(faceNormal.X()) < 0.05 && std::abs(faceNormal.Y()) < 0.05)
 				{
-					if (abs(currentFacePoint.Z() - cutlvl) > buffer) { continue; }
-					spltFaceCollection.emplace_back(helperFunctions::projectFaceFlat(face, cutlvl));
-					break;
-				}
-				continue;
-			}
-		}
+					// if flush store as is
+					std::vector<gp_Pnt> facePoints = helperFunctions::getUniquePoints(face);
 
-		BRepAlgoAPI_Splitter splitter;
-		splitter.SetFuzzyValue(1e-6);
-		TopTools_ListOfShape test1;
-		test1.Append(cuttingFace);
-		TopTools_ListOfShape test2;
-		test2.Append(currentShape);
-		splitter.SetArguments(test1);
-		splitter.SetTools(test2);
-		splitter.Build();
-
-		if (!splitter.IsDone()) { continue; } //TODO: add error
-		if (splitter.HasErrors()) { continue; }
-
-		for (TopExp_Explorer expl(splitter.Shape(), TopAbs_FACE); expl.More(); expl.Next())
-		{
-			TopoDS_Face face = TopoDS::Face(expl.Current());
-
-			bool isOutside = false;
-			for (TopExp_Explorer expl2(face, TopAbs_VERTEX); expl2.More(); expl2.Next())
-			{
-				TopoDS_Vertex vertex = TopoDS::Vertex(expl2.Current());
-				gp_Pnt point = BRep_Tool::Pnt(vertex);
-
-				if (point.IsEqual(p0, 1e-6))
-				{
-					isOutside = true;
-					break;
+					for (const gp_Pnt& currentFacePoint : facePoints)
+					{
+						if (abs(currentFacePoint.Z() - cutlvl) > buffer) { continue; }
+						spltFaceCollection.emplace_back(helperFunctions::projectFaceFlat(face, cutlvl));
+						break;
+					}
+					continue;
 				}
 			}
 
-			if (isOutside) {continue; }
-			spltFaceCollection.emplace_back(face);
+			BRepAlgoAPI_Splitter splitter;
+			splitter.SetFuzzyValue(1e-6);
+			TopTools_ListOfShape argumentList;
+			argumentList.Append(cuttingFace);
+			TopTools_ListOfShape toolList;
+			toolList.Append(currentSolid);
+
+			splitter.SetArguments(argumentList);
+			splitter.SetTools(toolList);
+			splitter.Build();
+
+			if (!splitter.IsDone()) { continue; } //TODO: add error
+			if (splitter.HasErrors()) { continue; }
+
+			for (TopExp_Explorer expl(splitter.Shape(), TopAbs_FACE); expl.More(); expl.Next())
+			{
+				TopoDS_Face face = TopoDS::Face(expl.Current());
+
+				bool isOutside = false;
+				for (TopExp_Explorer expl2(face, TopAbs_VERTEX); expl2.More(); expl2.Next())
+				{
+					TopoDS_Vertex vertex = TopoDS::Vertex(expl2.Current());
+					gp_Pnt point = BRep_Tool::Pnt(vertex);
+
+					if (point.IsEqual(p0, 1e-6))
+					{
+						isOutside = true;
+						break;
+					}
+				}
+				if (isOutside) { continue; }
+
+				std::optional<gp_Pnt> optionalPoint = helperFunctions::getPointOnFace(face);
+				if (optionalPoint == std::nullopt) { continue; }
+				if (!helperFunctions::pointInShape(currentSolid, *optionalPoint)) { continue; }
+				spltFaceCollection.emplace_back(face);
+			}
 		}
 	}
 	return spltFaceCollection;
@@ -1025,6 +1029,7 @@ void CJGeoCreator::makeFloorSection(std::vector<TopoDS_Face>& facesOut, DataMana
 
 	std::vector<TopoDS_Face> cleanedFaceList = helperFunctions::removeDubFaces(splitFaceList, true);
 
+
 	if (!cleanedFaceList.size())
 	{
 		//TODO: add error
@@ -1092,7 +1097,8 @@ void CJGeoCreator::makeFloorSectionComplex(
 		//TODO: add error
 		return;
 	}
-	std::vector<TopoDS_Shape> faceCluster = helperFunctions::planarFaces2Cluster(cleanedFaceList); //TODO: list fix?
+
+	std::vector<TopoDS_Shape> faceCluster = helperFunctions::planarFaces2Cluster(cleanedFaceList);
 
 	std::vector<TopoDS_Face> innerFaces;
 	std::vector<TopoDS_Face> outerFaces;
@@ -2881,8 +2887,8 @@ void CJGeoCreator::make2DStoreys(
 	std::vector<TopoDS_Shape> copyGeoList;
 	for (const std::shared_ptr<CJT::CityObject>& storeyCityObject : storeyObjects_)
 	{
-		//make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03);
-		threadList.emplace_back([&]() {make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03); });
+		make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03);
+		//threadList.emplace_back([&]() {make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03); });
 	}
 
 	threadList.emplace_back([&] {monitorStoreys(storeyMutex, storyProgressList, storeyCityObjects.size()); });

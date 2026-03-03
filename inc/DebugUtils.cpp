@@ -59,12 +59,12 @@ std::string DebugUtils::faceToString(const TopoDS_Face& currentFace)
 	if (!helperFunctions::isFlat(currentFace))
 	{
 		TopLoc_Location loc;
+		helperFunctions::triangulateShape(currentFace);
 		auto mesh = BRep_Tool::Triangulation(currentFace, loc);
 
 		if (mesh.IsNull())
 		{
-			helperFunctions::triangulateShape(currentFace);
-			mesh = BRep_Tool::Triangulation(currentFace, loc);
+			std::cout << "mesh cannot be printed\n";
 		}
 
 		for (int i = 1; i <= mesh.get()->NbTriangles(); i++)

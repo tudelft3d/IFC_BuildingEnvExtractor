@@ -904,6 +904,24 @@ gp_Pnt helperFunctions::getLastPointShape(const TopoDS_Shape& shape) {
 	return BRep_Tool::Pnt(endVertex);;
 }
 
+bool helperFunctions::pointInShape(const TopoDS_Shape& shape, const gp_Pnt& thePoint, double precision)
+{
+	if (precision == 0.0) { precision = SettingsCollection::getInstance().spatialTolerance(); }
+
+	gp_Pnt endPoint = thePoint.Translated(gp_Vec(0, 0, 1000));
+
+	int intCounter = 0;
+	for (TopExp_Explorer faceExpl(shape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
+	{
+		const TopoDS_Face& currentFace = TopoDS::Face(faceExpl.Current());
+		if (LineShapeIntersection(currentFace, thePoint, endPoint))
+		{
+			intCounter++;
+		}
+	}
+	return intCounter % 2;
+}
+
 bool helperFunctions::pointOnShape(const TopoDS_Shape& shape, const gp_Pnt& thePoint, double precision)
 {
 	if (precision == 0.0) { precision = SettingsCollection::getInstance().spatialTolerance(); }

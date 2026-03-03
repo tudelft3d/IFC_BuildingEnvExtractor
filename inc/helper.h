@@ -1,4 +1,4 @@
-#define USE_IFC4
+#define USE_IFC4x3add2
 #define iterationVersion "0.3.3"
 
 #ifdef USE_IFC2x3
@@ -220,6 +220,8 @@ struct helperFunctions{
 	static gp_Pnt getFirstPointShape(const TopoDS_Shape& shape);
 	/// get last point on shape (used for wires and edges)
 	static gp_Pnt getLastPointShape(const TopoDS_Shape& shape);
+	// check if point is in (solid) shape
+	static bool pointInShape(const TopoDS_Shape& shape, const gp_Pnt& thePoint, double precision = 0.0);
 	/// check if point is on shape
 	static bool pointOnShape(const TopoDS_Shape& shape, const gp_Pnt& thePoint, double precision = 0.0);
 	/// check if point is on face

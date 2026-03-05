@@ -650,8 +650,6 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<T>& shape
 	gp_Pnt p2 = gp_Pnt(urr.X() + 10, urr.Y() + 10, cutlvl);
 	TopoDS_Face cuttingFace = helperFunctions::createHorizontalFace(p0, p2, 0, cutlvl);
 
-
-
 	for (const TopoDS_Shape& currentShape : shapes)
 	{
 		for (TopExp_Explorer solidExpl(currentShape, TopAbs_SOLID); solidExpl.More(); solidExpl.Next())
@@ -1569,7 +1567,6 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 		}
 		trimmedFace = intersectionSplitting(trimmedFace, trimmedFaceIdx);	
 	}
-
 	std::vector<TopoDS_Face> visibleFaceList = getVisTopSurfaces(trimmedFace, lowestZ, bufferSurfaceList);
 	std::vector<TopoDS_Face> visibleMergedFaceList = helperFunctions::mergeFaces(visibleFaceList);
 	std::vector<TopoDS_Face> visibleCleanFaceList = helperFunctions::TessellateFace(visibleMergedFaceList);

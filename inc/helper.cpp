@@ -2280,12 +2280,22 @@ std::vector<TopoDS_Face> helperFunctions::TriangulateFace(const TopoDS_Face& the
 	return collapsedTriangles;
 }
 
+std::vector<TopoDS_Face> helperFunctions::TriangulateFace2(const std::vector<TopoDS_Face>& theFaceList)
+{
+	std::vector<TopoDS_Face> triangulatedFaces;
+	for (const TopoDS_Face& currentFace : theFaceList)
+	{
+		std::vector<TopoDS_Face> triangles = TriangulateFace2(currentFace);
+		triangulatedFaces.insert(triangulatedFaces.end(), triangles.begin(), triangles.end());
+	}
+	return triangulatedFaces;
+}
+
 std::vector<TopoDS_Face> helperFunctions::TriangulateFace2(const TopoDS_Face& theFace)
 {
 	TopLoc_Location loc;
-	auto mesh = BRep_Tool::Triangulation(theFace, loc);
-
 	helperFunctions::triangulateShape(theFace);
+	auto mesh = BRep_Tool::Triangulation(theFace, loc);
 	if (mesh.IsNull()) { return {}; }
 
 	double angularTol = SettingsCollection::getInstance().angularTolerance();
@@ -3086,6 +3096,8 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 	double precision = settingCol.spatialTolerance();
 	double pointOffset = precision * 100; //I do not like this
 
+	std::vector<TopoDS_Face> triangulatedSourceList = TriangulateFace2(planarFaces);
+
 	for (const HalfEdgeLoop& currentLoop : planarLoopList)
 	{
 		bool isExterior = true;
@@ -3093,6 +3105,7 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 		{
 			const gp_Vec& edgeDir = currentHalfEdge.getDir();
 			gp_Vec perpDir = gp_Vec(edgeDir.Y(), -edgeDir.X(), 0) * pointOffset;
+			gp_Vec castDir = gp_Vec(-edgeDir.Y(), edgeDir.X(), 0) * 1000;
 			const gp_Pnt& p1 = currentHalfEdge.p1_;
 			const gp_Pnt& p2 = currentHalfEdge.p2_;
 
@@ -3102,18 +3115,53 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 				(p1.Z())
 			);
 
-			gp_Pnt evalPoint1 = middlePoint.Translated(perpDir);
+			gp_Pnt evalP1 = middlePoint.Translated(perpDir);
+			gp_Pnt evalP2 = evalP1.Translated(castDir);
 
-			if (pointOnFace(planarFaces, evalPoint1))
+			double currentZ = p1.Z();
+			int intCount = 0;
+
+			for (const TopoDS_Face& sourceFace : triangulatedSourceList)
 			{
-				isExterior = false;
+				double otherZ = getAZ(sourceFace);
+				if (abs(otherZ - currentZ) > 1E-6) { continue; }
+
+				for (TopExp_Explorer expl(sourceFace, TopAbs_EDGE); expl.More(); expl.Next()) {
+					TopoDS_Edge straightenedEdge = TopoDS::Edge(expl.Current());
+
+					const gp_Pnt& evalP3 = getFirstPointShape(straightenedEdge);
+					const gp_Pnt& evalP4 = getLastPointShape(straightenedEdge);
+
+					double t =
+						((evalP1.X() - evalP3.X()) * (evalP3.Y() - evalP4.Y()) - (evalP1.Y() - evalP3.Y()) * (evalP3.X() - evalP4.X())) /
+						((evalP1.X() - evalP2.X()) * (evalP3.Y() - evalP4.Y()) - (evalP1.Y() - evalP2.Y()) * (evalP3.X() - evalP4.X()));
+					if (t < -1e-6 || t > 1 + 1e-6) { continue; }
+
+					double u = -
+						((evalP1.X() - evalP2.X()) * (evalP1.Y() - evalP3.Y()) - (evalP1.Y() - evalP2.Y()) * (evalP1.X() - evalP3.X())) /
+						((evalP1.X() - evalP2.X()) * (evalP3.Y() - evalP4.Y()) - (evalP1.Y() - evalP2.Y()) * (evalP3.X() - evalP4.X()));
+
+					if (-1e-6 < u && u < 1 + 1e-6) {
+						intCount++;
+					}
+				}
+
+				if (intCount == 1)
+				{
+					isExterior = false;
+					break;
+				}
+				intCount = 0;
+			}
+			if (!isExterior)
+			{
 				break;
 			}
 		}
 		if (isExterior)
 		{
 			loopLists.emplace_back(currentLoop);
-		}
+		}		
 	}
 	return loopLists;
 }
@@ -3864,6 +3912,10 @@ void helperFunctions::writeToOBJ(const std::vector<std::vector<T>>& theShapeList
 
 bool helperFunctions::faceIsValid(const TopoDS_Face& theFace)
 {
+	if (theFace.IsNull())
+	{
+		return false;
+	}
 	BRepCheck_Analyzer brepanalyzer(theFace);
 	if (brepanalyzer.IsValid())
 	{

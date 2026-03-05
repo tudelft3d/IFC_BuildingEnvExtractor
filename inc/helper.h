@@ -1,4 +1,4 @@
-#define USE_IFC4x3add2
+#define USE_IFC2x3
 #define iterationVersion "0.3.3"
 
 #ifdef USE_IFC2x3
@@ -115,9 +115,18 @@ struct HalfEdgeLoop
 
 	int size() const { return halfEdgeList_.size(); }
 
+	double zHeight() const {
+		
+		if (halfEdgeList_.empty())
+		{
+			return 0;
+		}
+		return halfEdgeList_[0].p1_.Z(); 
+	}
+
 	TopoDS_Wire getWire() const {
 		BRepBuilderAPI_MakeWire wireBuilder;
-		for (const HalfEdge currentEdge : halfEdgeList_) {
+		for (const HalfEdge& currentEdge : halfEdgeList_) {
 			TopoDS_Edge segment = BRepBuilderAPI_MakeEdge(currentEdge.p1_, currentEdge.p2_);
 			wireBuilder.Add(segment);
 		}
@@ -325,6 +334,7 @@ struct helperFunctions{
 	/// creates a clean mesh approximation of the input face
 	static std::vector<TopoDS_Face> TriangulateFace(const TopoDS_Face& theFace);
 	static std::vector<TopoDS_Face> TriangulateFace2(const TopoDS_Face& theFace);
+	static std::vector<TopoDS_Face> TriangulateFace2(const std::vector<TopoDS_Face>& theFaceList);
 	/// creates a mesh approximation of the input face stored as shape
 	static TopoDS_Shape TriangulateShape(const TopoDS_Shape& theShape);
 	/// fixes face if face is broken

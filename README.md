@@ -94,7 +94,7 @@ If a more direct (human) user friendly approach is desired on windows, the extra
 
 If it is desired to compile the code locally the following libraries are required:
 
-* [IfcOpenShell](http://ifcopenshell.org/)
+* [IfcOpenShell 0.7](http://ifcopenshell.org/)
 * [Nlohmann](https://github.com/nlohmann/json)
 * [CJT](https://github.com/jaspervdv/CJT)
 * [Boost](https://www.boost.org/)

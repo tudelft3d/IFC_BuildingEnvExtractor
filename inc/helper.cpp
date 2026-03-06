@@ -162,6 +162,37 @@ struct IntXYZ_Equal {
 	}
 };
 
+// merges halfedges with the same direction into one single halfedge
+std::vector<HalfEdge> cleanHalfEdgeList(std::vector<HalfEdge> halfEdgeList) {
+	if (halfEdgeList.empty()) { return{}; }
+
+	std::vector<HalfEdge> cleanedHalfEdgeList;
+	gp_Vec startDir = halfEdgeList[0].getDir();
+	for (size_t i = 1; i < halfEdgeList.size(); i++)
+	{
+		const HalfEdge& currentEdge = halfEdgeList[i];
+		if (startDir.IsParallel(currentEdge.getDir(), 1e-6)) { continue; }
+		std::rotate(halfEdgeList.begin(), halfEdgeList.begin() + i, halfEdgeList.end());
+		break;
+	}
+
+	gp_Pnt basePoint = halfEdgeList[0].p1_;
+	gp_Vec baseDir = halfEdgeList[0].getDir();
+	for (size_t i = 1; i < halfEdgeList.size(); i++)
+	{
+		const HalfEdge& currentEdge = halfEdgeList[i];
+		if (baseDir.IsParallel(currentEdge.getDir(), 1e-6)) { continue; }
+
+		HalfEdge cleanedEdge = HalfEdge(basePoint, currentEdge.p1_);
+		cleanedHalfEdgeList.emplace_back(cleanedEdge);
+		basePoint = currentEdge.p1_;
+		baseDir = currentEdge.getDir();
+	}
+
+	cleanedHalfEdgeList.emplace_back(HalfEdge(basePoint, halfEdgeList.begin()->p1_));
+	return cleanedHalfEdgeList;
+}
+
 BoostPoint3D helperFunctions::Point3DOTB(const gp_Pnt& oP) {
 	return BoostPoint3D(oP.X(), oP.Y(), oP.Z());
 }
@@ -3061,13 +3092,13 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 				bestEdge = &otherHalfEdge;
 				bestAngle = angle;
 			}
-
 		}
 
 		if (bestEdge == nullptr) { break; }
 		if (bestEdge->isUsed_)
 		{
-			HalfEdgeLoop currentLoop = HalfEdgeLoop(loopEdgeList);
+			std::vector<HalfEdge> cleanedLoopEdgeList = cleanHalfEdgeList(loopEdgeList);
+			HalfEdgeLoop currentLoop = HalfEdgeLoop(cleanedLoopEdgeList);
 			loopList.emplace_back(currentLoop);
 			loopEdgeList.clear();
 			for (HalfEdge& currentHalfedge : halfEdgeList)
@@ -3083,7 +3114,6 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 			}
 			continue;
 		}
-
 		startEdge = bestEdge;
 	}
 	return loopList;
@@ -3269,55 +3299,6 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 		clippedFaceList.emplace_back(clippedFace);
 	}
 	return clippedFaceList;
-}
-
-std::vector<TopoDS_Face> helperFunctions::invertFace(const TopoDS_Face& inputFace)
-{
-	gp_Vec baseNormal = helperFunctions::computeFaceNormal(inputFace);
-	gp_Pnt p0 = helperFunctions::getFirstPointShape(inputFace);
-	gp_Pln basePlane = gp_Pln(p0, baseNormal);
-
-	double precision = SettingsCollection::getInstance().spatialTolerance();
-	double angularTol = SettingsCollection::getInstance().angularTolerance();
-
-	std::vector<TopoDS_Face> mergedFaceList;
-
-	for (TopExp_Explorer WireExpl(inputFace, TopAbs_WIRE); WireExpl.More(); WireExpl.Next())
-	{
-		TopoDS_Wire currentWire = TopoDS::Wire(WireExpl.Current());
-		currentWire.Orientation(TopAbs_FORWARD);
-		bool isInner = true;
-
-		for (TopExp_Explorer vertExpl(currentWire, TopAbs_VERTEX); vertExpl.More(); vertExpl.Next()) {
-			TopoDS_Vertex currentVertex = TopoDS::Vertex(vertExpl.Current());
-			gp_Pnt currentPoint = BRep_Tool::Pnt(currentVertex);
-
-			if (currentPoint.IsEqual(p0, SettingsCollection::getInstance().spatialTolerance()))
-			{
-				isInner = false;
-				break;
-			}
-		}
-
-		if (!isInner) { continue; }
-		if (!currentWire.Closed()) { continue; }
-
-		gp_Vec wireNormal = helperFunctions::computeFaceNormal(currentWire);
-		if (wireNormal.Magnitude() < precision) { continue; }
-		if (baseNormal.IsOpposite(wireNormal, angularTol))
-		{
-			currentWire = TopoDS::Wire(currentWire.Reversed());
-		}
-
-		TopoDS_Face innerFace = BRepBuilderAPI_MakeFace(basePlane, currentWire);
-		BRepCheck_Analyzer check(innerFace);
-		if (!check.IsValid()) {
-			//TODO: add error
-		}
-		if (innerFace.IsNull()) { continue; }
-		mergedFaceList.emplace_back(innerFace);
-	}
-	return mergedFaceList;
 }
 
 double helperFunctions::getObjectZOffset(IfcSchema::IfcObjectPlacement* objectPlacement, bool deepOnly)

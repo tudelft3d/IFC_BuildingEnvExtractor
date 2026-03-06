@@ -1,4 +1,4 @@
-#define USE_IFC2x3
+#define USE_IFC4
 #define iterationVersion "0.3.3"
 
 #ifdef USE_IFC2x3
@@ -365,10 +365,6 @@ struct helperFunctions{
 	static std::vector<HalfEdgeLoop> loops2Outer(const std::vector<HalfEdgeLoop>& planarLoopList, const std::vector<TopoDS_Face>& planarFaces);
 	/// construct planar faces from the outerLoops
 	static std::vector<TopoDS_Face> outerLoops2Faces(const std::vector<HalfEdgeLoop>& outerLoopList);
-
-
-	/// creates faces from the inner wires of a face
-	static std::vector<TopoDS_Face> invertFace(const TopoDS_Face& inputFace);
 
 	/// IFC related code
 

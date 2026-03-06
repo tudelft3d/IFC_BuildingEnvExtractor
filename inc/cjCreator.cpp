@@ -408,23 +408,25 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 			continue;
 		}
 		std::vector<TopoDS_Face> currentCleanFaceList = helperFunctions::TessellateFace(currentFace); //tODO: should be more central
-		for (const TopoDS_Face& currentCleanFace: currentCleanFaceList)
-		{
-			bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentCleanFace, 0.01);
-			spatialIndex.insert(std::make_pair(bbox, faceList.size()));
-			faceList.emplace_back(currentCleanFace);
-		}
+		faceList.insert(faceList.end(), currentCleanFaceList.begin(), currentCleanFaceList.end());	
+	}
+
+	std::vector<TopoDS_Face> mergedfaceList = helperFunctions::mergeFaces(faceList);
+	for (const TopoDS_Face& currentCleanFace : mergedfaceList)
+	{
+		bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentCleanFace, 0.01);
+		spatialIndex.insert(std::make_pair(bbox, spatialIndex.size()));
 	}
 
 	//// group surfaces
 	std::vector<RCollection> mergedRSurfaces;
-	std::vector<int>evalList(faceList.size());
-	for (size_t i = 0; i < faceList.size(); i++)
+	std::vector<int>evalList(mergedfaceList.size());
+	for (size_t i = 0; i < mergedfaceList.size(); i++)
 	{
 		if (evalList[i] == 1) { continue; }
 		evalList[i] = 1;
 
-		const TopoDS_Face& currentFace = faceList[i];
+		const TopoDS_Face& currentFace = mergedfaceList[i];
 		gp_Vec currentNormal = helperFunctions::computeFaceNormal(currentFace);
 
 		std::vector<TopoDS_Face> toBeGroupdSurfaces = {};
@@ -451,24 +453,11 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 					int potentialNeigbhbourIdx = qValue.second;
 					if (evalList[potentialNeigbhbourIdx] == 1) { continue; }
 
-					const TopoDS_Face& potentialNeighbourFace = faceList[potentialNeigbhbourIdx];
+					const TopoDS_Face& potentialNeighbourFace = mergedfaceList[potentialNeigbhbourIdx];
 					gp_Vec otherNormal = helperFunctions::computeFaceNormal(potentialNeighbourFace);
 
 					// check if shared edge
-					if (helperFunctions::shareEdge(evalFace, potentialNeighbourFace))
-					{
-						bufferList.emplace_back(potentialNeighbourFace);
-						evalList[potentialNeigbhbourIdx] = 1;
-						continue;
-					}
-
-					// check if overlapping
-					if (!currentNormal.IsParallel(otherNormal, angularTolerance))
-					{
-						continue;
-					}
-
-					if (!helperFunctions::coplanarOverlapping(evalFace, potentialNeighbourFace))
+					if (!helperFunctions::shareEdge(evalFace, potentialNeighbourFace))
 					{
 						continue;
 					}
@@ -482,8 +471,7 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 			bufferList.clear();
 		}
 		if (toBeGroupdSurfaces.empty()) { continue; }
-		std::vector<TopoDS_Face> mergedSurfaces = helperFunctions::mergeFaces(toBeGroupdSurfaces);
-		mergedRSurfaces.emplace_back(RCollection(mergedSurfaces));
+		mergedRSurfaces.emplace_back(RCollection(toBeGroupdSurfaces));
 	}
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return mergedRSurfaces;
@@ -1914,25 +1902,16 @@ TopoDS_Face CJGeoCreator::mergeFaces(const std::vector<TopoDS_Face>& mergeFaces)
 	std::vector<TopoDS_Face> cleanedMergingFaces = helperFunctions::removeDubFaces(mergingFaces);
 	std::vector<TopoDS_Face> mergedFaces =  helperFunctions::planarFaces2Outline(cleanedMergingFaces);
 
-
-	if (!mergedFaces.size())
+	if (mergedFaces.empty())
 	{
 		//TODO: add error
 		return TopoDS_Face();
 	}
 
-	std::vector<TopoDS_Wire> wireList;
-	for (TopExp_Explorer expl(mergedFaces[0], TopAbs_WIRE); expl.More(); expl.Next())
-	{
-		wireList.emplace_back(TopoDS::Wire(expl.Current()));
-	}
+	TopoDS_Face mergedFace = mergedFaces[0];
 
-	std::vector<TopoDS_Wire> cleanWireList = helperFunctions::cleanWires(wireList);
-	if (cleanWireList.size() == 0) { return TopoDS_Face(); }
-	TopoDS_Face cleanedFace =  helperFunctions::wireCluster2Faces(cleanWireList);
-	if (cleanedFace.IsNull()) { return TopoDS_Face(); }
 	transform.Invert();
-	BRepBuilderAPI_Transform transformer(cleanedFace, transform);
+	BRepBuilderAPI_Transform transformer(mergedFace, transform);
 	return TopoDS::Face(transformer.Shape());
 }
 

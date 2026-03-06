@@ -215,7 +215,7 @@ private:
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<treeDepth_>> indexUniqueFaces(const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<treeDepth_>>& faceIndx);
 	
 	/// attempts to merge faces into one big face
-	TopoDS_Face mergeFaces(const std::vector<TopoDS_Face>& mergeFaces);
+	TopoDS_Face mergeFaces(const std::vector<TopoDS_Face>& mergeFaces); //TODO: check 1 face output
 
 	/// create spatial index for voxels and lookup
 	void populateVoxelIndex(

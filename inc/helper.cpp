@@ -61,6 +61,7 @@
 #include <BRepLib.hxx>
 #include <ShapeFix_Shape.hxx>
 #include <IntAna_IntConicQuad.hxx>
+#include <GeomAPI_ProjectPointOnSurf.hxx>
 
 #include <Prs3d_ShapeTool.hxx>
 
@@ -181,7 +182,8 @@ std::vector<HalfEdge> cleanHalfEdgeList(std::vector<HalfEdge> halfEdgeList) {
 	for (size_t i = 1; i < halfEdgeList.size(); i++)
 	{
 		const HalfEdge& currentEdge = halfEdgeList[i];
-		if (baseDir.IsParallel(currentEdge.getDir(), 1e-6)) { continue; }
+		if (baseDir.IsParallel(currentEdge.getDir(), 1e-6)) { continue; }	
+		if (basePoint.IsEqual(currentEdge.p1_, 1e-6)) { continue; }
 
 		HalfEdge cleanedEdge = HalfEdge(basePoint, currentEdge.p1_);
 		cleanedHalfEdgeList.emplace_back(cleanedEdge);
@@ -189,7 +191,11 @@ std::vector<HalfEdge> cleanHalfEdgeList(std::vector<HalfEdge> halfEdgeList) {
 		baseDir = currentEdge.getDir();
 	}
 
-	cleanedHalfEdgeList.emplace_back(HalfEdge(basePoint, halfEdgeList.begin()->p1_));
+	if (!basePoint.IsEqual(halfEdgeList.begin()->p1_, 1e-6)) 
+	{
+		cleanedHalfEdgeList.emplace_back(HalfEdge(basePoint, halfEdgeList.begin()->p1_));
+	}
+	
 	return cleanedHalfEdgeList;
 }
 
@@ -203,29 +209,6 @@ gp_Pnt helperFunctions::Point3DBTO(const BoostPoint3D& oP) {
 
 double triangleArea2D(const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3) {
 	return abs((p1.X() * (p2.Y() - p3.Y()) + p2.X() * (p3.X() - p1.Y()) + p3.X() * (p1.Y() - p2.Y())) / 2.0);
-}
-
-std::vector<gp_Pnt> helperFunctions::getUniquePoints(const std::vector<gp_Pnt>& pointList)  //TODO: check where used
-{
-	std::cout << pointList.size() << std::endl;
-	std::vector<gp_Pnt> uniquePoints;
-	for (const gp_Pnt& currentPoint : pointList)
-	{
-		bool dub = false;
-		for (const gp_Pnt& uniquePoint : uniquePoints)
-		{
-			if (currentPoint.IsEqual(uniquePoint, 0.001))
-			{
-				dub = true;
-				break;
-			}
-		}
-		if (!dub)
-		{
-			uniquePoints.emplace_back(currentPoint);
-		}
-	}
-	return uniquePoints;
 }
 
 std::vector<gp_Pnt> helperFunctions::getUniquePoints(const TopoDS_Shape& inputShape) //TODO: check for triangles
@@ -290,8 +273,6 @@ std::vector<gp_Pnt> helperFunctions::getPointGridOnSurface(const TopoDS_Face& th
 	double precision = settingsCollection.spatialTolerance();
 	int minSurfacePoints = settingsCollection.minGridPointCount(); 
 
-	Handle(Geom_Surface) surface = BRep_Tool::Surface(theface);
-
 	// greate points on grid over surface
 	// get the uv bounds to create a point grid on the surface
 	Standard_Real uMin, uMax, vMin, vMax;
@@ -304,61 +285,7 @@ std::vector<gp_Pnt> helperFunctions::getPointGridOnSurface(const TopoDS_Face& th
 	if (numUPoints <= minSurfacePoints) { numUPoints = minSurfacePoints; }
 	if (numVPoints <= minSurfacePoints) { numVPoints = minSurfacePoints; }
 
-	double uStep = (uMax - uMin) / (numUPoints - 1);
-	double vStep = (vMax - vMin) / (numVPoints - 1);
-
 	std::vector<gp_Pnt> gridPointList;
-
-	if (getPointCount(theface) == 3)
-	{
-		double x = 0;
-		double y = 0;
-		double z = 0;
-
-		for (TopExp_Explorer expl(theface, TopAbs_VERTEX); expl.More(); expl.Next())
-		{
-			TopoDS_Vertex vertex = TopoDS::Vertex(expl.Current());
-			gp_Pnt point = BRep_Tool::Pnt(vertex);
-
-			x += point.X();
-			y += point.Y();
-			z += point.Z();
-		}
-
-		gp_Pnt centerPoint = gp_Pnt(
-			x / 6,
-			y / 6,
-			z / 6
-		);
-
-		gridPointList.emplace_back(centerPoint);
-
-		double smallestAngle = helperFunctions::computeSmallestAngle(theface);
-
-		if (smallestAngle < settingsCollection.thinTriangleAngle()) //10 degrees
-		{
-			std::vector<gp_Pnt> uniquePointList = helperFunctions::getUniquePoints(theface);
-
-			for (const gp_Pnt& legPoint : uniquePointList)
-			{
-				if (numUPoints == 1) { numUPoints = 2; } //TODO: finetune
-
-				gp_Vec translationVec = gp_Vec(
-					(legPoint.X() - centerPoint.X()) / numUPoints,
-					(legPoint.Y() - centerPoint.Y()) / numUPoints,
-					(legPoint.Z() - centerPoint.Z()) / numUPoints
-				);
-
-				for (int j = 0; j < numUPoints; j++)
-				{
-					gridPointList.emplace_back(centerPoint.Translated(translationVec * j));
-				}
-
-			}
-			return gridPointList;
-		}
-	}
-
 	// create grid
 	std::vector<TopoDS_Wire> wires;
 	for (TopExp_Explorer expl(theface, TopAbs_WIRE); expl.More(); expl.Next())
@@ -372,21 +299,25 @@ std::vector<gp_Pnt> helperFunctions::getPointGridOnSurface(const TopoDS_Face& th
 	if (tri.IsNull()) { return {}; }
 	if (!tri->HasUVNodes()) { return {}; }
 
-	BRepClass_FaceClassifier faceClassifier;
-	const TColgp_Array1OfPnt2d& uvNodes = tri->UVNodes();
-	const Poly_Array1OfTriangle& triangles = tri->Triangles();
+	Handle(Geom_Surface) surface = BRep_Tool::Surface(theface);
+	double uStep = (uMax - uMin) / (numUPoints - 1);
+	double vStep = (vMax - vMin) / (numVPoints - 1);
 
+	bool offset = false;
 	for (int i = 0; i < numUPoints; ++i)
 	{
 		double u = uMin + i * uStep;
 		for (int j = 0; j < numVPoints; ++j)
 		{
-			double v = vMin + j * vStep;
-			gp_Pnt2d uvCoord(u, v);
-			if (!uvPointOnMesh(uvCoord, uvNodes, triangles)) { continue; }
+			double v = vMin + j * vStep + 0.5 * vStep;
+			if (offset) { v += 0.5 * vStep; }
 
+			gp_Pnt2d uvCoord(u, v);
 			gp_Pnt point;
 			surface->D0(u, v, point);
+
+			if (!pointOnMesh(tri, loc, point)) { continue; }
+
 			bool notOnWire = true;
 			for (const TopoDS_Wire& currentWire : wires)
 			{
@@ -402,6 +333,7 @@ std::vector<gp_Pnt> helperFunctions::getPointGridOnSurface(const TopoDS_Face& th
 			}
 			gridPointList.emplace_back(point);
 		}
+		offset = !offset;
 	}
 	return gridPointList;
 }
@@ -1004,6 +936,21 @@ bool helperFunctions::pointOnFace(const std::vector<TopoDS_Face>& theFace, const
 	return false;
 }
 
+bool helperFunctions::pointOnMesh(const Handle(Poly_Triangulation)& theMesh, const TopLoc_Location& loc, const gp_Pnt& thePoint, double precision)
+{
+	for (int j = 1; j <= theMesh->NbTriangles(); j++) //TODO: if large num indx?
+	{
+		const Poly_Triangle& theTriangle = theMesh->Triangles().Value(j);
+
+		gp_Pnt p1 = theMesh->Node(theTriangle(1)).Transformed(loc);
+		gp_Pnt p2 = theMesh->Node(theTriangle(2)).Transformed(loc);
+		gp_Pnt p3 = theMesh->Node(theTriangle(3)).Transformed(loc);
+
+		if (pointOnTriangle(thePoint, p1, p2, p3)) { return true; }
+	}
+	return false;
+}
+
 bool helperFunctions::pointOnTriangle(const gp_Pnt& thePoint, const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3)
 {
 	double precision = SettingsCollection::getInstance().spatialTolerance();
@@ -1046,12 +993,7 @@ bool helperFunctions::uvPointOnMesh(const gp_Pnt2d& thePoint, const TColgp_Array
 
 		Standard_Integer n1, n2, n3;
 		thePolyTriangle.Get(n1, n2, n3);
-
-		const gp_Pnt2d& p1 = uvNodes(n1);
-		const gp_Pnt2d& p2 = uvNodes(n2);
-		const gp_Pnt2d& p3 = uvNodes(n3);
-
-		if (helperFunctions::pointOnTriangle(thePoint, p1, p2, p3)) {
+		if (helperFunctions::pointOnTriangle(thePoint, uvNodes(n1), uvNodes(n2), uvNodes(n3))) {
 			return true;
 		}
 	}
@@ -1184,27 +1126,6 @@ gp_Vec helperFunctions::newellsNormal(const std::vector<gp_Pnt>& pointList)
 	return normal.Normalized();
 }
 
-
-double helperFunctions::computeLargestAngle(const TopoDS_Face& theFace)
-{
-	double precision = SettingsCollection::getInstance().spatialTolerance();
-
-	std::vector<gp_Pnt> pointList = getUniquePoints(theFace);
-	if (pointList.size() != 3) { std::cout << "largest angle only works for triangles\n"; }
-	
-	gp_Vec v01(pointList[0], pointList[1]);
-	gp_Vec v10 = v01.Reversed();
-	gp_Vec v12(pointList[1], pointList[2]);
-	gp_Vec v21 = v12.Reversed();
-	gp_Vec v20(pointList[2], pointList[0]);
-	gp_Vec v02 = v20.Reversed();
-
-	double angle0 = v20.Angle(v10);
-	double angle1 = v01.Angle(v21);
-	double angle2 = v02.Angle(v12);
-
-	return std::max({ angle0, angle1, angle2 });
-}
 
 double helperFunctions::computeSmallestAngle(const TopoDS_Face& theFace)
 {
@@ -1412,53 +1333,6 @@ bool helperFunctions::faceFaceOverlapping(const TopoDS_Face& upperFace, const To
 	return true;
 }
 
-bool helperFunctions::coplanarOverlapping(const TopoDS_Face& leftFace, const TopoDS_Face& rightFace)
-{
-	// check if endpoint of wire is on face
-
-	for (TopExp_Explorer currentExpl(leftFace, TopAbs_EDGE); currentExpl.More(); currentExpl.Next())
-	{
-		TopoDS_Edge currentEdge = TopoDS::Edge(currentExpl.Current());
-		 
-		gp_Pnt p0 = helperFunctions::getFirstPointShape(currentEdge);
-		gp_Pnt p1 = helperFunctions::getLastPointShape(currentEdge);
-		if (pointOnShape(rightFace, p0)) { return true; }
-		if (pointOnShape(rightFace, p1)) { return true; }
-	}
-
-	for (TopExp_Explorer currentExpl(rightFace, TopAbs_EDGE); currentExpl.More(); currentExpl.Next())
-	{
-		TopoDS_Edge currentEdge = TopoDS::Edge(currentExpl.Current());
-
-		gp_Pnt p0 = helperFunctions::getFirstPointShape(currentEdge);
-		gp_Pnt p1 = helperFunctions::getLastPointShape(currentEdge);
-		if (pointOnShape(leftFace, p0)) { return true; }
-		if (pointOnShape(leftFace, p1)) { return true; }
-	}
-
-	// check if any mesh point is on another face
-
-	for (const gp_Pnt& currentPoint : getPointListOnFace(leftFace))
-	{
-		if (pointOnShape(rightFace, currentPoint)) { return true; }
-	}
-
-	for (const gp_Pnt& currentPoint : getPointListOnFace(rightFace))
-	{
-		if (pointOnShape(leftFace, currentPoint)) { return true; }
-	}
-
-	// check if wire edges intersect
-
-	//TODO: implement
-
-
-
-	return false;
-
-
-}
-
 bool helperFunctions::surfaceIsIncapsulated(const TopoDS_Face& innerSurface, const TopoDS_Face& outerSurface)
 {
 	double precision = SettingsCollection::getInstance().spatialTolerance();
@@ -1600,17 +1474,6 @@ bool helperFunctions::baryCentricTest(const gp_Pnt& point, const std::array<gp_P
 	return (u >= -precision && v >= -precision &&  w >= -precision);
 }
 
-
-bool helperFunctions::LineShapeIntersection(const TopoDS_Shape& theShape, const gp_Pnt& lP1, const gp_Pnt& lP2)
-{
-	for (TopExp_Explorer faceExpl(theShape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
-	{
-		TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
-
-		if (LineShapeIntersection(currentFace, lP1, lP2)) { return true; }
-	}
-	return false;
-}
 
 bool helperFunctions::LineShapeIntersection(const TopoDS_Face& theFace, const gp_Pnt& lP1, const gp_Pnt& lp2, bool inZdir)
 {
@@ -1928,16 +1791,6 @@ TopoDS_Wire helperFunctions::closeWireOrientated(const TopoDS_Wire& baseWire) {
 }
 
 
-TopoDS_Face helperFunctions::createHorizontalFace(double x, double y, double z) {
-	
-	gp_Pnt p0(-x, -y, z);
-	gp_Pnt p1(x, -y, z);
-	gp_Pnt p2(x, y, z);
-	gp_Pnt p3(-x, y, z);
-
-	return createPlanarFace(p0, p1, p2, p3);
-}
-
 TopoDS_Face helperFunctions::createHorizontalFace(const gp_Pnt& lll, const gp_Pnt& urr, double rotationAngle, double z) {
 	gp_Pnt p0 = helperFunctions::rotatePointWorld(gp_Pnt(lll.X(), lll.Y(), z), rotationAngle);
 	gp_Pnt p1 = helperFunctions::rotatePointWorld(gp_Pnt(urr.X(), lll.Y(), z), rotationAngle);
@@ -2164,7 +2017,7 @@ TopoDS_Shape helperFunctions::TesselateShape(const TopoDS_Shape& theShape)
 		for (TopExp_Explorer faceExpl(currentSolid, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 		{
 			TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
-			std::vector<TopoDS_Face> meshFaceList = TriangulateFace2(currentFace);
+			std::vector<TopoDS_Face> meshFaceList = TriangulateFace(currentFace);
 			std::vector<TopoDS_Face> collapsedTriangles = mergeFaces(meshFaceList);
 
 			for (const TopoDS_Face& triangle : meshFaceList)
@@ -2213,7 +2066,7 @@ TopoDS_Shape helperFunctions::TesselateShape(const TopoDS_Shape& theShape)
 
 std::vector<TopoDS_Face> helperFunctions::TessellateFace(const TopoDS_Face& theFace, bool knownIsFlat)
 {
-	std::vector<TopoDS_Face> triangulatedFaces = TriangulateFace2(theFace);
+	std::vector<TopoDS_Face> triangulatedFaces = TriangulateFace(theFace);
 	return mergeFaces(triangulatedFaces);
 }
 
@@ -2266,63 +2119,18 @@ std::vector<TopoDS_Face> helperFunctions::TessellateFace(const std::vector<TopoD
 	return outputList;
 }
 
-std::vector<TopoDS_Face> helperFunctions::TriangulateFace(const TopoDS_Face& theFace)
-{
-	TopLoc_Location loc;
-	auto mesh = BRep_Tool::Triangulation(theFace, loc);
-
-	helperFunctions::triangulateShape(theFace);
-	if (mesh.IsNull()) { return {}; }
-
-	double angularTol = SettingsCollection::getInstance().angularTolerance();
-	double precision = SettingsCollection::getInstance().spatialTolerance();
-	gp_Vec currentNormal = helperFunctions::computeFaceNormal(theFace); 
-
-	std::vector<TopoDS_Face> triangleFaceList;
-	for (int i = 1; i <= mesh->NbTriangles(); i++)
-	{
-		const Poly_Triangle& theTriangle = mesh->Triangles().Value(i);
-
-		int i1, i2, i3;
-		theTriangle.Get(i1, i2, i3);
-
-		gp_Pnt p1 = mesh->Node(i1).Transformed(loc);
-		gp_Pnt p2 = mesh->Node(i2).Transformed(loc);
-		gp_Pnt p3 = mesh->Node(i3).Transformed(loc);
-		gp_Vec otherNormal = helperFunctions::newellsNormal({ p1,p2,p3 });
-
-		if (otherNormal.Magnitude() < precision) { continue; }
-
-		TopoDS_Face triangleFace;
-		if (currentNormal.IsOpposite(otherNormal, angularTol))
-		{
-			triangleFace = createPlanarFace(p3, p2, p1);
-		}
-		else
-		{
-			triangleFace = createPlanarFace(p1, p2, p3);
-		}
-
-		if (triangleFace.IsNull()) { continue; }
-		triangleFaceList.emplace_back(triangleFace);
-	}
-
-	std::vector<TopoDS_Face> collapsedTriangles =  mergeFaces(triangleFaceList); //TODO: redo
-	return collapsedTriangles;
-}
-
-std::vector<TopoDS_Face> helperFunctions::TriangulateFace2(const std::vector<TopoDS_Face>& theFaceList)
+std::vector<TopoDS_Face> helperFunctions::TriangulateFace(const std::vector<TopoDS_Face>& theFaceList)
 {
 	std::vector<TopoDS_Face> triangulatedFaces;
 	for (const TopoDS_Face& currentFace : theFaceList)
 	{
-		std::vector<TopoDS_Face> triangles = TriangulateFace2(currentFace);
+		std::vector<TopoDS_Face> triangles = TriangulateFace(currentFace);
 		triangulatedFaces.insert(triangulatedFaces.end(), triangles.begin(), triangles.end());
 	}
 	return triangulatedFaces;
 }
 
-std::vector<TopoDS_Face> helperFunctions::TriangulateFace2(const TopoDS_Face& theFace)
+std::vector<TopoDS_Face> helperFunctions::TriangulateFace(const TopoDS_Face& theFace)
 {
 	TopLoc_Location loc;
 	helperFunctions::triangulateShape(theFace);
@@ -2364,40 +2172,6 @@ std::vector<TopoDS_Face> helperFunctions::TriangulateFace2(const TopoDS_Face& th
 	return triangleFaceList;
 }
 
-TopoDS_Shape helperFunctions::TriangulateShape(const TopoDS_Shape& theShape)
-{
-	bool isSolid = (theShape.ShapeType() == TopAbs_SOLID);
-
-	BRep_Builder brepBuilder;
-	TopoDS_Compound compoundShape;
-	brepBuilder.MakeCompound(compoundShape);
-	TopoDS_Solid SolidShape;
-	brepBuilder.MakeSolid(SolidShape);
-
-	for (TopExp_Explorer faceExpl(theShape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
-	{
-		TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
-		std::vector<TopoDS_Face> meshFaceList = TriangulateFace(currentFace);
-
-		for (const TopoDS_Face& currentFace : meshFaceList)
-		{
-			if (isSolid)
-			{
-				brepBuilder.Add(SolidShape, currentFace);
-			}
-			else
-			{
-				brepBuilder.Add(compoundShape, currentFace);
-			}
-		}
-	}
-
-	if (isSolid)
-	{
-		return SolidShape;
-	}
-	return compoundShape;
-}
 
 std::vector<TopoDS_Wire> helperFunctions::growWires(const std::vector<TopoDS_Edge>& edgeList) {
 	std::vector<TopoDS_Wire> wireCollection;
@@ -3056,6 +2830,8 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 		gp_Pnt p1 = getFirstPointShape(currentEdge);
 		gp_Pnt p2 = getLastPointShape(currentEdge);
 
+		if (p1.IsEqual(p2, 1e-6)) { continue; }
+
 		HalfEdge halfEdge1 = HalfEdge(p1, p2);
 		HalfEdge halfEdge2 = HalfEdge(p2, p1);
 		halfEdgeList.emplace_back(halfEdge1);
@@ -3126,7 +2902,7 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 	double precision = settingCol.spatialTolerance();
 	double pointOffset = precision * 100; //I do not like this
 
-	std::vector<TopoDS_Face> triangulatedSourceList = TriangulateFace2(planarFaces);
+	std::vector<TopoDS_Face> triangulatedSourceList = TriangulateFace(planarFaces);
 
 	for (const HalfEdgeLoop& currentLoop : planarLoopList)
 	{
@@ -3969,18 +3745,33 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 		if (uniquePointList.size() == 3)
 		{
 			gp_Trsf inverseLoc = loc.Transformation().Inverted();
-			Handle(Poly_Triangulation) triangulation = new Poly_Triangulation(3, 1, Standard_False);
+			Handle(Poly_Triangulation) triangulation = new Poly_Triangulation(3, 1, Standard_True);
 
+			// add 3D points
 			TColgp_Array1OfPnt nodes(1, 3);
 			nodes.SetValue(1, uniquePointList[0].Transformed(inverseLoc));
 			nodes.SetValue(2, uniquePointList[1].Transformed(inverseLoc));
 			nodes.SetValue(3, uniquePointList[2].Transformed(inverseLoc));
 			triangulation->ChangeNodes() = nodes;
 
+			// add the triangular shape
 			Poly_Array1OfTriangle triangles(1, 1);  // One triangle at index 1
 			triangles.SetValue(1, Poly_Triangle(1, 2, 3));
 			triangulation->ChangeTriangles() = triangles;
 
+			// add uv data
+			Handle(Geom_Surface) surf = BRep_Tool::Surface(currentFace);
+			TColgp_Array1OfPnt2d uvNodes(1, 3);
+			for (int i = 1; i <= 3; ++i)
+			{
+				GeomAPI_ProjectPointOnSurf proj(nodes.Value(i), surf);
+				Standard_Real u, v;
+				proj.LowerDistanceParameters(u, v);
+				uvNodes.SetValue(i, gp_Pnt2d(u, v));
+			}
+			triangulation->ChangeUVNodes() = uvNodes;
+
+			// add shape
 			BRep_Builder builder;
 			builder.UpdateFace(currentFace, triangulation);
 			continue;

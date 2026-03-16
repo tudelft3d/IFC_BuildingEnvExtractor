@@ -144,8 +144,6 @@ struct helperFunctions{
 	static BoostPoint3D Point3DOTB(const gp_Pnt& oP);
 	/// Conver Boost point to OpenCascade point
 	static gp_Pnt Point3DBTO(const BoostPoint3D& oP);
-	/// get a list of unique points from a pointlist
-	static std::vector<gp_Pnt> getUniquePoints(const std::vector<gp_Pnt>& pointList);
 	/// get a list of unique points from a shape
 	static std::vector<gp_Pnt> getUniquePoints(const TopoDS_Shape& inputShape);
 	/// get a list of points from a shape
@@ -237,6 +235,8 @@ struct helperFunctions{
 	static bool pointOnFace(const TopoDS_Face& theFace, const gp_Pnt& thePoint, double precision = 0.0);
 	/// check if point is on face
 	static bool pointOnFace(const std::vector<TopoDS_Face>& theFace, const gp_Pnt& thePoint, double precision = 0.0);
+	/// check if point is on mesh
+	static bool pointOnMesh(const Handle(Poly_Triangulation)& theMesh, const TopLoc_Location& loc, const gp_Pnt& thePoint, double precision = 0.0);
 	/// check if point is on triangle p1p2p3
 	static bool pointOnTriangle(const gp_Pnt& thePoint, const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3);
 	/// check if 2D point is on 2D triangle p1p2p3
@@ -259,8 +259,6 @@ struct helperFunctions{
 	static gp_Vec computeFaceNormal(const T& theFace);
 	/// compute normal of a pool of points in order representing a ring of edges
 	static gp_Vec newellsNormal(const std::vector<gp_Pnt>& pointList);
-	/// compute the largest angle of the edges, returns 0 if not found
-	static double computeLargestAngle(const TopoDS_Face& theFace);
 	/// compute the smallest angle of the edges, returns 0 if not found
 	static double computeSmallestAngle(const TopoDS_Face& theFace);
 	/// compute the horizontal dir based on vector count
@@ -276,8 +274,6 @@ struct helperFunctions{
 	static bool edgeEdgeAreSame(const TopoDS_Edge& currentEdge, const TopoDS_Edge& otherEdge);
 	/// check if upperface overlaps the lower face by checking the edges
 	static bool faceFaceOverlapping(const TopoDS_Face& upperFace, const TopoDS_Face& lowerFace);
-	/// check if coplanar surfaces overlap based on points
-	static bool coplanarOverlapping(const TopoDS_Face& leftFace, const TopoDS_Face& rightFace);
 	/// checks if surface is encapsulated by another shape
 	static bool surfaceIsIncapsulated(const TopoDS_Face& innerSurface, const TopoDS_Face& outerSurface);
 	/// checks if surface is encapsulated by other faces
@@ -292,8 +288,6 @@ struct helperFunctions{
 
 	/// surface line intersection related code
 
-	/// check if a line intersects with a shape
-	static bool LineShapeIntersection(const TopoDS_Shape& theShape, const gp_Pnt& lP1, const gp_Pnt& lP2);
 	/// check if a line intersects with a face
 	static bool LineShapeIntersection(const TopoDS_Face& theFace, const gp_Pnt& lP1, const gp_Pnt& lp2, bool inZdir = false);
 
@@ -310,8 +304,6 @@ struct helperFunctions{
 
 	// face creation code
 
-	/// creates face with middlepont 0,0,0 ranging from -x to x and -y to y at z
-	static TopoDS_Face createHorizontalFace(double x, double y, double z);
 	/// creates a planar face between lll and urr with a rotation
 	static TopoDS_Face createHorizontalFace(const gp_Pnt& lll, const gp_Pnt& urr, double rotationAngle, double z);
 	/// creates a planar face by connecting the 4 points, make sure the 4 points are on a single plane
@@ -333,10 +325,8 @@ struct helperFunctions{
 	static std::vector<TopoDS_Face> TessellateFace(const std::vector<TopoDS_Face>& theFaceList, bool knownIsFlat = false);
 	/// creates a clean mesh approximation of the input face
 	static std::vector<TopoDS_Face> TriangulateFace(const TopoDS_Face& theFace);
-	static std::vector<TopoDS_Face> TriangulateFace2(const TopoDS_Face& theFace);
-	static std::vector<TopoDS_Face> TriangulateFace2(const std::vector<TopoDS_Face>& theFaceList);
-	/// creates a mesh approximation of the input face stored as shape
-	static TopoDS_Shape TriangulateShape(const TopoDS_Shape& theShape);
+	/// creates a clean mesh approximation of the input facelist
+	static std::vector<TopoDS_Face> TriangulateFace(const std::vector<TopoDS_Face>& theFaceList);
 	/// fixes face if face is broken
 	static bool fixFace(TopoDS_Face* theFace);
 

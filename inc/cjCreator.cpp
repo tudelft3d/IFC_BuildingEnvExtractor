@@ -394,7 +394,6 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 {
 	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
 	double precision = SettingsCollection::getInstance().spatialTolerance();
-	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
 
 	//index
 	bgi::rtree<Value, bgi::rstar<treeDepth_>> spatialIndex;
@@ -403,11 +402,9 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 	for (size_t i = 0; i < Collection.size(); i++)
 	{
 		const TopoDS_Face& currentFace = Collection[i]->getFace();
-		if (helperFunctions::computeArea(currentFace) <= precision)
-		{
-			continue;
-		}
-		std::vector<TopoDS_Face> currentCleanFaceList = helperFunctions::TessellateFace(currentFace); //tODO: should be more central
+		if (helperFunctions::computeArea(currentFace) <= precision) { continue; }
+
+		std::vector<TopoDS_Face> currentCleanFaceList = helperFunctions::TessellateFace(currentFace);
 		faceList.insert(faceList.end(), currentCleanFaceList.begin(), currentCleanFaceList.end());	
 	}
 
@@ -427,8 +424,6 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 		evalList[i] = 1;
 
 		const TopoDS_Face& currentFace = mergedfaceList[i];
-		gp_Vec currentNormal = helperFunctions::computeFaceNormal(currentFace);
-
 		std::vector<TopoDS_Face> toBeGroupdSurfaces = {};
 		std::vector<TopoDS_Face> outerSurfaceRingList = { currentFace };
 
@@ -443,10 +438,7 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 				std::vector<Value> qResult;
 				qResult.clear();
 				spatialIndex.query(bgi::intersects(helperFunctions::createBBox(evalFace, 0.01)), std::back_inserter(qResult));
-
 				if (qResult.size() == 1) { break; }
-
-				gp_Vec currentNormal = helperFunctions::computeFaceNormal(evalFace);
 
 				for (const Value& qValue : qResult)
 				{
@@ -454,14 +446,9 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 					if (evalList[potentialNeigbhbourIdx] == 1) { continue; }
 
 					const TopoDS_Face& potentialNeighbourFace = mergedfaceList[potentialNeigbhbourIdx];
-					gp_Vec otherNormal = helperFunctions::computeFaceNormal(potentialNeighbourFace);
 
 					// check if shared edge
-					if (!helperFunctions::shareEdge(evalFace, potentialNeighbourFace))
-					{
-						continue;
-					}
-
+					if (!helperFunctions::shareEdge(evalFace, potentialNeighbourFace)) { continue; }
 					bufferList.emplace_back(potentialNeighbourFace);
 					evalList[potentialNeigbhbourIdx] = 1;
 				}
@@ -2082,6 +2069,7 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount() - 1;
+	//coreUse = 1;
 	if (coreUse > inputShapes.size()) { coreUse = inputShapes.size(); }
 	int splitListSize = static_cast<int>(floor(inputShapes.size() / coreUse));
 

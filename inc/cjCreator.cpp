@@ -1520,6 +1520,8 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 
 	}
 
+	DebugUtils::WriteToSTEP(inputFaceList, "C:/Users/Jasper/Desktop/desk/test.STEP");
+
 	if (!bufferSurfaceList.empty())
 	{
 		for (const TopoDS_Face& bufferSurface : bufferSurfaceList)
@@ -3292,7 +3294,6 @@ CJT::GeoObject CJGeoCreator::makeLoD10(DataManager* h, CJT::Kernel* kernel, int 
 
 std::vector<std::vector<TopoDS_Face>> CJGeoCreator::makeRoofFaces(DataManager* h, CJT::Kernel* kernel, int unitScale, bool useFlatFaces, bool footprintBased)
 {
-
 	if (!hasTopFaces_)
 	{
 		initializeBasic(h);
@@ -3336,7 +3337,6 @@ std::vector<std::vector<TopoDS_Face>> CJGeoCreator::makeRoofFaces(DataManager* h
 			nestedFaceList.emplace_back(faceList);
 		}
 	}
-
 	return nestedFaceList;
 }
 
@@ -5873,6 +5873,8 @@ void CJGeoCreator::projectionSplitting(const std::vector<TopoDS_Face>& inputFace
 		divider.AddArgument(currentFlatFace);
 		divider.SetTools(trimFaces);
 		divider.Perform();
+
+		if (divider.HasErrors()) { continue; }
 
 		TopoDS_Shape trimmedShape = divider.Shape();
 		if (trimmedShape.IsNull()) { continue; }

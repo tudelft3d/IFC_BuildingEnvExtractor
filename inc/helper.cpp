@@ -2903,13 +2903,19 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 	double pointOffset = precision * 100; //I do not like this
 
 	std::vector<TopoDS_Face> triangulatedSourceList = TriangulateFace(planarFaces);
+ 	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> triangulatedShapeIndx;
+	for (const TopoDS_Face& currentFace : triangulatedSourceList)
+	{
+		bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentFace);
+		triangulatedShapeIndx.insert(std::make_pair(bbox, triangulatedShapeIndx.size()));
+	}
 
 	for (const HalfEdgeLoop& currentLoop : planarLoopList)
 	{
 		bool isExterior = true;
 		for (const HalfEdge& currentHalfEdge : currentLoop.halfEdgeList_)
 		{
-			const gp_Vec& edgeDir = currentHalfEdge.getDir();
+			gp_Vec edgeDir = currentHalfEdge.getDir();
 			gp_Vec perpDir = gp_Vec(edgeDir.Y(), -edgeDir.X(), 0) * pointOffset;
 			gp_Vec castDir = gp_Vec(-edgeDir.Y(), edgeDir.X(), 0) * 1000;
 			const gp_Pnt& p1 = currentHalfEdge.p1_;
@@ -2927,8 +2933,15 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 			double currentZ = p1.Z();
 			int intCount = 0;
 
-			for (const TopoDS_Face& sourceFace : triangulatedSourceList)
+			std::vector<std::pair<BoostBox3D, int>> qResult;
+			qResult.clear();
+			triangulatedShapeIndx.query(bgi::intersects(
+				helperFunctions::createBBox(evalP1, middlePoint)), std::back_inserter(qResult));
+
+			for (const std::pair<BoostBox3D, int>& resultPair : qResult)
 			{
+				const TopoDS_Face& sourceFace = triangulatedSourceList[resultPair.second];
+
 				double otherZ = getAZ(sourceFace);
 				if (abs(otherZ - currentZ) > 1E-6) { continue; }
 

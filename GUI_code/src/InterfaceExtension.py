@@ -44,15 +44,15 @@ class Tooltip:
         return
 
 def toggleEnableDiv(widget, default_toggle, proxy_toggle, settings):
-
-    if  widget['state'] == "disabled":
+    if  settings.div.custom_enabled.get() == 1:
         widget['state'] = tkinter.NORMAL
         widget['bg'] = 'SystemWindow'
         widget['fg'] = 'SystemWindowText'
 
         default_toggle["state"] = tkinter.DISABLED
         proxy_toggle["state"] = tkinter.DISABLED
-    else:
+
+    elif settings.div.custom_enabled.get() == 0:
         widget['state'] = tkinter.DISABLED
         widget['bg'] = "#F0F0F0"
         widget['fg'] = "#707070"

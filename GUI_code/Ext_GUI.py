@@ -5,6 +5,8 @@ from tkinter import ttk, filedialog, messagebox, PhotoImage
 import subprocess
 import threading
 import re
+import json
+import webbrowser
 
 from pathlib import Path
 
@@ -34,7 +36,7 @@ def runCode(settings,message_div_objects, bool_run):
     ifc4x3ADD2_exe_path = "Ifc_Envelope_Extractor_ifc4x3add2.exe"
 
     # because a text object has no variable we have to manually update the div objects when required
-    settings.div.div_objects = message_div_objects.get('1.0', tkinter.END)
+    settings.div.div_objects.set(message_div_objects.get('1.0', tkinter.END))
 
     if not settings.dump_to_json():
         return
@@ -146,8 +148,54 @@ def runExe(code_path, json_path):
     except subprocess.CalledProcessError as e:
         tkinter.messagebox.showerror("Processing Error",
                                      "Error: Was unable to process the file")
-
     return
+
+def load_custom_config():
+    json_filepath = filedialog.askopenfilenames(
+        filetypes=[("ConfigJSON", ".json")],
+        defaultextension=".json")
+
+    if len(json_filepath) == 0:
+        return
+
+    if not os.path.exists(json_filepath[0]):
+        tkinter.messagebox.showerror("Processing Error",
+                                     "Error: cannot find submitted config file")
+        return
+
+    load_config(json_filepath[0])
+    return
+
+def load_config(path):
+    if not os.path.exists(path):
+        tkinter.messagebox.showerror("Processing Error",
+                                     "Error: cannot find default config files")
+        return
+
+    with open(path, 'r') as file:
+        json_data = json.load(file)
+
+    settings.set_from_json(json_data)
+
+    # set the ui
+    IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
+    IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
+    IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
+    IExtension.toggleMakeInterior(toggle_makeinterior, settings),
+    IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+    IExtension.toggleManualFootprintEleve([entry_footprint,
+                                           button_min_footprint,
+                                           button_plus_footprint,
+                                           footprint_unit_toggle],
+                                          settings)
+    IExtension.updateDivMessage(message_div_objects, settings)
+    IExtension.toggleEnableDiv(
+        message_div_objects,
+        useDefault_toggle,
+        igoreproxy_toggle,
+        settings)
+    return
+
 
 # main variables
 size_entry_small = 13
@@ -170,14 +218,16 @@ menubar.config(fg="black", activeforeground="black", activeborderwidth=1, font="
 settings_menu = tkinter.Menu(menubar, tearoff=False)
 
 load_config_menu = tkinter.Menu(settings_menu, tearoff=False)
-load_config_menu.add_command(label="BAG pre-set")
-load_config_menu.add_command(label="BGT pre-set")
-load_config_menu.add_command(label="From file")
+load_config_menu.add_command(label="BAG pre-set", command= lambda: load_config("./default_data/BAG_baseConfig.json"))
+load_config_menu.add_command(label="BGT pre-set", command= lambda:load_config("./default_data/BGT_baseConfig.json"))
+load_config_menu.add_command(label="3DBAG pre-set", command= lambda:load_config("./default_data/3DBAG_baseConfig.json"))
+load_config_menu.add_separator()
+load_config_menu.add_command(label="Custom pre-set", command= lambda:load_custom_config())
 
 settings_menu.add_cascade(label="Load Config", menu=load_config_menu)
 settings_menu.add_cascade(label="Store Config", command= lambda: runCode(settings, message_div_objects, False))
 menubar.add_cascade(label="Settings", menu=settings_menu)
-menubar.add_cascade(label="About")
+menubar.add_cascade(label="About", command= lambda: webbrowser.open("https://github.com/tudelft3d/IFC_BuildingEnvExtractor"))
 
 main_window.config(menu=menubar)
 

@@ -1,0 +1,33 @@
+{
+    "Tolerances": {
+        "Spatial tolerance": 1e-06,
+        "Angular tolerance": 0.0001,
+        "Area tolerance": 0.0001
+    },
+    "Voxel": {
+        "Size": 0.5,
+        "Coarse filter": 1
+    },
+    "IFC": {
+        "Default div": 1,
+        "Ignore proxy": 1,
+        "Div objects": [],
+        "Ignore voids": 0,
+        "Fetch footprint elevation": 1,
+        "Ignore IsExternal": 1
+    },
+    "JSON": {
+        "Generate exterior": 1,
+        "Generate interior": 0,
+        "Generate footprint": 0,
+        "Generate roof outline": 1
+    },
+    "Generate report": 1,
+    "Output format": {
+        "STEP file": 0,
+        "OBJ file": 0
+    },
+    "LoD output": [
+        0.2
+    ]
+}

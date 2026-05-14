@@ -13,6 +13,10 @@ class SettingsBase:
             setattr(self, name, var_type(value=var_value))
         return
 
+    def reset(self):
+        for name, (_, default_value) in self.settings.items():
+            getattr(self, name).set(default_value)
+
 class LoDSettings(SettingsBase):
     settings = {
         "lod00": (tkinter.IntVar, 1),
@@ -38,6 +42,10 @@ class LoDSettings(SettingsBase):
             for name in self.settings
         )
 
+    def clearLoD(self):
+        for var in self.__dict__.values():
+            var.set(int(0))
+
 class VoxelSettings(SettingsBase):
     settings = {
         "voxel_size": (tkinter.DoubleVar, 1.0),
@@ -54,6 +62,7 @@ class FootprintSettings(SettingsBase):
         "footprint_unit": (tkinter.StringVar, "m"),
         "find_footprint_elev": (tkinter.IntVar, 0)
     }
+
 
 class DivSettings(SettingsBase):
     settings = {
@@ -83,6 +92,9 @@ class DivSettings(SettingsBase):
         ]
         return
 
+    def reset(self):
+        super().reset()
+
 class OtherSettings(SettingsBase):
     settings = {
         "make_interior": (tkinter.IntVar, 0),
@@ -110,6 +122,16 @@ class GuiSettings:
         self.div = DivSettings()
         self.other = OtherSettings()
         self.json = {}; # container for advanced settings if a custom json is loaded
+        return
+
+    def reset(self):
+        self.paths.reset()
+        self.lod.reset()
+        self.voxel.reset()
+        self.footprint.reset()
+        self.div.reset()
+        self.other.reset()
+        self.json = {}
         return
 
     def clear_custom(self): #wipe the custom settings coming from external json file
@@ -289,4 +311,155 @@ class GuiSettings:
         return True;
 
     def set_from_json(self, json_data):
+        self.reset()
+        self.json = json_data
+
+        if "Filepaths" in json_data:
+            json_data_filepaths = json_data["Filepaths"]
+
+            if "Input" in json_data_filepaths:
+               json_input_path_list = json_data_filepaths["Input"]
+               input_path = ""
+               for path in json_input_path_list:
+                   input_path += path + " "
+               self.paths.input_path.set(input_path)
+
+            if "Output" in json_data_filepaths:
+                self.paths.output_path.set(json_data_filepaths["Output"])
+
+        if "Voxel" in json_data:
+            json_data_voxel = json_data["Voxel"]
+            if "Size" in json_data_voxel:
+                self.voxel.voxel_size.set(json_data_voxel["Size"])
+                self.voxel.voxel_unit.set("m")
+            if "Coarse" in json_data_voxel:
+                self.voxel.voxel_filter.set(json_data["filter"])
+
+        if "IFC" in json_data:
+            json_data_ifc = json_data["IFC"]
+
+            if "Default div" in json_data_ifc:
+                self.div.use_default.set(json_data_ifc["Default div"])
+            if "Ignore proxy" in json_data_ifc:
+                self.div.ignore_proxy.set(json_data_ifc["Ignore proxy"])
+            if "Div objects" in json_data_ifc:
+                div_object_string = ""
+                for div_object in json_data_ifc["Div objects"]:
+                    div_object_string += div_object + "\t"
+
+                self.div.div_objects.set(div_object_string)
+            if "Ignore voids" in json_data_ifc:
+                ignore_void_val = json_data_ifc["Ignore voids"]
+                if ignore_void_val == 0:
+                    self.div.simple_geo.set(False)
+                else:
+                    self.div.simple_geo.set(True)
+
+            if "Fetch footprint elevation" in json_data_ifc:
+                find_footprint_val = json_data_ifc["Fetch footprint elevation"]
+                if find_footprint_val == True or find_footprint_val == 1:
+                    self.footprint.find_footprint_elev.set(True)
+                else:
+                    self.footprint.find_footprint_elev.set(False)
+
+            if "Ignore IsExternal" in json_data_ifc:
+                ignore_IsExternal_val = json_data_ifc["Ignore IsExternal"]
+                if ignore_IsExternal_val == True or ignore_IsExternal_val == 1:
+                    self.other.ignoreIsExternal.set(True)
+                else:
+                    self.other.ignoreIsExternal.set(False)
+
+        if "JSON" in json_data:
+            json_data_json = json_data["JSON"]
+
+            if "Footprint elevation" in json_data_json:
+                self.footprint.footprint_elevation.set(json_data_json["Footprint elevation"])
+                self.footprint.footprint_unit.set("m")
+
+            if "Generate exterior" in json_data_json:
+                gen_exterior_val = json_data_json["Generate exterior"]
+                if gen_exterior_val == True or gen_exterior_val == 1:
+                    self.other.make_exterior.set(True)
+                else:
+                    self.other.make_exterior.set(False)
+
+            if "Generate interior" in json_data_json:
+                gen_interior_val = json_data_json["Generate interior"]
+                if gen_interior_val == True or gen_interior_val == 1:
+                    self.other.make_interior.set(True)
+                else:
+                    self.other.make_interior.set(False)
+
+            if "Generate footprint" in json_data_json:
+                gen_footprint_val = json_data_json["Generate footprint"]
+                if gen_footprint_val == True or gen_footprint_val == 1:
+                    self.footprint.make_footprint.set(True)
+                else:
+                    self.footprint.make_footprint.set(False)
+
+            if "Generate roof outline" in json_data_json:
+                gen_roofprint_val = json_data_json["Generate roof outline"]
+                if gen_roofprint_val == True or gen_roofprint_val == 1:
+                    self.footprint.make_roofprint.set(True)
+                else:
+                    self.footprint.make_roofprint.set(False)
+
+            if "Footprint based" in json_data_json:
+                base_footprint_val = json_data_json["Footprint based"]
+                if base_footprint_val == True or base_footprint_val == 1:
+                    self.footprint.footprint_based.set(True)
+                else:
+                    self.footprint.footprint_based.set(False)
+
+        if "Generate report" in json_data:
+            gen_report_val = json_data["Generate report"]
+            if gen_report_val == True or gen_report_val == 1:
+                self.other.make_report.set(True)
+            else:
+                self.other.make_report.set(False)
+
+        if "Output format" in json_data:
+            json_data_format = json_data["Output format"]
+            if "STEP file" in json_data_format:
+                gen_step_val = json_data_format["STEP file"]
+                if gen_step_val == True or gen_step_val == 1:
+                    self.other.make_step.set(True)
+            if "OBJ file" in json_data_format:
+                gen_obj_val = json_data_format["OBJ file"]
+                if gen_obj_val == True or gen_obj_val == 1:
+                    self.other.make_obj.set(True)
+
+        if "LoD output" in json_data:
+            self.lod.clearLoD()
+            json_data_lod = json_data["LoD output"]
+            for lod in json_data_lod:
+
+                if lod == "0.0" or lod == 0.0:
+                    self.lod.lod00.set(1)
+                if lod == "0.2" or lod == 0.2:
+                    self.lod.lod02.set(1)
+                if lod == "0.3" or lod == 0.3:
+                    self.lod.lod03.set(1)
+                if lod == "0.4" or lod == 0.4:
+                    self.lod.lod04.set(1)
+                if lod == "1.0" or lod == 1.0:
+                    self.lod.lod10.set(1)
+                if lod == "1.2" or lod == 1.2:
+                    self.lod.lod12.set(1)
+                if lod == "1.3" or lod == 1.3:
+                    self.lod.lod13.set(1)
+                if lod == "2.0" or lod == 2.0:
+                    self.lod.lod20.set(1)
+                if lod == "4.0" or lod == 4.0:
+                    self.lod.lod40.set(1)
+                if lod == "4.1" or lod == 4.1:
+                    self.lod.lod41.set(1)
+                if lod == "4.2" or lod == 4.2:
+                    self.lod.lod42.set(1)
+                if lod == "e.1":
+                    self.lod.lode1.set(1)
+                if lod == "3.2" or lod == 3.2:
+                    self.lod.lod32.set(1)
+                if lod == "5.0" or lod == 5.0:
+                    self.lod.lod50.set(1)
         return;

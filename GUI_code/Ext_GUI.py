@@ -150,52 +150,6 @@ def runExe(code_path, json_path):
                                      "Error: Was unable to process the file")
     return
 
-def load_custom_config():
-    json_filepath = filedialog.askopenfilenames(
-        filetypes=[("ConfigJSON", ".json")],
-        defaultextension=".json")
-
-    if len(json_filepath) == 0:
-        return
-
-    if not os.path.exists(json_filepath[0]):
-        tkinter.messagebox.showerror("Processing Error",
-                                     "Error: cannot find submitted config file")
-        return
-
-    load_config(json_filepath[0])
-    return
-
-def load_config(path):
-    if not os.path.exists(path):
-        tkinter.messagebox.showerror("Processing Error",
-                                     "Error: cannot find default config files")
-        return
-
-    with open(path, 'r') as file:
-        json_data = json.load(file)
-
-    settings.set_from_json(json_data)
-
-    # set the ui
-    IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-    IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-    IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-    IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-    IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
-    IExtension.toggleManualFootprintEleve([entry_footprint,
-                                           button_min_footprint,
-                                           button_plus_footprint,
-                                           footprint_unit_toggle],
-                                          settings)
-    IExtension.updateDivMessage(message_div_objects, settings)
-    IExtension.toggleEnableDiv(
-        message_div_objects,
-        useDefault_toggle,
-        igoreproxy_toggle,
-        settings)
-    return
-
 
 # main variables
 size_entry_small = 13
@@ -210,26 +164,6 @@ main_window.title("IfcEnvExtactor GUI")
 
 # create settings classes
 settings = Settings.GuiSettings();
-
-# top bar
-menubar = tkinter.Menu(main_window)
-menubar.config(fg="black", activeforeground="black", activeborderwidth=1, font="Monaco 11")
-
-settings_menu = tkinter.Menu(menubar, tearoff=False)
-
-load_config_menu = tkinter.Menu(settings_menu, tearoff=False)
-load_config_menu.add_command(label="BAG pre-set", command= lambda: load_config("./default_data/BAG_baseConfig.json"))
-load_config_menu.add_command(label="BGT pre-set", command= lambda:load_config("./default_data/BGT_baseConfig.json"))
-load_config_menu.add_command(label="3DBAG pre-set", command= lambda:load_config("./default_data/3DBAG_baseConfig.json"))
-load_config_menu.add_separator()
-load_config_menu.add_command(label="Custom pre-set", command= lambda:load_custom_config())
-
-settings_menu.add_cascade(label="Load Config", menu=load_config_menu)
-settings_menu.add_cascade(label="Store Config", command= lambda: runCode(settings, message_div_objects, False))
-menubar.add_cascade(label="Settings", menu=settings_menu)
-menubar.add_cascade(label="About", command= lambda: webbrowser.open("https://github.com/tudelft3d/IFC_BuildingEnvExtractor"))
-
-main_window.config(menu=menubar)
 
 # the entry functions for the main ifc file
 text_file_browse = tkinter.Label(main_window, text="Input IFC path(s):")
@@ -281,124 +215,65 @@ frame_lod_settings4.pack()
 
 toggle_makelod00 = ttk.Checkbutton(frame_lod_settings1, text="LoD0.0", variable=settings.lod.lod00,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 toggle_makelod02 = ttk.Checkbutton(frame_lod_settings1, text="LoD0.2", variable=settings.lod.lod02,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 toggle_makelod03 = ttk.Checkbutton(frame_lod_settings1, text="LoD0.3", variable=settings.lod.lod03,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 toggle_makelod04 = ttk.Checkbutton(frame_lod_settings1, text="LoD0.4", variable=settings.lod.lod04,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
-
 toggle_makelod10 = ttk.Checkbutton(frame_lod_settings2, text="LoD1.0", variable=settings.lod.lod10,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 toggle_makelod12 = ttk.Checkbutton(frame_lod_settings2, text="LoD1.2", variable=settings.lod.lod12,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 toggle_makelod13 = ttk.Checkbutton(frame_lod_settings2, text="LoD1.3", variable=settings.lod.lod13,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 toggle_makelod22 = ttk.Checkbutton(frame_lod_settings2, text="LoD2.2", variable=settings.lod.lod22,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 
 toggle_makelode1 = ttk.Checkbutton(frame_lod_settings3, text="LoDe.1", variable=settings.lod.lode1,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 
 toggle_makelod32 = ttk.Checkbutton(frame_lod_settings3, text="LoD3.2", variable=settings.lod.lod32,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 
-toggle_makelod50 = ttk.Checkbutton(frame_lod_settings3,
-                                   text="LoDV.0",
-                                   variable=settings.lod.lod50,
+toggle_makelod50 = ttk.Checkbutton(frame_lod_settings3, text="LoDV.0", variable=settings.lod.lod50,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 
 toggle_makelod40 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.0",  variable=settings.lod.lod40,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 
 toggle_makelod41 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.1",  variable=settings.lod.lod41,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 
 toggle_makelod42 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.2",  variable=settings.lod.lod42,
                                    command=lambda: [
-                                       IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-                                       IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-                                       IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-                                       IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-                                       IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+                                       IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 
 toggle_makelod00.pack(side=tkinter.LEFT)
@@ -517,11 +392,7 @@ footprint_unit_toggle.pack(side=tkinter.LEFT)
 auto_detect_foot_elev_toggle = ttk.Checkbutton(frame_footprint,
                                                text="Automatic",
                                                variable=settings.footprint.find_footprint_elev,
-                                               command= lambda : IExtension.toggleManualFootprintEleve([entry_footprint,
-                                                                                             button_min_footprint,
-                                                                                             button_plus_footprint,
-                                                                                             footprint_unit_toggle ],
-                                                                                                       settings))
+                                               command= lambda : IExtension.checkActiveToggles(toggle_dictionary, settings))
 auto_detect_foot_elev_toggle.pack(side=tkinter.LEFT, padx=10)
 
 separatorFootprint = ttk.Separator(main_window, orient='horizontal')
@@ -536,23 +407,19 @@ frame_div_objects.pack()
 igoreproxy_toggle = ttk.Checkbutton(frame_div_objects,
                                     text="Ignore proxy elements",
                                     variable=settings.div.ignore_proxy,
-                                    command= lambda : IExtension.updateDivMessage(message_div_objects,settings))
+                                    command= lambda : IExtension.checkActiveToggles(toggle_dictionary,settings))
 igoreproxy_toggle.pack(side=tkinter.LEFT, padx=10)
 
 useDefault_toggle = ttk.Checkbutton(frame_div_objects,
                                     text="Use default div objects",
                                     variable=settings.div.use_default,
-                                    command= lambda : IExtension.updateDivMessage(message_div_objects, settings))
+                                    command= lambda : IExtension.checkActiveToggles(toggle_dictionary, settings))
 useDefault_toggle.pack(side=tkinter.LEFT, padx=10)
 
 enableCustom_toggle = ttk.Checkbutton(frame_div_objects,
                                     text="Custom div objects",
                                     variable=settings.div.custom_enabled,
-                                    command= lambda : IExtension.toggleEnableDiv(
-                                        message_div_objects,
-                                        useDefault_toggle,
-                                        igoreproxy_toggle,
-                                        settings))
+                                    command= lambda : IExtension.checkActiveToggles(toggle_dictionary, settings))
 enableCustom_toggle.pack(side=tkinter.LEFT)
 
 # div communication
@@ -637,17 +504,41 @@ IExtension.Tooltip(simpleGeo_toggle, "Use simplefied geometry for the evaluation
 IExtension.Tooltip(run_button, "Run the tool")
 IExtension.Tooltip(close_button, "Exit the application")
 
+# set up dictionary with all toggles that can be turned off
+toggle_dictionary = {
+    "make_footprint" : toggle_makefootprint,
+    "make_roofprint" : toggle_makeroofprint,
+    "make_footprint_based" : toggle_footprint_based,
+    "make_interior" : toggle_makeinterior,
+    "make_ignore_IsExternal" : toggle_ignore_IsExternal,
 
-IExtension.toggleMakeFootprint(toggle_makefootprint, settings),
-IExtension.toggleMakeRoofOutline(toggle_makeroofprint, settings),
-IExtension.toggleMakeFootprintBased(toggle_footprint_based, settings),
-IExtension.toggleMakeInterior(toggle_makeinterior, settings),
-IExtension.toggleIgnoreIsExternal(toggle_ignore_IsExternal, settings)
+    "entry_footprint": entry_footprint,
+    "button_plus_footprint": button_plus_footprint,
+    "button_min_footprint": button_min_footprint,
+    "button_unit_toggle": footprint_unit_toggle,
 
-IExtension.toggleManualFootprintEleve([entry_footprint,
-                            button_min_footprint,
-                            button_plus_footprint,
-                            footprint_unit_toggle ],
-                                      settings)
+    "message_div_objects" : message_div_objects,
+    "useDefault_toggle" : useDefault_toggle,
+    "igoreproxy_toggle" : igoreproxy_toggle
+}
+IExtension.checkActiveToggles(toggle_dictionary, settings)
+
+# top bar
+menubar = tkinter.Menu(main_window)
+menubar.config(fg="black", activeforeground="black", activeborderwidth=1, font="Monaco 11")
+
+settings_menu = tkinter.Menu(menubar, tearoff=False)
+load_config_menu = tkinter.Menu(settings_menu, tearoff=False)
+IExtension.populateConfigJson(load_config_menu, toggle_dictionary, settings)
+load_config_menu.add_separator()
+load_config_menu.add_command(label="Custom pre-set", command= lambda:load_custom_config(toggle_dictionary, settings))
+
+settings_menu.add_cascade(label="Load Config", menu=load_config_menu)
+settings_menu.add_cascade(label="Store Config", command= lambda: runCode(settings, message_div_objects, False))
+menubar.add_cascade(label="Settings", menu=settings_menu)
+menubar.add_cascade(label="About", command= lambda: webbrowser.open("https://github.com/tudelft3d/IFC_BuildingEnvExtractor"))
+
+main_window.config(menu=menubar)
+
 
 main_window.mainloop()

@@ -2,6 +2,8 @@
 import tkinter
 from tkinter import filedialog
 from pathlib import Path
+import os
+import json
 
 class Tooltip:
     def __init__(self, widget, text):
@@ -43,7 +45,12 @@ class Tooltip:
             self.tooltip_window = None
         return
 
-def toggleEnableDiv(widget, default_toggle, proxy_toggle, settings):
+def toggleEnableDiv(toggleDict, settings):
+
+    widget = toggleDict["message_div_objects"]
+    default_toggle = toggleDict["useDefault_toggle"]
+    proxy_toggle = toggleDict["igoreproxy_toggle"]
+
     if  settings.div.custom_enabled.get() == 1:
         widget['state'] = tkinter.NORMAL
         widget['bg'] = 'SystemWindow'
@@ -60,7 +67,7 @@ def toggleEnableDiv(widget, default_toggle, proxy_toggle, settings):
         default_toggle["state"] = tkinter.NORMAL
         proxy_toggle["state"] = tkinter.NORMAL
 
-        updateDivMessage(widget, settings)
+        updateDivMessage(toggleDict, settings)
     return
 
 def toggleMakeInterior(interior_widget, settings):
@@ -125,12 +132,28 @@ def toggleMakeFootprintBased(footprint_widges, settings):
         footprint_widges['state'] = tkinter.DISABLED
     return
 
-def toggleManualFootprintEleve(detect_footprint_elev_widges, settings):
-    for widged in detect_footprint_elev_widges:
-        if settings.footprint.find_footprint_elev.get():
-            widged['state'] = tkinter.DISABLED
-        else:
-            widged['state'] = tkinter.NORMAL
+def toggleManualFootprintEleve(toggleDict, settings):
+    for toggle_name, toggle in toggleDict.items():
+        if toggle_name == "entry_footprint" or \
+            toggle_name == "button_plus_footprint" or \
+            toggle_name ==  "button_min_footprint" or \
+            toggle_name == "button_unit_toggle":
+
+            if settings.footprint.find_footprint_elev.get():
+                toggle['state'] = tkinter.DISABLED
+            else:
+                toggle['state'] = tkinter.NORMAL
+    return
+
+def checkActiveToggles(toggleDict, settings):
+    toggleMakeFootprint(toggleDict["make_footprint"], settings),
+    toggleMakeRoofOutline(toggleDict["make_roofprint"], settings),
+    toggleMakeFootprintBased(toggleDict["make_footprint_based"], settings),
+    toggleMakeInterior(toggleDict["make_interior"], settings),
+    toggleIgnoreIsExternal(toggleDict["make_ignore_IsExternal"], settings)
+    toggleManualFootprintEleve(toggleDict, settings)
+    toggleEnableDiv(toggleDict, settings)
+    updateDivMessage(toggleDict, settings)
     return
 
 def browse_(box, is_folder, window, initial_file):
@@ -182,7 +205,8 @@ def decrement(value_field, increment_value):
     value_field.insert(0, incremented_Value)
     return
 
-def updateDivMessage(message_window, settings):
+def updateDivMessage(toggleDict, settings):
+    message_window = toggleDict["message_div_objects"]
     message_window['state'] = tkinter.NORMAL
 
     if settings.div.use_default.get():
@@ -216,3 +240,73 @@ def makeUnitWindow(frame_location, unit_variable):
     # Attach the menu to the button
     entry_unit.configure(menu=menu)
     return entry_unit
+
+def isConfigJSON(json_file):
+    if "Tolerances" not in json_file and \
+        "Voxel" not in json_file and \
+        "IFC" not in json_file and \
+        "JSON" not in json_file and \
+        "Generate report" not in json_file and \
+        "LoD output" not in json_file and \
+        "Output format" not in json_file and \
+        "Filepaths" not in json_file:
+            return False
+    return True
+
+def load_custom_config(toggleDict, settings):
+    json_filepath = filedialog.askopenfilenames(
+        filetypes=[("ConfigJSON", ".json")],
+        defaultextension=".json")
+
+    if len(json_filepath) == 0:
+        return
+
+    if not os.path.exists(json_filepath[0]):
+        tkinter.messagebox.showerror("Processing Error",
+                                     "Error: cannot find submitted config file")
+        return
+
+    load_config(json_filepath[0], toggleDict, settings)
+    return
+
+def load_config(path, toggleDict, settings):
+    if not os.path.exists(path):
+        tkinter.messagebox.showerror("Processing Error",
+                                     "Error: cannot find default config files")
+        return
+
+    with open(path, 'r') as file:
+        json_data = json.load(file)
+
+    settings.set_from_json(json_data)
+
+    # set the ui
+    checkActiveToggles(toggleDict, settings)
+
+
+
+    return
+
+def populateConfigJson(load_config_menu, toggleDict, settings):
+    config_folder = "./default_data"
+    if os.path.isdir(config_folder):
+        for file in os.scandir(config_folder):
+            if file.is_file() and file.name.lower().endswith(".json"):
+                pathstring = "./default_data/" + file.name
+
+                with open(pathstring, 'r') as json_file:
+                    json_data = json.load(json_file)
+
+                if not isConfigJSON(json_data):
+                    continue
+
+                config_name = file.name
+                if "Alias" in json_data:
+                    if isinstance(json_data["Alias"], str):
+                        config_name = json_data["Alias"]
+
+                load_config_menu.add_command(label=config_name,
+                                             command=lambda p=pathstring:
+                                             load_config(p, toggleDict, settings)
+                                             )
+    return

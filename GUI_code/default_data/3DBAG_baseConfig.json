@@ -1,4 +1,5 @@
 {
+    "Alias" : "3DBAG pre-set",
     "Tolerances": {
         "Spatial tolerance": 1e-06,
         "Angular tolerance": 0.0001,

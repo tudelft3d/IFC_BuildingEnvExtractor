@@ -291,6 +291,10 @@ def populateConfigJson(load_config_menu, toggleDict, settings):
     config_folder = "./default_data"
     if os.path.isdir(config_folder):
         for file in os.scandir(config_folder):
+
+            max_files = 10
+            current_file_count = 0
+
             if file.is_file() and file.name.lower().endswith(".json"):
                 pathstring = "./default_data/" + file.name
 
@@ -309,4 +313,7 @@ def populateConfigJson(load_config_menu, toggleDict, settings):
                                              command=lambda p=pathstring:
                                              load_config(p, toggleDict, settings)
                                              )
+                current_file_count += 1
+                if current_file_count >= max_files:
+                    break
     return

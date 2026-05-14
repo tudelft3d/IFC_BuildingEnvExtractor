@@ -100,60 +100,35 @@ If it is desired to compile the code locally the following libraries are require
 * [Boost](https://www.boost.org/)
 * [OpenCASCADE](https://dev.opencascade.org/)
 
-To set the IFC version a single line has to be changed. In *helper.h* the first line is "#define *IfcVersion*". The *IfcVersion* can be changed to the supported IFC versions preceded by USE_. The currently supported versions are: *USE_IFC2x3*, *USE_IFC4*, *USE_IFC4x3*, and USE_IFC4x3a2. Each version creates an executable that can ONLY process IFC files of the version that the executable was created for.
+To set the IFC version a single line has to be changed. In *helper.h* the first line is "#define *IfcVersion*". The *IfcVersion* can be changed to the supported IFC versions preceded by USE_. The currently supported versions are: *USE_IFC2x3*, *USE_IFC4*, *USE_IFC4x1*, *USE_IFC4x2*, *USE_IFC4x3*, *USE_IFC4x3add1*, and *USE_IFC4x3add2*. Each version creates an executable that can ONLY process IFC files of the version that the executable was created for.
 
 ```c++
-#define USE_IFC4x3 //<- change this line to change supported ifc version
-
-#ifdef USE_IFC2x3
-#include <ifcparse/Ifc2x3.h>
-#define IfcSchema Ifc2x3
-#define buildVersion "IFC2X3"
-#define SCHEMA_VERSIONS (2x3)
-#define SCHEMA_SEQ (2x3)
-
-#elif defined(USE_IFC4)
-#include <ifcparse/Ifc4.h>
-#define IfcSchema Ifc4
-#define buildVersion "IFC4"
-#define SCHEMA_VERSIONS (4)
-#define SCHEMA_SEQ (4)
-
-#elif defined(USE_IFC4x3)
-#include <ifcparse/Ifc4x3.h>
-#define IfcSchema Ifc4x3
-#define buildVersion "IFC4X3"
-#define SCHEMA_VERSIONS (4x3)
-#define SCHEMA_SEQ (4x3)
-
-#elif defined(USE_IFC4x3a2)
-#include <ifcparse/Ifc4x3_add2.h>
-#define IfcSchema Ifc4x3_add2
-#define buildVersion "IFC4X3_ADD2"
-#define SCHEMA_VERSIONS (4x3 add2)
-#define SCHEMA_SEQ (4x3)
-
-#else
-#error "No IFC version defined"
-#endif // USE_IFC
+#define USE_IFC2x3 //<- change this line to change supported ifc version
+#define iterationVersion "x.x.x"
 ```
 
 Please note that CJT is developed in tandem with the IFcEnvExtractor. So possible version mismatches may occur due to CJT being updated at a slightly different time compared to the IFcEnvExtractor. If this is encountered feel free to open a new issue and I will resolve it.
 
 ## GUI
 
-IfcEnvelopeExtractor can now also be operated via an GUI. This GUI enables the user to easily access a subset of the settings. The goal of the GUI is making the tool more accessible for non-expert users. The GUI is a python based front that automatically generates the configuration JSON and calls the suitable extractor executable.
+IfcEnvelopeExtractor can also be operated via an GUI. This GUI enables the user to easily access a subset of the settings. The goal of the GUI is making the tool more accessible for non-expert users. The GUI is a python based front that automatically generates the configuration JSON and calls the suitable extractor executable.
 
 The GUI can be accessed via two routes:
 
 * In the Pre_Build folder the *Ext_GUI.exe* will start the GUI. Make sure this .exe is always in the same folder as the *Extractor.exe* files.
 * In the GUI_code folder the python file will also start the GUI. This would require the user to have python installed on their system.
 
-<p align="center" width="100%">
-    <img src="https://raw.githubusercontent.com/jaspervdv/IFC_BuildingEnvExtractor/master/Images/GUI_example.JPG" alt= “” width="300">
-</p>
+<div align="center" width="100%">
+    <img src="./Images/GUI_example.JPG" alt= “The general layout of the GUI in version v0.4” width="400">
+</div>
 
 Only a subset of the settings is available from the GUI, if more advanced settings are required a configuration JSON file has to be created. This can be initialized by using the generate button instead of the run button. This will generate a configuration JSON representing the settings set in the GUI and place it in the same folder as the GUI. This configuration JSON can then further be edited. For more info related to the settings see [here](#configuration-json). This section also explains the settings that can be accessed via the GUI.
+
+<div align="center" width="100%">
+    <img src="./Images/GUI_example_customJSON.JPG" alt= “Isolation of the location of the pre-set configJSON files” width="300">
+</div>
+
+The GUI also give the option to load pre-set configJSON files. These will be accessible in the top bar via "Settings -> Load Config". The "Load config" menu is populated with files that are stored in the *default-data* folder that is located in the same folder as the GUI. By default this folder is populated with config files that generate output that meet the requirements of geometry for the Dutch BAG, BGT and 3DBAG databases. Users can add their own config files in this folder which will be added to the "Load Config" upon reopening the GUI (with a max of 10 files). Other configJSON files can be opened via "Settings -> Load Config -> Custom pre-set".
 
 ## Input file requirements
 
@@ -335,7 +310,8 @@ The configuration json has a very simple structure. An example can be found belo
       "Area tolerance" : 1e-4
     },
     "Generate report": 1,
-    "Threads": 12
+    "Threads": 12,
+    "Alias" : ""
 }
 ```
 
@@ -471,6 +447,10 @@ Optional:
   * Integer (>0)
   * Sets the maximum allowed threads to be used.
   * Default value = hardware_concurrency (according to std::threads) * 3 - 2
+* :ballot_box_with_check: "Alias" :ballot_box_with_check:
+  * String
+  * Alternative name for the ConfigJSON file. Is used by the GUI when loading pre-set config files. This has no effect on the processes of the tool itself
+  * Default value = None
 
 More options will be added in the future.
 

@@ -535,7 +535,7 @@ load_config_menu.add_command(label="Custom pre-set", command= lambda:load_custom
 
 settings_menu.add_cascade(label="Load Config", menu=load_config_menu)
 settings_menu.add_cascade(label="Store Config", command= lambda: runCode(settings, message_div_objects, False))
-menubar.add_cascade(label="Settings", menu=settings_menu)
+menubar.add_cascade(label="File", menu=settings_menu)
 menubar.add_cascade(label="About", command= lambda: webbrowser.open("https://github.com/tudelft3d/IFC_BuildingEnvExtractor"))
 
 main_window.config(menu=menubar)

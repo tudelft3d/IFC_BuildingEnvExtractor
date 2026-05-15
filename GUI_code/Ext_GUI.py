@@ -13,6 +13,9 @@ from pathlib import Path
 import src.Settings as Settings
 import src.InterfaceExtension as IExtension
 
+# GUI version
+is_simple = False
+
 def findValidPath(code_path, addition):
     exe_path_root = "../Pre_Build/"
 
@@ -27,7 +30,6 @@ def findValidPath(code_path, addition):
         return code_path
 
 def runCode(settings,message_div_objects, bool_run):
-
     ifc2_exe_path = "Ifc_Envelope_Extractor_ifc2x3.exe"
     ifc4_exe_path = "Ifc_Envelope_Extractor_ifc4.exe"
     ifc4x1_exe_path = "Ifc_Envelope_Extractor_ifc4x1.exe"
@@ -150,7 +152,6 @@ def runExe(code_path, json_path):
                                      "Error: Was unable to process the file")
     return
 
-
 # main variables
 size_entry_small = 13
 size_button_small = 2
@@ -158,7 +159,10 @@ size_button_normal = 8
 
 # setup the window and the grid
 main_window = tkinter.Tk()
-main_window.geometry('500x590')
+if is_simple:
+    main_window.geometry('500x293')
+else:
+    main_window.geometry('500x590')
 main_window.resizable(1,0)
 main_window.title("IfcEnvExtactor GUI")
 
@@ -201,17 +205,10 @@ frame_lod_settings_complete.pack()
 frame_lod_settings_gen = tkinter.Frame(frame_lod_settings_complete)
 frame_lod_settings_gen.pack(side=tkinter.LEFT, padx=5)
 
-text_lod_settings = tkinter.Label(frame_lod_settings_gen, text="Desired LoD generation:")
-text_lod_settings.pack()
-
 frame_lod_settings1 = tkinter.Frame(frame_lod_settings_gen)
-frame_lod_settings1.pack()
 frame_lod_settings2 = tkinter.Frame(frame_lod_settings_gen)
-frame_lod_settings2.pack()
 frame_lod_settings3 = tkinter.Frame(frame_lod_settings_gen)
-frame_lod_settings3.pack()
 frame_lod_settings4 = tkinter.Frame(frame_lod_settings_gen)
-frame_lod_settings4.pack()
 
 toggle_makelod00 = ttk.Checkbutton(frame_lod_settings1, text="LoD0.0", variable=settings.lod.lod00,
                                    command=lambda: [
@@ -276,37 +273,43 @@ toggle_makelod42 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.2",  variable
                                        IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 
-toggle_makelod00.pack(side=tkinter.LEFT)
-toggle_makelod02.pack(side=tkinter.LEFT)
-toggle_makelod03.pack(side=tkinter.LEFT)
-toggle_makelod04.pack(side=tkinter.LEFT)
-toggle_makelod10.pack(side=tkinter.LEFT)
-toggle_makelod12.pack(side=tkinter.LEFT)
-toggle_makelod13.pack(side=tkinter.LEFT)
-toggle_makelod22.pack(side=tkinter.LEFT)
-toggle_makelode1.pack(side=tkinter.LEFT)
-toggle_makelod32.pack(side=tkinter.LEFT)
-toggle_makelod50.pack(side=tkinter.LEFT)
-toggle_makelod40.pack(side=tkinter.LEFT)
-toggle_makelod41.pack(side=tkinter.LEFT)
-toggle_makelod42.pack(side=tkinter.LEFT)
-
-
 text_format_settings = tkinter.Label(frame_lod_settings_gen, text="Additional format:")
-text_format_settings.pack(pady=[5,0])
-
 frame_format_settings = tkinter.Frame(frame_lod_settings_gen)
-frame_format_settings.pack()
 
 toggle_make_obj = ttk.Checkbutton(frame_format_settings, text=".OBJ", variable=settings.other.make_obj)
-toggle_make_obj.pack(side=tkinter.LEFT, padx=5)
-
 toggle_make_step = ttk.Checkbutton(frame_format_settings, text=".STEP", variable=settings.other.make_step)
-toggle_make_step.pack(side=tkinter.LEFT, padx=5)
+
+if not is_simple:
+    text_lod_settings = tkinter.Label(frame_lod_settings_gen, text="Desired LoD generation:")
+    text_lod_settings.pack()
+
+    frame_lod_settings1.pack()
+    frame_lod_settings2.pack()
+    frame_lod_settings3.pack()
+    frame_lod_settings4.pack()
+
+    toggle_makelod00.pack(side=tkinter.LEFT)
+    toggle_makelod02.pack(side=tkinter.LEFT)
+    toggle_makelod03.pack(side=tkinter.LEFT)
+    toggle_makelod04.pack(side=tkinter.LEFT)
+    toggle_makelod10.pack(side=tkinter.LEFT)
+    toggle_makelod12.pack(side=tkinter.LEFT)
+    toggle_makelod13.pack(side=tkinter.LEFT)
+    toggle_makelod22.pack(side=tkinter.LEFT)
+    toggle_makelode1.pack(side=tkinter.LEFT)
+    toggle_makelod32.pack(side=tkinter.LEFT)
+    toggle_makelod50.pack(side=tkinter.LEFT)
+    toggle_makelod40.pack(side=tkinter.LEFT)
+    toggle_makelod41.pack(side=tkinter.LEFT)
+    toggle_makelod42.pack(side=tkinter.LEFT)
+
+    text_format_settings.pack(pady=[5, 0])
+    frame_format_settings.pack()
+    toggle_make_obj.pack(side=tkinter.LEFT, padx=5)
+    toggle_make_step.pack(side=tkinter.LEFT, padx=5)
 
 # makeSplit
 frame_lod_settings_sep = ttk.Separator(frame_lod_settings_complete, orient=tkinter.VERTICAL)
-frame_lod_settings_sep.pack(side=tkinter.LEFT, expand=True)
 
 separator_lod_settings = ttk.Separator(frame_lod_settings_sep, orient=tkinter.VERTICAL)
 separator_lod_settings.pack(fill='y', pady=40, padx=5, expand=True)
@@ -315,9 +318,6 @@ separator_lod_settings.pack(fill='y', pady=40, padx=5, expand=True)
 frame_lod_settings_foot = tkinter.Frame(frame_lod_settings_complete)
 frame_lod_settings_foot.pack(side=tkinter.RIGHT)
 
-text_lod_settings = tkinter.Label(frame_lod_settings_foot, text="Additional settings")
-text_lod_settings.pack()
-
 toggle_makeexterior = ttk.Checkbutton(frame_lod_settings_foot, text="Generate exteriors", variable=settings.other.make_exterior)
 toggle_makeinterior = ttk.Checkbutton(frame_lod_settings_foot, text="Generate interiors", variable=settings.other.make_interior)
 toggle_makefootprint = ttk.Checkbutton(frame_lod_settings_foot, text="Export footprint", variable=settings.footprint.make_footprint)
@@ -325,15 +325,22 @@ toggle_makeroofprint = ttk.Checkbutton(frame_lod_settings_foot, text="Export roo
 toggle_footprint_based = ttk.Checkbutton(frame_lod_settings_foot, text="Footprint based abstraction", variable=settings.footprint.footprint_based)
 toggle_ignore_IsExternal = ttk.Checkbutton(frame_lod_settings_foot, text="Ignore IsExternal", variable=settings.other.ignoreIsExternal)
 
-toggle_makeexterior.pack(side=tkinter.TOP, fill=tkinter.X)
-toggle_makeinterior.pack(side=tkinter.TOP, fill=tkinter.X)
-toggle_makefootprint.pack(side=tkinter.TOP, fill=tkinter.X)
-toggle_makeroofprint.pack(side=tkinter.TOP, fill=tkinter.X)
-toggle_footprint_based.pack(side=tkinter.TOP, fill=tkinter.X)
-toggle_ignore_IsExternal.pack(side=tkinter.TOP, fill=tkinter.X)
-
 separator2 = ttk.Separator(main_window, orient='horizontal')
-separator2.pack(fill='x', pady=10)
+
+if not is_simple:
+    frame_lod_settings_sep.pack(side=tkinter.LEFT, expand=True)
+
+    text_lod_settings = tkinter.Label(frame_lod_settings_foot, text="Additional settings")
+    text_lod_settings.pack()
+
+    toggle_makeexterior.pack(side=tkinter.TOP, fill=tkinter.X)
+    toggle_makeinterior.pack(side=tkinter.TOP, fill=tkinter.X)
+    toggle_makefootprint.pack(side=tkinter.TOP, fill=tkinter.X)
+    toggle_makeroofprint.pack(side=tkinter.TOP, fill=tkinter.X)
+    toggle_footprint_based.pack(side=tkinter.TOP, fill=tkinter.X)
+    toggle_ignore_IsExternal.pack(side=tkinter.TOP, fill=tkinter.X)
+
+    separator2.pack(fill='x', pady=10)
 
 # the voxel size that is desired
 frame_foot_voxel = tkinter.Frame(main_window)
@@ -351,6 +358,7 @@ entry_voxelsize = tkinter.Entry(
     width=size_entry_small,
     textvariable=settings.voxel.voxel_size
 )
+
 entry_voxelsize.pack(side=tkinter.LEFT)
 
 button_min_voxelsize = tkinter.Button(frame_voxel, text="-", width=size_button_small,
@@ -414,36 +422,39 @@ useDefault_toggle = ttk.Checkbutton(frame_div_objects,
                                     text="Use default div objects",
                                     variable=settings.div.use_default,
                                     command= lambda : IExtension.checkActiveToggles(toggle_dictionary, settings))
-useDefault_toggle.pack(side=tkinter.LEFT, padx=10)
 
 enableCustom_toggle = ttk.Checkbutton(frame_div_objects,
                                     text="Custom div objects",
                                     variable=settings.div.custom_enabled,
                                     command= lambda : IExtension.checkActiveToggles(toggle_dictionary, settings))
-enableCustom_toggle.pack(side=tkinter.LEFT)
+
+if not is_simple:
+    useDefault_toggle.pack(side=tkinter.LEFT, padx=10)
+    enableCustom_toggle.pack(side=tkinter.LEFT)
 
 # div communication
 message_div_objects.insert(tkinter.INSERT, settings.getDefaultDivObjects())
 message_div_objects['state'] = tkinter.DISABLED
-message_div_objects.pack(fill='x', padx=5, pady=10)
 
 frame_final_objects = tkinter.Frame(main_window)
-frame_final_objects.pack()
-
 simpleGeo_toggle = ttk.Checkbutton(frame_final_objects,
                                     text="Use simple geo",
                                     variable=settings.div.simple_geo)
-simpleGeo_toggle.pack(side=tkinter.LEFT, padx=5)
 
 highTol_toggle = ttk.Checkbutton(frame_final_objects,
                                     text="Use high precision",
                                     variable=settings.other.highTol_toggle)
-highTol_toggle.pack(side=tkinter.LEFT, padx=5)
 
 voxelFil_toggle = ttk.Checkbutton(frame_final_objects,
                                     text="Use voxel filtering",
                                     variable=settings.voxel.voxel_filter)
-voxelFil_toggle.pack(side=tkinter.LEFT, padx=5)
+
+if not is_simple:
+    message_div_objects.pack(fill='x', padx=5, pady=10)
+    frame_final_objects.pack()
+    simpleGeo_toggle.pack(side=tkinter.LEFT, padx=5)
+    highTol_toggle.pack(side=tkinter.LEFT, padx=5)
+    voxelFil_toggle.pack(side=tkinter.LEFT, padx=5)
 
 # other buttons
 separator3 = ttk.Separator(main_window, orient='horizontal')

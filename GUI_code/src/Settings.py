@@ -146,7 +146,7 @@ class GuiSettings:
 
         return output_string
 
-    def dump_to_json(self):
+    def dump_to_json(self, bool_run, bool_store):
 
         input_path =  self.paths.input_path.get()
         output_path = self.paths.output_path.get()
@@ -176,7 +176,7 @@ class GuiSettings:
             return False
 
         # check if an LoD output is selected
-        if not (lod_settings.hasLoD()):
+        if not lod_settings.hasLoD() and bool_run:
             tkinter.messagebox.showerror("Settings Error", "Error: no LoD output selected")
             return False
 
@@ -189,11 +189,11 @@ class GuiSettings:
         input_path_list = [part.replace('{', '').replace('}', '') for part in input_path_list]
 
         for path in input_path_list:
-            if (not os.path.isfile(path)):
+            if (not os.path.isfile(path) and bool_run):
                 tkinter.messagebox.showerror("Settings Error", "Error: No Valid input file supplied")
                 return False
 
-        if (not os.path.isdir(os.path.dirname(output_path)) or len(output_path) == 0):
+        if (not os.path.isdir(os.path.dirname(output_path)) or len(output_path) == 0) and bool_run:
             tkinter.messagebox.showerror("Settings Error",
                                          "Error: No Valid output folder supplied\n (GUI can not create new folders)")
             return False
@@ -298,15 +298,18 @@ class GuiSettings:
         if (lod_settings.lod50.get()):
             lod_list.append(5.0)
         if (lod_settings.lod40.get()):
-            lod_list.append("4.0")
+            lod_list.append(4.0)
         if (lod_settings.lod41.get()):
-            lod_list.append("4.1")
+            lod_list.append(4.1)
         if (lod_settings.lod42.get()):
-            lod_list.append("4.2")
+            lod_list.append(4.2)
         json_dictionary["LoD output"] = lod_list
 
-        with open(json_path, "w") as outfile:
-            json.dump(json_dictionary, outfile)
+        if bool_store:
+            with open(json_path, "w") as outfile:
+                json.dump(json_dictionary, outfile)
+
+        self.json = json_dictionary
 
         return True;
 

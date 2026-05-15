@@ -14,7 +14,7 @@ import src.Settings as Settings
 import src.InterfaceExtension as IExtension
 
 # GUI version
-is_simple = False
+is_simple = True
 
 def findValidPath(code_path, addition):
     exe_path_root = "../Pre_Build/"
@@ -40,7 +40,7 @@ def runCode(settings,message_div_objects, bool_run):
     # because a text object has no variable we have to manually update the div objects when required
     settings.div.div_objects.set(message_div_objects.get('1.0', tkinter.END))
 
-    if not settings.dump_to_json(bool_run, True):
+    if not settings.dump_to_json():
         return
 
     # get schema of the file
@@ -547,12 +547,13 @@ load_config_menu.add_command(label="Custom pre-set", command= lambda:load_custom
 settings_menu.add_cascade(label="Load Config", menu=load_config_menu)
 settings_menu.add_cascade(label="Store Config", command= lambda: runCode(settings, message_div_objects, False))
 settings_menu.add_separator()
-settings_menu.add_cascade(label="Clean JSON", command= lambda: settings.clear_custom())
-settings_menu.add_cascade(label="Show summary", command= lambda: IExtension.summarywindow(settings))
+settings_menu.add_cascade(label="Clean JSON")
+settings_menu.add_cascade(label="Show summary")
 
 menubar.add_cascade(label="File", menu=settings_menu)
 menubar.add_cascade(label="About", command= lambda: webbrowser.open("https://github.com/tudelft3d/IFC_BuildingEnvExtractor"))
 
 main_window.config(menu=menubar)
+
 
 main_window.mainloop()

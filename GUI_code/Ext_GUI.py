@@ -29,7 +29,7 @@ def findValidPath(code_path, addition):
             return None
         return code_path
 
-def runCode(settings,message_div_objects, bool_run):
+def runCode(settings,message_div_objects, is_gen):
     ifc2_exe_path = "Ifc_Envelope_Extractor_ifc2x3.exe"
     ifc4_exe_path = "Ifc_Envelope_Extractor_ifc4.exe"
     ifc4x1_exe_path = "Ifc_Envelope_Extractor_ifc4x1.exe"
@@ -40,19 +40,34 @@ def runCode(settings,message_div_objects, bool_run):
     # because a text object has no variable we have to manually update the div objects when required
     settings.div.div_objects.set(message_div_objects.get('1.0', tkinter.END))
 
-    if not settings.dump_to_json(bool_run, True):
+    input_path_list = re.split(r'(?<!{) (?![^{]*})', settings.paths.input_path.get())
+    input_path_list = [part.replace('{', '').replace('}', '') for part in input_path_list]
+    json_path_end = "_config.json"
+
+    config_path = ""
+    if is_gen:
+        config_path = filedialog.asksaveasfilename(
+            filetypes=[("JSON file", ".json")],
+            defaultextension=".json",
+            initialfile=Path(input_path_list[0]).stem + json_path_end
+        )
+
+        if (len(config_path) == 0):
+            return
+
+    else:
+        config_path = "~temp" + json_path_end
+
+    if settings.cast_to_json(bool_run= not is_gen):
+        with open(config_path, "w") as outfile:
+            json.dump(settings.json, outfile)
+    else:
         return
 
     # get schema of the file
-    if not bool_run:
+    if is_gen:
         tkinter.messagebox.showinfo("succes", "Info: Config file has been successfully created")
         return
-
-    #TODO: \/ clean this up \/
-    input_path_list = re.split(r'(?<!{) (?![^{]*})', settings.paths.input_path.get())
-    input_path_list = [part.replace('{', '').replace('}', '') for part in input_path_list]
-    json_path = Path(input_path_list[0]).stem + "_config.json"
-    #TODO: /\ until here /\
 
     scheme_found = False
     for path in input_path_list:
@@ -61,37 +76,37 @@ def runCode(settings,message_div_objects, bool_run):
             if "FILE_SCHEMA(('IFC2X3'))" in line or "FILE_SCHEMA (('IFC2X3'))" in line:
                 code_path = findValidPath(ifc2_exe_path, "Ifc2x3")
                 if not(code_path == None):
-                    runExe(code_path, json_path)
+                    runExe(code_path, config_path)
                     scheme_found = True
                 break
             if  "FILE_SCHEMA(('IFC4'))" in line or "FILE_SCHEMA (('IFC4'))" in line:
                 code_path = findValidPath(ifc4_exe_path, "Ifc4")
                 if not (code_path == None):
-                    runExe(code_path, json_path)
+                    runExe(code_path, config_path)
                     scheme_found = True
                 break
             if  "FILE_SCHEMA(('IFC4X1'))" in line or "FILE_SCHEMA (('IFC4X1'))" in line:
                 code_path = findValidPath(ifc4x1_exe_path, "Ifc4x1")
                 if not (code_path == None):
-                    runExe(code_path, json_path)
+                    runExe(code_path, config_path)
                     scheme_found = True
                 break
             if  "FILE_SCHEMA(('IFC4X2'))" in line or "FILE_SCHEMA (('IFC4X2'))" in line:
                 code_path = findValidPath(ifc4x2_exe_path, "Ifc4x2")
                 if not (code_path == None):
-                    runExe(code_path, json_path)
+                    runExe(code_path, config_path)
                     scheme_found = True
                 break
             if "FILE_SCHEMA(('IFC4X3'))" in line or "FILE_SCHEMA (('IFC4X3'))" in line:
                 code_path = findValidPath(ifc4x3_exe_path, "Ifc4x3")
                 if not (code_path == None):
-                    runExe(code_path, json_path)
+                    runExe(code_path, config_path)
                     scheme_found = True
                 break
             if "FILE_SCHEMA(('IFC4X3_ADD2'))" in line or "FILE_SCHEMA (('IFC4X3_ADD2'))" in line:
                 code_path = findValidPath(ifc4x3ADD2_exe_path, "IFC4X3_ADD2")
                 if not (code_path == None):
-                    runExe(code_path, json_path)
+                    runExe(code_path, config_path)
                     scheme_found = True
                 break
 
@@ -103,7 +118,7 @@ def runCode(settings,message_div_objects, bool_run):
                                              "Error: Was unable to find IFC schema in file")
                 return
             counter += 1
-    os.remove(json_path)
+    os.remove(config_path)
     return
 
 def runExe(code_path, json_path):
@@ -134,7 +149,7 @@ def runExe(code_path, json_path):
                 else:
                     tkinter.messagebox.showerror("Processing Error", "Error: Error during process")
 
-            run_button.config(text="Run", command=lambda: runCode(settings, message_div_objects,  True))
+            run_button.config(text="Run", command=lambda: runCode(settings, message_div_objects,  False))
             close_button.config(state="normal")
         def stop_process():
             stop_event.set()
@@ -463,7 +478,7 @@ separator3.pack(fill='x', pady=10)
 frame_other = tkinter.Frame(main_window)
 frame_other.pack(fill=tkinter.X)
 
-run_button = tkinter.Button(frame_other, text="Run", width=size_button_normal, command=lambda: runCode(settings, message_div_objects, True))
+run_button = tkinter.Button(frame_other, text="Run", width=size_button_normal, command=lambda: runCode(settings, message_div_objects, False))
 run_button.pack(side=tkinter.LEFT, padx=(5,0))
 
 text_toolTip = tkinter.Label(frame_other, text="hover over settings for tooltip")
@@ -545,7 +560,7 @@ load_config_menu.add_separator()
 load_config_menu.add_command(label="Custom pre-set", command= lambda:load_custom_config(toggle_dictionary, settings))
 
 settings_menu.add_cascade(label="Load Config", menu=load_config_menu)
-settings_menu.add_cascade(label="Store Config", command= lambda: runCode(settings, message_div_objects, False))
+settings_menu.add_cascade(label="Store Config", command= lambda: runCode(settings, message_div_objects, True))
 settings_menu.add_separator()
 settings_menu.add_cascade(label="Clean JSON", command= lambda: settings.clear_custom())
 settings_menu.add_cascade(label="Show summary", command= lambda: IExtension.summarywindow(settings))

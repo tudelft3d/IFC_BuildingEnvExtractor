@@ -146,7 +146,7 @@ class GuiSettings:
 
         return output_string
 
-    def dump_to_json(self, bool_run, bool_store):
+    def cast_to_json(self, bool_run):
 
         input_path =  self.paths.input_path.get()
         output_path = self.paths.output_path.get()
@@ -197,8 +197,6 @@ class GuiSettings:
             tkinter.messagebox.showerror("Settings Error",
                                          "Error: No Valid output folder supplied\n (GUI can not create new folders)")
             return False
-
-        json_path = Path(input_path_list[0]).stem + "_config.json"
 
         # write data to json
         json_dictionary = self.json
@@ -304,10 +302,6 @@ class GuiSettings:
         if (lod_settings.lod42.get()):
             lod_list.append(4.2)
         json_dictionary["LoD output"] = lod_list
-
-        if bool_store:
-            with open(json_path, "w") as outfile:
-                json.dump(json_dictionary, outfile)
 
         self.json = json_dictionary
 

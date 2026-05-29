@@ -319,21 +319,21 @@ def populateConfigJson(load_config_menu, toggleDict, settings):
     return
 
 def summarywindow(settings):
-    main_window = tkinter.Tk()
-    main_window.geometry('500x590')
-    main_window.resizable(1, 0)
-    main_window.title("IfcEnvExtactor summary")
+    summary_window = tkinter.Tk()
+    summary_window.geometry('500x590')
+    summary_window.resizable(1, 0)
+    summary_window.title("IfcEnvExtactor summary")
 
     settings.cast_to_json(bool_run=False)
     # json to file
     json_string = getNestedJsonString(settings.json)
 
-    message_json_sum = tkinter.Text(main_window, width=300, bg="#F0F0F0")
+    message_json_sum = tkinter.Text(summary_window, width=300, bg="#F0F0F0")
     message_json_sum.insert(tkinter.INSERT, json_string)
     message_json_sum.pack(fill='both', expand=True, padx=5, pady=(10, 5))
 
-    close_button = tkinter.Button(main_window, text="Close", width=8,
-                                  command=lambda: main_window.destroy())
+    close_button = tkinter.Button(summary_window, text="Close", width=8,
+                                  command=lambda: summary_window.destroy())
     close_button.pack(side=tkinter.RIGHT, padx=(0, 5), pady=(0,5))
 
     return

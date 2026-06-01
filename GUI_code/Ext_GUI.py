@@ -1,3 +1,4 @@
+import copy
 import os
 import time
 import tkinter
@@ -13,11 +14,14 @@ from pathlib import Path
 import src.Settings as Settings
 import src.InterfaceExtension as IExtension
 
+# global var
 # GUI version
 is_simple = False
+preSet_path = "default"
+exe_path = "default"
 
 def findValidPath(code_path, addition):
-    exe_path_root = "../Pre_Build/"
+    exe_path_root = exe_path
 
     if (os.path.isfile(os.path.abspath(code_path))):
         return code_path
@@ -166,6 +170,51 @@ def runExe(code_path, json_path):
         tkinter.messagebox.showerror("Processing Error",
                                      "Error: Was unable to process the file")
     return
+
+
+def populateSettings():
+    if not os.path.isdir("./config/"):
+        os.mkdir("./config")
+
+    default_settings = {
+        "defaultConfigPath" : "./default_data/",
+        "extractorLoc" : "./application/"
+    }
+
+    json_str = json.dumps(default_settings)
+    with open("./config/settings.json", "w") as f:
+        f.write(json_str)
+
+    return
+def loadMem():
+    settings_path = "./config/settings.json"
+    if not os.path.exists(settings_path):
+        populateSettings()
+
+    global preSet_path
+    global exe_path
+
+    with open(settings_path, "r") as f:
+        settings_json = json.load(f)
+
+        if "defaultConfigPath" in settings_json:
+            dConfigPath = settings_json["defaultConfigPath"]
+
+            if os.path.isdir(dConfigPath):
+                preSet_path = dConfigPath
+
+        if "extractorLoc" in settings_json:
+            appPath = settings_json["extractorLoc"]
+
+            if os.path.isdir(appPath):
+                exe_path = copy.copy(appPath)
+            else:
+                tkinter.messagebox.showerror("Init Error",
+                                             "Error: unable to find app executables, please configure preferences")
+    return True
+
+if not loadMem():
+    exit()
 
 # main variables
 size_entry_small = 13
@@ -553,22 +602,28 @@ IExtension.checkActiveToggles(toggle_dictionary, settings)
 menubar = tkinter.Menu(main_window)
 menubar.config(fg="black", activeforeground="black", activeborderwidth=1, font="Monaco 11")
 
-settings_menu = tkinter.Menu(menubar, tearoff=False)
-load_config_menu = tkinter.Menu(settings_menu, tearoff=False)
-IExtension.populateConfigJson(load_config_menu, toggle_dictionary, settings)
+File_menu = tkinter.Menu(menubar, tearoff=False)
+load_config_menu = tkinter.Menu(File_menu, tearoff=False)
+IExtension.populateConfigJson(load_config_menu, toggle_dictionary, settings, preSet_path)
 load_config_menu.add_separator()
 load_config_menu.add_command(label="Custom pre-set", command= lambda:IExtension.load_custom_config(toggle_dictionary, settings))
 
-settings_menu.add_cascade(label="Load config", menu=load_config_menu)
+File_menu.add_cascade(label="Load config", menu=load_config_menu)
 if not is_simple:
-    settings_menu.add_cascade(label="Store config", command= lambda: runCode(settings, message_div_objects, True))
-settings_menu.add_separator()
+    File_menu.add_cascade(label="Store config", command= lambda: runCode(settings, message_div_objects, True))
+File_menu.add_separator()
 if not is_simple:
-    settings_menu.add_cascade(label="Clean JSON", command= lambda: settings.clear_custom())
-settings_menu.add_cascade(label="Show summary", command= lambda: IExtension.summarywindow(settings))
+    File_menu.add_cascade(label="Clean JSON", command= lambda: settings.clear_custom())
+File_menu.add_cascade(label="Show summary", command= lambda: IExtension.summarywindow(settings))
+File_menu.add_separator()
+File_menu.add_cascade(label="Preferences")
+menubar.add_cascade(label="File", menu=File_menu)
 
-menubar.add_cascade(label="File", menu=settings_menu)
-menubar.add_cascade(label="About", command= lambda: webbrowser.open("https://github.com/tudelft3d/IFC_BuildingEnvExtractor"))
+Settings_menu = tkinter.Menu(menubar, tearoff=False)
+
+
+Settings_menu.add_cascade(label="About", command= lambda: webbrowser.open("https://github.com/tudelft3d/IFC_BuildingEnvExtractor"))
+menubar.add_cascade(label="Help", menu=Settings_menu)
 
 main_window.config(menu=menubar)
 

@@ -290,8 +290,7 @@ def load_config(path, toggleDict, settings):
 
     return
 
-def populateConfigJson(load_config_menu, toggleDict, settings):
-    config_folder = "./default_data"
+def populateConfigJson(load_config_menu, toggleDict, settings, config_folder):
     if os.path.isdir(config_folder):
         for file in os.scandir(config_folder):
 
@@ -299,7 +298,7 @@ def populateConfigJson(load_config_menu, toggleDict, settings):
             current_file_count = 0
 
             if file.is_file() and file.name.lower().endswith(".json"):
-                pathstring = "./default_data/" + file.name
+                pathstring = config_folder + "/" + file.name
 
                 with open(pathstring, 'r') as json_file:
                     json_data = json.load(json_file)

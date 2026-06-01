@@ -17,8 +17,6 @@ import src.InterfaceExtension as IExtension
 # global var
 # GUI version
 is_simple = False
-preSet_path = "default"
-exe_path = "default"
 
 def findValidPath(code_path, addition):
     exe_path_root = exe_path
@@ -186,35 +184,26 @@ def populateSettings():
         f.write(json_str)
 
     return
-def loadMem():
+def loadMem(preferences):
     settings_path = "./config/settings.json"
     if not os.path.exists(settings_path):
         populateSettings()
-
-    global preSet_path
-    global exe_path
 
     with open(settings_path, "r") as f:
         settings_json = json.load(f)
 
         if "defaultConfigPath" in settings_json:
             dConfigPath = settings_json["defaultConfigPath"]
-
-            if os.path.isdir(dConfigPath):
-                preSet_path = dConfigPath
-
+            preferences.preSet_path = os.path.abspath(dConfigPath)
         if "extractorLoc" in settings_json:
             appPath = settings_json["extractorLoc"]
-
-            if os.path.isdir(appPath):
-                exe_path = copy.copy(appPath)
-            else:
+            if not os.path.isdir(appPath):
                 tkinter.messagebox.showerror("Init Error",
-                                             "Error: unable to find app executables, please configure preferences")
-    return True
+                                             "Error: unable to find app executables at "+ os.path.abspath(appPath) +
+                                             " , please configure preferences")
 
-if not loadMem():
-    exit()
+            preferences.exe_path = os.path.abspath(copy.copy(appPath))
+    return
 
 # main variables
 size_entry_small = 13
@@ -231,7 +220,11 @@ main_window.resizable(1,0)
 main_window.title("IfcEnvExtactor GUI")
 
 # create settings classes
-settings = Settings.GuiSettings();
+settings = Settings.GuiSettings()
+preferences = Settings.Preferences()
+
+loadMem(preferences)
+
 
 # the entry functions for the main ifc file
 text_file_browse = tkinter.Label(main_window, text="Input IFC path(s):")
@@ -604,7 +597,7 @@ menubar.config(fg="black", activeforeground="black", activeborderwidth=1, font="
 
 File_menu = tkinter.Menu(menubar, tearoff=False)
 load_config_menu = tkinter.Menu(File_menu, tearoff=False)
-IExtension.populateConfigJson(load_config_menu, toggle_dictionary, settings, preSet_path)
+IExtension.populateConfigJson(load_config_menu, toggle_dictionary, settings, preferences.preSet_path)
 load_config_menu.add_separator()
 load_config_menu.add_command(label="Custom pre-set", command= lambda:IExtension.load_custom_config(toggle_dictionary, settings))
 
@@ -616,11 +609,9 @@ if not is_simple:
     File_menu.add_cascade(label="Clean JSON", command= lambda: settings.clear_custom())
 File_menu.add_cascade(label="Show summary", command= lambda: IExtension.summarywindow(settings))
 File_menu.add_separator()
-File_menu.add_cascade(label="Preferences")
+File_menu.add_cascade(label="Preferences", command= lambda: IExtension.preferencesWindow(settings, size_button_normal, preferences))
 menubar.add_cascade(label="File", menu=File_menu)
-
 Settings_menu = tkinter.Menu(menubar, tearoff=False)
-
 
 Settings_menu.add_cascade(label="About", command= lambda: webbrowser.open("https://github.com/tudelft3d/IFC_BuildingEnvExtractor"))
 menubar.add_cascade(label="Help", menu=Settings_menu)

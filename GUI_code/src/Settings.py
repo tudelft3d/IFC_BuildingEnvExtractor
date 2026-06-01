@@ -6,6 +6,13 @@ import os
 import json
 from pathlib import Path
 
+class Preferences:
+    def __init__(self):
+        self.preSet_path = ""
+        self.exe_path = ""
+        return
+
+
 class SettingsBase:
     settings = {}
 

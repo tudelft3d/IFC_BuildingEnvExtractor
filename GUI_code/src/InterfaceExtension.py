@@ -1,6 +1,6 @@
 # this file contains all the functions related to extending the main interface functionality
 import tkinter
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 from pathlib import Path
 import os
 import json
@@ -319,6 +319,83 @@ def populateConfigJson(load_config_menu, toggleDict, settings, config_folder):
                 if current_file_count >= max_files:
                     break
     return
+
+def pre_browse(text_field, window):
+    new_entry = filedialog.askdirectory()
+    if len(new_entry) == 0:
+        return;
+
+    text_field.delete(0, tkinter.END)
+    text_field.insert(0, new_entry)
+    window.focus_force()
+    return new_entry
+
+def update_pref( preferences):
+    # dump to json
+    if not os.path.isdir("./config/"):
+        os.mkdir("./config")
+
+    default_settings = {
+        "defaultConfigPath" :  preferences.preSet_path,
+        "extractorLoc" :  preferences.exe_path
+    }
+
+    json_str = json.dumps(default_settings)
+    with open("./config/settings.json", "w") as f:
+        f.write(json_str)
+
+    return
+
+def update_preset_loc(preferences, text_field, window):
+    preferences.preSet_path = pre_browse(text_field, window)
+    update_pref(preferences)
+    return;
+
+def update_app_loc(preferences, text_field, window):
+    preferences.exe_path = pre_browse(text_field, window)
+    update_pref(preferences)
+    return;
+
+def preferencesWindow(settings, size_button_normal, preferences):
+    tk_app_path = tkinter.StringVar()
+    tk_app_path.set(preferences.exe_path)
+    tk_preSet_path = tkinter.StringVar()
+    tk_preSet_path.set(preferences.preSet_path)
+
+    preferencesWindow = tkinter.Tk()
+    preferencesWindow.geometry('500x170')
+    preferencesWindow.resizable(1, 0)
+    preferencesWindow.title("IfcEnvExtactor preferences")
+
+    text_env_loc_browse = tkinter.Label(preferencesWindow, text="location of the env_extractor (dir):")
+    text_env_loc_browse.pack(pady=4)
+    frame_env_loc_browse = tkinter.Frame(preferencesWindow)
+    frame_env_loc_browse.pack(fill=tkinter.X)
+    entry_env_loc_path = tkinter.Entry(frame_env_loc_browse, textvariable=tk_app_path)
+    entry_env_loc_path.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True, padx=4)
+    entry_env_loc_path.insert(0, preferences.exe_path)
+    button_browse = tkinter.Button(frame_env_loc_browse, text="Browse", width=size_button_normal,
+                                   command=lambda: update_app_loc(preferences, entry_env_loc_path, preferencesWindow))
+    button_browse.pack(side=tkinter.LEFT, padx=4)
+
+    separator = ttk.Separator(preferencesWindow, orient='horizontal')
+    separator.pack(fill='x', pady=10)
+
+    # the entry functions for the output file
+    text_config_browse = tkinter.Label(preferencesWindow, text="location of pre-set files")
+    text_config_browse.pack()
+    frame_config_browse = tkinter.Frame(preferencesWindow)
+    frame_config_browse.pack(fill=tkinter.X)
+    entry_configpath = tkinter.Entry(frame_config_browse, text="Output path", textvariable=settings.paths.output_path)
+    entry_configpath.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True, padx=4)
+    entry_configpath.insert(0, preferences.preSet_path)
+    button_browse2 = tkinter.Button(frame_config_browse, text="Browse", width=size_button_normal,
+                                    command=lambda:  update_preset_loc(preferences, entry_configpath, preferencesWindow))
+    button_browse2.pack(side=tkinter.LEFT, padx=4)
+
+    close_button = tkinter.Button(preferencesWindow, text="Close", width=size_button_normal,
+                                  command=lambda: preferencesWindow.destroy())
+    close_button.pack(side=tkinter.RIGHT, padx=(0, 5))
 
 def summarywindow(settings):
     summary_window = tkinter.Tk()

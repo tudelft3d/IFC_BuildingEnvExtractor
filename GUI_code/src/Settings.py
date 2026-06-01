@@ -1,4 +1,5 @@
 # This file contains all the variables that are required to set up a config json and their related functions
+import copy
 import tkinter
 import re
 import os
@@ -16,6 +17,16 @@ class SettingsBase:
     def reset(self):
         for name, (_, default_value) in self.settings.items():
             getattr(self, name).set(default_value)
+
+    def clone(self):
+        cls = self.__class__
+        new_obj = cls.__new__(cls)
+
+        for name, (var_type, _) in self.settings.items():
+            old_var = getattr(self, name)
+            setattr(new_obj, name, var_type(value=old_var.get()))
+
+        return new_obj
 
 class LoDSettings(SettingsBase):
     settings = {
@@ -92,6 +103,11 @@ class DivSettings(SettingsBase):
         ]
         return
 
+    def clone(self):
+        new_obj = super().clone()
+        new_obj.default_div_ob = list(self.default_div_ob)
+        return new_obj
+
     def reset(self):
         super().reset()
 
@@ -123,6 +139,20 @@ class GuiSettings:
         self.other = OtherSettings()
         self.json = {}; # container for advanced settings if a custom json is loaded
         return
+
+    def clone(self):
+        new_obj = GuiSettings.__new__(GuiSettings)
+
+        new_obj.paths = self.paths.clone()
+        new_obj.lod = self.lod.clone()
+        new_obj.voxel = self.voxel.clone()
+        new_obj.footprint = self.footprint.clone()
+        new_obj.div = self.div.clone()
+        new_obj.other = self.other.clone()
+
+        new_obj.json = dict(self.json)
+
+        return new_obj
 
     def reset(self):
         self.paths.reset()
@@ -318,59 +348,65 @@ class GuiSettings:
             return True
         return False
 
-    def set_from_json(self, json_data):
-        if type(json_data) != dict:
-            tkinter.messagebox.showerror("Config File Error",
-                                         "Error: File is not a config file")
-            return
 
-        self.reset()
-        self.json = json_data
-
+    def set_filePaths_from_json(self, json_data, old_settings):
         if "Filepaths" in json_data:
             json_data_filepaths = json_data["Filepaths"]
 
             if type(json_data_filepaths) != dict:
                 self.throw_error_window("Filepaths")
-                return
+                return False
 
             if "Input" in json_data_filepaths:
                 json_input_path_list = json_data_filepaths["Input"]
-                input_path = ""
 
                 if type(json_input_path_list) != list:
                     self.throw_error_window("Filepaths Input")
-                    return
+                    return False
 
+                input_path = ""
                 for path in json_input_path_list:
                     if type(path) != str:
                         self.throw_error_window("Filepaths Input")
-                        return
-
+                        return False
+                    if len(path) == 0:
+                        continue
                     input_path += path + " "
-                self.paths.input_path.set(input_path)
+
+                if len(input_path) != 0:
+                    self.paths.input_path.set(input_path)
+                else:
+                    self.paths.input_path.set(old_settings.paths.input_path.get())
 
             if "Output" in json_data_filepaths:
                 output_path = json_data_filepaths["Output"]
                 if (type(output_path) != str):
                     self.throw_error_window("Filepaths Output")
-                    return
+                    return False
 
-                self.paths.output_path.set(output_path)
+                if len(output_path) != 0:
+                    self.paths.output_path.set(output_path)
+            return True
 
+        # path data can be fetched from the old settings
+        self.paths.input_path.set(old_settings.paths.input_path.get())
+        self.paths.output_path.set(old_settings.paths.output_path.get())
+        return True
+
+    def set_voxel_from_json(self, json_data):
         if "Voxel" in json_data:
             json_data_voxel = json_data["Voxel"]
 
             if type(json_data_voxel) != dict:
                 self.throw_error_window("Voxel")
-                return
+                return False
 
             if "Size" in json_data_voxel:
                 voxel_size = json_data_voxel["Size"]
 
                 if type(voxel_size) not in [int, float]:
                     self.throw_error_window("Voxel Size")
-                    return
+                    return False
 
                 self.voxel.voxel_size.set(voxel_size)
                 self.voxel.voxel_unit.set("m")
@@ -379,28 +415,30 @@ class GuiSettings:
 
                 if not self.is_bool(filter_setting):
                     self.throw_error_window("Voxel filter")
-                    return
+                    return False
 
                 self.voxel.voxel_filter.set(json_data["filter"])
+        return True
 
+    def set_IFC_from_json(self, json_data):
         if "IFC" in json_data:
             json_data_ifc = json_data["IFC"]
             if (type(json_data_ifc) != dict):
                 self.throw_error_window("IFC")
-                return
+                return False
 
             if "Default div" in json_data_ifc:
                 default_div_setting = json_data_ifc["Default div"]
                 if not self.is_bool(default_div_setting):
                     self.throw_error_window("IFC Default div")
-                    return
+                    return False
                 self.div.use_default.set(default_div_setting)
 
             if "Ignore proxy" in json_data_ifc:
                 ignore_proxy_setting = json_data_ifc["Ignore proxy"]
                 if not self.is_bool(ignore_proxy_setting):
                     self.throw_error_window("IFC Default div")
-                    return
+                    return False
                 self.div.ignore_proxy.set(ignore_proxy_setting)
 
             if "Div objects" in json_data_ifc:
@@ -409,12 +447,12 @@ class GuiSettings:
 
                 if type(div_object_list) != list:
                     self.throw_error_window("IFC Div objects")
-                    return
+                    return False
 
                 for div_object in div_object_list:
                     if type(div_object) != str:
                         self.throw_error_window("IFC Div objects")
-                        return
+                        return False
 
                     div_object_string += div_object + "\t"
 
@@ -424,7 +462,7 @@ class GuiSettings:
 
                 if not self.is_bool(ignore_void_val):
                     self.throw_error_window("IFC Ignore voids")
-                    return
+                    return False
 
                 if ignore_void_val == 0 or ignore_void_val == False:
                     self.div.simple_geo.set(False)
@@ -436,7 +474,7 @@ class GuiSettings:
 
                 if not self.is_bool(find_footprint_val):
                     self.throw_error_window("IFC Fetch footprint elevation")
-                    return
+                    return False
 
                 if find_footprint_val == True or find_footprint_val == 1:
                     self.footprint.find_footprint_elev.set(True)
@@ -448,26 +486,28 @@ class GuiSettings:
 
                 if not self.is_bool(ignore_IsExternal_val):
                     self.throw_error_window("IFC Ignore IsExternal")
-                    return
+                    return False
 
                 if ignore_IsExternal_val == True or ignore_IsExternal_val == 1:
                     self.other.ignoreIsExternal.set(True)
                 else:
                     self.other.ignoreIsExternal.set(False)
+        return True
 
+    def set_json_from_json(self, json_data):
         if "JSON" in json_data:
             json_data_json = json_data["JSON"]
 
             if type(json_data_json) != dict:
                 self.throw_error_window("JSON")
-                return
+                return False
 
             if "Footprint elevation" in json_data_json:
                 footprint_elevation = json_data_json["Footprint elevation"]
 
                 if type(footprint_elevation) not in [int, float]:
                     self.throw_error_window("JSON Footprint elevation")
-                    return
+                    return False
 
                 self.footprint.footprint_elevation.set(footprint_elevation)
                 self.footprint.footprint_unit.set("m")
@@ -477,7 +517,7 @@ class GuiSettings:
 
                 if not self.is_bool(gen_exterior_val):
                     self.throw_error_window("JSON Generate exterior")
-                    return
+                    return False
 
                 if gen_exterior_val == True or gen_exterior_val == 1:
                     self.other.make_exterior.set(True)
@@ -489,7 +529,7 @@ class GuiSettings:
 
                 if not self.is_bool(gen_interior_val):
                     self.throw_error_window("JSON Generate interior")
-                    return
+                    return False
 
                 if gen_interior_val == True or gen_interior_val == 1:
                     self.other.make_interior.set(True)
@@ -501,7 +541,7 @@ class GuiSettings:
 
                 if not self.is_bool(gen_footprint_val):
                     self.throw_error_window("JSON Generate footprint")
-                    return
+                    return False
 
                 if gen_footprint_val == True or gen_footprint_val == 1:
                     self.footprint.make_footprint.set(True)
@@ -513,7 +553,7 @@ class GuiSettings:
 
                 if not self.is_bool(gen_roofprint_val):
                     self.throw_error_window("JSON Generate roof outline")
-                    return
+                    return False
                 if gen_roofprint_val == True or gen_roofprint_val == 1:
                     self.footprint.make_roofprint.set(True)
                 else:
@@ -524,19 +564,21 @@ class GuiSettings:
 
                 if not self.is_bool(base_footprint_val):
                     self.throw_error_window("JSON Footprint based")
-                    return
+                    return False
 
                 if base_footprint_val == True or base_footprint_val == 1:
                     self.footprint.footprint_based.set(True)
                 else:
                     self.footprint.footprint_based.set(False)
+        return True
 
+    def set_otherSettings_from_json(self, json_data):
         if "Generate report" in json_data:
             gen_report_val = json_data["Generate report"]
 
             if not self.is_bool(gen_report_val):
                 self.throw_error_window("JSON Generate report")
-                return
+                return False
 
             if gen_report_val == True or gen_report_val == 1:
                 self.other.make_report.set(True)
@@ -546,16 +588,16 @@ class GuiSettings:
         if "Output format" in json_data:
             json_data_format = json_data["Output format"]
 
-            if type(json_data_json) != dict:
+            if type(json_data_format) != dict:
                 self.throw_error_window("Output format")
-                return
+                return False
 
             if "STEP file" in json_data_format:
                 gen_step_val = json_data_format["STEP file"]
 
                 if not self.is_bool(gen_step_val):
                     self.throw_error_window("Output formatSTEP file")
-                    return
+                    return False
 
                 if gen_step_val == True or gen_step_val == 1:
                     self.other.make_step.set(True)
@@ -565,18 +607,20 @@ class GuiSettings:
 
                 if not self.is_bool(gen_obj_val):
                     self.throw_error_window("Output format OBJ file")
-                    return
+                    return False
 
                 if gen_obj_val == True or gen_obj_val == 1:
                     self.other.make_obj.set(True)
+        return True
 
+    def set_lod_from_json(self, json_data):
         if "LoD output" in json_data:
             self.lod.clearLoD()
             json_data_lod = json_data["LoD output"]
 
             if type(json_data_lod) != list:
                 self.throw_error_window("LoD output")
-                return
+                return False
 
             for lod in json_data_lod:
                 if lod == "0.0" or lod == 0.0:
@@ -593,8 +637,8 @@ class GuiSettings:
                     self.lod.lod12.set(1)
                 if lod == "1.3" or lod == 1.3:
                     self.lod.lod13.set(1)
-                if lod == "2.0" or lod == 2.0:
-                    self.lod.lod20.set(1)
+                if lod == "2.2" or lod == 2.2:
+                    self.lod.lod22.set(1)
                 if lod == "4.0" or lod == 4.0:
                     self.lod.lod40.set(1)
                 if lod == "4.1" or lod == 4.1:
@@ -607,4 +651,24 @@ class GuiSettings:
                     self.lod.lod32.set(1)
                 if lod == "5.0" or lod == 5.0:
                     self.lod.lod50.set(1)
-        return;
+        return True
+
+    def set_from_json(self, json_data):
+        if type(json_data) != dict:
+            tkinter.messagebox.showerror("Config File Error",
+                                         "Error: File is not a config file")
+            return
+
+        old_settings = self.clone();
+        self.reset()
+        self.json = json_data
+
+        if not self.set_filePaths_from_json(json_data, old_settings) or \
+                not self.set_voxel_from_json(json_data) or \
+                not self.set_IFC_from_json(json_data) or \
+                not self.set_json_from_json(json_data) or \
+                not self.set_otherSettings_from_json(json_data) or\
+                not self.set_lod_from_json(json_data) :
+            self.reset()
+            self = old_settings.clone()
+        return

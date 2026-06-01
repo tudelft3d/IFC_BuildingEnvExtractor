@@ -278,12 +278,15 @@ def load_config(path, toggleDict, settings):
     with open(path, 'r') as file:
         json_data = json.load(file)
 
+    if not isConfigJSON(json_data):
+        tkinter.messagebox.showerror("Config File Error",
+                                     "Error: File is not a config file")
+        return
+
     settings.set_from_json(json_data)
 
     # set the ui
     checkActiveToggles(toggleDict, settings)
-
-
 
     return
 

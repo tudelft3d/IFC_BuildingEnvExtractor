@@ -557,7 +557,7 @@ settings_menu = tkinter.Menu(menubar, tearoff=False)
 load_config_menu = tkinter.Menu(settings_menu, tearoff=False)
 IExtension.populateConfigJson(load_config_menu, toggle_dictionary, settings)
 load_config_menu.add_separator()
-load_config_menu.add_command(label="Custom pre-set", command= lambda:load_custom_config(toggle_dictionary, settings))
+load_config_menu.add_command(label="Custom pre-set", command= lambda:IExtension.load_custom_config(toggle_dictionary, settings))
 
 settings_menu.add_cascade(label="Load config", menu=load_config_menu)
 if not is_simple:

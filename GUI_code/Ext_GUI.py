@@ -173,6 +173,7 @@ def runExe(code_path, json_path):
 size_entry_small = 13
 size_button_small = 2
 size_button_normal = 8
+main_window_name_base = "IfcEnvExtractor GUI    |    "
 
 # setup the window and the grid
 main_window = tkinter.Tk()
@@ -181,7 +182,7 @@ if is_simple:
 else:
     main_window.geometry('500x590')
 main_window.resizable(1,0)
-main_window.title("IfcEnvExtactor GUI")
+main_window.title(main_window_name_base + "Untitled")
 
 # create settings classes
 settings = Settings.GuiSettings()
@@ -560,9 +561,10 @@ menubar.config(fg="black", activeforeground="black", activeborderwidth=1, font="
 
 File_menu = tkinter.Menu(menubar, tearoff=False)
 load_config_menu = tkinter.Menu(File_menu, tearoff=False)
-IExtension.populateConfigJson(load_config_menu, toggle_dictionary, settings, preferences.preSet_path)
+IExtension.populateConfigJson(load_config_menu, toggle_dictionary, settings, preferences.preSet_path, main_window)
 load_config_menu.add_separator()
-load_config_menu.add_command(label="Custom pre-set", command= lambda:IExtension.load_custom_config(toggle_dictionary, settings))
+load_config_menu.add_command(label="Custom pre-set",
+                             command= lambda:IExtension.load_custom_config(toggle_dictionary, settings, main_window))
 
 File_menu.add_cascade(label="Load config", menu=load_config_menu)
 if not is_simple:

@@ -289,7 +289,7 @@ def isConfigJSON(json_file):
             return False
     return True
 
-def load_custom_config(toggleDict, settings):
+def load_custom_config(toggleDict, settings, main_window):
     json_filepath = filedialog.askopenfilenames(
         filetypes=[("ConfigJSON", ".json")],
         defaultextension=".json")
@@ -302,10 +302,10 @@ def load_custom_config(toggleDict, settings):
                                      "Error: cannot find submitted config file")
         return
 
-    load_config(json_filepath[0], toggleDict, settings)
+    load_config(json_filepath[0], toggleDict, settings, main_window)
     return
 
-def load_config(path, toggleDict, settings):
+def load_config(path, toggleDict, settings, main_window):
     if not os.path.exists(path):
         tkinter.messagebox.showerror("Processing Error",
                                      "Error: cannot find default config files")
@@ -322,11 +322,15 @@ def load_config(path, toggleDict, settings):
     settings.set_from_json(json_data)
 
     # set the ui
+    if "Alias" in json_data:
+        main_window.title(main_window.title().split("|")[0] + "|    " + json_data["Alias"])
+    else:
+        main_window.title(main_window.title().split("|")[0] + "|    " + os.path.basename(path) )
     checkActiveToggles(toggleDict, settings)
 
     return
 
-def populateConfigJson(load_config_menu, toggleDict, settings, config_folder):
+def populateConfigJson(load_config_menu, toggleDict, settings, config_folder, main_window):
     if os.path.isdir(config_folder):
         for file in os.scandir(config_folder):
 
@@ -349,7 +353,7 @@ def populateConfigJson(load_config_menu, toggleDict, settings, config_folder):
 
                 load_config_menu.add_command(label=config_name,
                                              command=lambda p=pathstring:
-                                             load_config(p, toggleDict, settings)
+                                             load_config(p, toggleDict, settings, main_window)
                                              )
                 current_file_count += 1
                 if current_file_count >= max_files:

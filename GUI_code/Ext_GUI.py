@@ -1,4 +1,3 @@
-import copy
 import os
 import time
 import tkinter
@@ -170,41 +169,6 @@ def runExe(code_path, json_path):
     return
 
 
-def populateSettings():
-    if not os.path.isdir("./config/"):
-        os.mkdir("./config")
-
-    default_settings = {
-        "defaultConfigPath" : "./default_data/",
-        "extractorLoc" : "./application/"
-    }
-
-    json_str = json.dumps(default_settings)
-    with open("./config/settings.json", "w") as f:
-        f.write(json_str)
-
-    return
-def loadMem(preferences):
-    settings_path = "./config/settings.json"
-    if not os.path.exists(settings_path):
-        populateSettings()
-
-    with open(settings_path, "r") as f:
-        settings_json = json.load(f)
-
-        if "defaultConfigPath" in settings_json:
-            dConfigPath = settings_json["defaultConfigPath"]
-            preferences.preSet_path = os.path.abspath(dConfigPath)
-        if "extractorLoc" in settings_json:
-            appPath = settings_json["extractorLoc"]
-            if not os.path.isdir(appPath):
-                tkinter.messagebox.showerror("Init Error",
-                                             "Error: unable to find app executables at "+ os.path.abspath(appPath) +
-                                             " , please configure preferences")
-
-            preferences.exe_path = os.path.abspath(copy.copy(appPath))
-    return
-
 # main variables
 size_entry_small = 13
 size_button_small = 2
@@ -223,8 +187,7 @@ main_window.title("IfcEnvExtactor GUI")
 settings = Settings.GuiSettings()
 preferences = Settings.Preferences()
 
-loadMem(preferences)
-
+IExtension.loadMem(preferences)
 
 # the entry functions for the main ifc file
 text_file_browse = tkinter.Label(main_window, text="Input IFC path(s):")

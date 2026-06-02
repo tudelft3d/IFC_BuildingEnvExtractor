@@ -2,6 +2,7 @@
 import tkinter
 from tkinter import filedialog, ttk
 from pathlib import Path
+import copy
 import os
 import json
 
@@ -44,6 +45,41 @@ class Tooltip:
             self.tooltip_window.destroy()
             self.tooltip_window = None
         return
+
+def populateSettings():
+    if not os.path.isdir("./config/"):
+        os.mkdir("./config")
+
+    default_settings = {
+        "defaultConfigPath" : "./default_data/",
+        "extractorLoc" : "./application/"
+    }
+
+    json_str = json.dumps(default_settings)
+    with open("./config/settings.json", "w") as f:
+        f.write(json_str)
+
+    return
+def loadMem(preferences):
+    settings_path = "./config/settings.json"
+    if not os.path.exists(settings_path):
+        populateSettings()
+
+    with open(settings_path, "r") as f:
+        settings_json = json.load(f)
+
+        if "defaultConfigPath" in settings_json:
+            dConfigPath = settings_json["defaultConfigPath"]
+            preferences.preSet_path = os.path.abspath(dConfigPath)
+        if "extractorLoc" in settings_json:
+            appPath = settings_json["extractorLoc"]
+            if not os.path.isdir(appPath):
+                tkinter.messagebox.showerror("Init Error",
+                                             "Error: unable to find app executables at "+ os.path.abspath(appPath) +
+                                             " , please configure preferences")
+
+            preferences.exe_path = os.path.abspath(copy.copy(appPath))
+    return
 
 def toggleEnableDiv(toggleDict, settings):
 
@@ -330,7 +366,7 @@ def pre_browse(text_field, window):
     window.focus_force()
     return new_entry
 
-def update_pref( preferences):
+def update_pref(preferences):
     # dump to json
     if not os.path.isdir("./config/"):
         os.mkdir("./config")
@@ -374,26 +410,29 @@ def preferencesWindow(settings, size_button_normal, preferences):
     entry_env_loc_path = tkinter.Entry(frame_env_loc_browse, textvariable=tk_app_path)
     entry_env_loc_path.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True, padx=4)
     entry_env_loc_path.insert(0, preferences.exe_path)
-    button_browse = tkinter.Button(frame_env_loc_browse, text="Browse", width=size_button_normal,
-                                   command=lambda: update_app_loc(preferences, entry_env_loc_path, preferencesWindow))
+    button_browse = tkinter.Button(frame_env_loc_browse, text="Browse", width=size_button_normal)
     button_browse.pack(side=tkinter.LEFT, padx=4)
 
     separator = ttk.Separator(preferencesWindow, orient='horizontal')
     separator.pack(fill='x', pady=10)
 
     # the entry functions for the output file
-    text_config_browse = tkinter.Label(preferencesWindow, text="location of pre-set files")
+    text_config_browse = tkinter.Label(preferencesWindow, text="location of the pre-set files (dir):")
     text_config_browse.pack()
     frame_config_browse = tkinter.Frame(preferencesWindow)
     frame_config_browse.pack(fill=tkinter.X)
     entry_configpath = tkinter.Entry(frame_config_browse, text="Output path", textvariable=settings.paths.output_path)
     entry_configpath.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True, padx=4)
     entry_configpath.insert(0, preferences.preSet_path)
-    button_browse2 = tkinter.Button(frame_config_browse, text="Browse", width=size_button_normal,
-                                    command=lambda:  update_preset_loc(preferences, entry_configpath, preferencesWindow))
+    button_browse2 = tkinter.Button(frame_config_browse, text="Browse", width=size_button_normal)
     button_browse2.pack(side=tkinter.LEFT, padx=4)
 
-    close_button = tkinter.Button(preferencesWindow, text="Close", width=size_button_normal,
+    save_button = tkinter.Button(preferencesWindow, text="Save", width=size_button_normal,
+                                 command=lambda: [update_preset_loc(preferences, entry_configpath, preferencesWindow),
+                                                                    preferencesWindow.destroy()])
+    save_button.pack(side=tkinter.LEFT, padx=(5,0))
+
+    close_button = tkinter.Button(preferencesWindow, text="Cancel", width=size_button_normal,
                                   command=lambda: preferencesWindow.destroy())
     close_button.pack(side=tkinter.RIGHT, padx=(0, 5))
 

@@ -356,20 +356,24 @@ def populateConfigJson(load_config_menu, toggleDict, settings, config_folder):
                     break
     return
 
-def pre_browse(text_field, window):
+def pre_browse(text_field, window, text_var):
     new_entry = filedialog.askdirectory()
     if len(new_entry) == 0:
         return;
 
+    text_var.set(new_entry)
     text_field.delete(0, tkinter.END)
     text_field.insert(0, new_entry)
     window.focus_force()
     return new_entry
 
-def update_pref(preferences):
+def update_pref(preferences, loc_app, loc_pre_set):
     # dump to json
     if not os.path.isdir("./config/"):
         os.mkdir("./config")
+
+    preferences.preSet_path = loc_pre_set.get()
+    preferences.exe_path = loc_app.get()
 
     default_settings = {
         "defaultConfigPath" :  preferences.preSet_path,
@@ -381,16 +385,6 @@ def update_pref(preferences):
         f.write(json_str)
 
     return
-
-def update_preset_loc(preferences, text_field, window):
-    preferences.preSet_path = pre_browse(text_field, window)
-    update_pref(preferences)
-    return;
-
-def update_app_loc(preferences, text_field, window):
-    preferences.exe_path = pre_browse(text_field, window)
-    update_pref(preferences)
-    return;
 
 def preferencesWindow(settings, size_button_normal, preferences):
     tk_app_path = tkinter.StringVar()
@@ -410,7 +404,10 @@ def preferencesWindow(settings, size_button_normal, preferences):
     entry_env_loc_path = tkinter.Entry(frame_env_loc_browse, textvariable=tk_app_path)
     entry_env_loc_path.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True, padx=4)
     entry_env_loc_path.insert(0, preferences.exe_path)
-    button_browse = tkinter.Button(frame_env_loc_browse, text="Browse", width=size_button_normal)
+    button_browse = tkinter.Button(frame_env_loc_browse, text="Browse", width=size_button_normal,
+                                   command=lambda: pre_browse(text_field= entry_env_loc_path,
+                                                              window= preferencesWindow,
+                                                              text_var=tk_app_path))
     button_browse.pack(side=tkinter.LEFT, padx=4)
 
     separator = ttk.Separator(preferencesWindow, orient='horizontal')
@@ -421,14 +418,17 @@ def preferencesWindow(settings, size_button_normal, preferences):
     text_config_browse.pack()
     frame_config_browse = tkinter.Frame(preferencesWindow)
     frame_config_browse.pack(fill=tkinter.X)
-    entry_configpath = tkinter.Entry(frame_config_browse, text="Output path", textvariable=settings.paths.output_path)
+    entry_configpath = tkinter.Entry(frame_config_browse, text="Output path", textvariable=tk_preSet_path)
     entry_configpath.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True, padx=4)
     entry_configpath.insert(0, preferences.preSet_path)
-    button_browse2 = tkinter.Button(frame_config_browse, text="Browse", width=size_button_normal)
+    button_browse2 = tkinter.Button(frame_config_browse, text="Browse", width=size_button_normal,
+                                    command=lambda: pre_browse(text_field= entry_configpath,
+                                                               window= preferencesWindow,
+                                                               text_var= tk_preSet_path))
     button_browse2.pack(side=tkinter.LEFT, padx=4)
 
     save_button = tkinter.Button(preferencesWindow, text="Save", width=size_button_normal,
-                                 command=lambda: [update_preset_loc(preferences, entry_configpath, preferencesWindow),
+                                 command=lambda: [ update_pref(preferences, tk_app_path, tk_preSet_path),
                                                                     preferencesWindow.destroy()])
     save_button.pack(side=tkinter.LEFT, padx=(5,0))
 

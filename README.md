@@ -7,7 +7,7 @@ The IfcEnvelopeExtractor enables users to automatically abstract BIM models (IFC
 
 The development of this conversion process is one of the steps required to close the gap between architecture/BIM and GIS/city scale models.
 
-**Development of this tool was funded up until the end of December 2025.**
+**Development of this tool is funded up until the end of August 2026.**
 
 ![Output of the IfcEnvelopeExtractor](https://raw.githubusercontent.com/jaspervdv/IFC_BuildingEnvExtractor/master/Images/EnvExtractorExample.gif "An example of the created LoD envelopes based on an input file")
 
@@ -51,7 +51,12 @@ Below you can see a speed comparison between the software and manual processing 
 
 ![Output of the IfcEnvelopeExtractor](https://raw.githubusercontent.com/jaspervdv/IFC_BuildingEnvExtractor/master/Images/EnvExtractorExample2.gif "Speed comparison of the software making LoD 0.0, 0.2, 1.0, 1.2, 2.2 and 3.2 vs making LoD 2.2 by hand.")
 
-This program is part of the [CHEK project](https://chekdbp.eu/). Any suggestions, additions or changes that are made by other users could also be utilized by this project.  
+This application and the related research has been funded by multiple parties:
+
+* [CHEK project](https://chekdbp.eu/) (2022-2025)
+* [Geonovum](https://www.geonovum.nl/) (2025)
+* [VNG](https://vng.nl/) (2026)
+* [Municipality of Eindhoven](https://www.eindhoven.nl/) (2026)
 
 ## Table of Content
 

@@ -30,13 +30,6 @@ def findValidPath(code_path, addition):
         return code_path
 
 def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}):
-    ifc2_exe_path = "Ifc_Envelope_Extractor_ifc2x3.exe"
-    ifc4_exe_path = "Ifc_Envelope_Extractor_ifc4.exe"
-    ifc4x1_exe_path = "Ifc_Envelope_Extractor_ifc4x1.exe"
-    ifc4x2_exe_path = "Ifc_Envelope_Extractor_ifc4x2.exe"
-    ifc4x3_exe_path = "Ifc_Envelope_Extractor_ifc4x3.exe"
-    ifc4x3ADD2_exe_path = "Ifc_Envelope_Extractor_ifc4x3add2.exe"
-
     # because a text object has no variable we have to manually update the div objects when required
     settings.div.div_objects.set(message_div_objects.get('1.0', tkinter.END))
 
@@ -72,51 +65,20 @@ def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}
             main_window.title(main_window.title().split("|")[0] + "|    " + settings.json["Alias"])
         else:
             main_window.title(main_window.title().split("|")[0] + "|    " + os.path.basename(config_path))
-
         return
 
     scheme_found = False
     exe_folder_path = preferences.exe_path
     for path in input_path_list:
-        counter = 0
+        counter = 0;
         for line in open(path):
-            if "FILE_SCHEMA(('IFC2X3'))" in line or "FILE_SCHEMA (('IFC2X3'))" in line:
-                code_path = findValidPath(exe_folder_path + "\\" + ifc2_exe_path, "Ifc2x3")
-                if not(code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-            if  "FILE_SCHEMA(('IFC4'))" in line or "FILE_SCHEMA (('IFC4'))" in line:
-                code_path = findValidPath(exe_folder_path + "\\" + ifc4_exe_path, "Ifc4")
-                if not (code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-            if  "FILE_SCHEMA(('IFC4X1'))" in line or "FILE_SCHEMA (('IFC4X1'))" in line:
-                code_path = findValidPath(exe_folder_path + "\\" + ifc4x1_exe_path, "Ifc4x1")
-                if not (code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-            if  "FILE_SCHEMA(('IFC4X2'))" in line or "FILE_SCHEMA (('IFC4X2'))" in line:
-                code_path = findValidPath(exe_folder_path + "\\" + ifc4x2_exe_path, "Ifc4x2")
-                if not (code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-            if "FILE_SCHEMA(('IFC4X3'))" in line or "FILE_SCHEMA (('IFC4X3'))" in line:
-                code_path = findValidPath(exe_folder_path + "\\" + ifc4x3_exe_path, "Ifc4x3")
-                if not (code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-            if "FILE_SCHEMA(('IFC4X3_ADD2'))" in line or "FILE_SCHEMA (('IFC4X3_ADD2'))" in line:
-                code_path = findValidPath(exe_folder_path + "\\" + ifc4x3ADD2_exe_path, "IFC4X3_ADD2")
-                if not (code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-
+            for exe_key, exe_name in preferences.exe_names.items():
+                if "FILE_SCHEMA(('{}'))".format(exe_key.upper()) in line or "FILE_SCHEMA (('{}'))".format(exe_key.upper()) in line:
+                    code_path = findValidPath(exe_folder_path + "\\" + exe_name, exe_key)
+                    if not (code_path == None):
+                        runExe(code_path, config_path)
+                        scheme_found = True
+                    break
             if scheme_found:
                 break
 

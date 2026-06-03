@@ -77,6 +77,18 @@ def loadMem(preferences):
                 tkinter.messagebox.showerror("Init Error",
                                              "Error: unable to find app executables at "+ os.path.abspath(appPath) +
                                              " , please configure preferences")
+            else:
+                exe_found = False
+                for exe_key, exe_name in preferences.exe_names.items():
+                    if not os.path.isfile(appPath + "\\" + exe_name):
+                        continue
+                    exe_found = True
+                    break
+
+                if not exe_found:
+                    tkinter.messagebox.showerror("Init Error",
+                                                 "Error: unable to find app executables at " + os.path.abspath( appPath)
+                                                 + " , please configure preferences")
 
             preferences.exe_path = os.path.abspath(copy.copy(appPath))
     return
@@ -387,6 +399,8 @@ def update_pref(preferences, loc_app, loc_pre_set):
     json_str = json.dumps(default_settings)
     with open("./config/settings.json", "w") as f:
         f.write(json_str)
+
+    loadMem(preferences)
 
     return
 

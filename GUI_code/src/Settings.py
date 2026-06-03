@@ -10,6 +10,14 @@ class Preferences:
     def __init__(self):
         self.preSet_path = ""
         self.exe_path = ""
+        self.exe_names = {
+            "Ifc2x3" : "Ifc_Envelope_Extractor_ifc2x3.exe",
+            "Ifc4" : "Ifc_Envelope_Extractor_ifc4.exe",
+            "Ifc4x1" : "Ifc_Envelope_Extractor_ifc4x1.exe",
+            "Ifc4x2" : "Ifc_Envelope_Extractor_ifc4x2.exe",
+            "Ifc4x3" : "Ifc_Envelope_Extractor_ifc4x3.exe",
+            "Ifc4x3ADD2" : "Ifc_Envelope_Extractor_ifc4x3add2.exe"
+        }
         return
 
 

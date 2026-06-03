@@ -18,19 +18,18 @@ import src.InterfaceExtension as IExtension
 is_simple = False
 
 def findValidPath(code_path, addition):
-    exe_path_root = exe_path
 
     if (os.path.isfile(os.path.abspath(code_path))):
         return code_path
     else:
-        code_path = exe_path_root + code_path
+        print(code_path)
         if not (os.path.isfile(os.path.abspath(code_path))):
             tkinter.messagebox.showerror("Exe Error",
                                          "Error: Unable to find suitable executable (" + addition + ")")
             return None
         return code_path
 
-def runCode(settings,message_div_objects, is_gen):
+def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}):
     ifc2_exe_path = "Ifc_Envelope_Extractor_ifc2x3.exe"
     ifc4_exe_path = "Ifc_Envelope_Extractor_ifc4.exe"
     ifc4x1_exe_path = "Ifc_Envelope_Extractor_ifc4x1.exe"
@@ -68,44 +67,51 @@ def runCode(settings,message_div_objects, is_gen):
     # get schema of the file
     if is_gen:
         tkinter.messagebox.showinfo("succes", "Info: Config file has been successfully created")
+
+        if "Alias" in settings.json:
+            main_window.title(main_window.title().split("|")[0] + "|    " + settings.json["Alias"])
+        else:
+            main_window.title(main_window.title().split("|")[0] + "|    " + os.path.basename(config_path))
+
         return
 
     scheme_found = False
+    exe_folder_path = preferences.exe_path
     for path in input_path_list:
         counter = 0
         for line in open(path):
             if "FILE_SCHEMA(('IFC2X3'))" in line or "FILE_SCHEMA (('IFC2X3'))" in line:
-                code_path = findValidPath(ifc2_exe_path, "Ifc2x3")
+                code_path = findValidPath(exe_folder_path + "\\" + ifc2_exe_path, "Ifc2x3")
                 if not(code_path == None):
                     runExe(code_path, config_path)
                     scheme_found = True
                 break
             if  "FILE_SCHEMA(('IFC4'))" in line or "FILE_SCHEMA (('IFC4'))" in line:
-                code_path = findValidPath(ifc4_exe_path, "Ifc4")
+                code_path = findValidPath(exe_folder_path + "\\" + ifc4_exe_path, "Ifc4")
                 if not (code_path == None):
                     runExe(code_path, config_path)
                     scheme_found = True
                 break
             if  "FILE_SCHEMA(('IFC4X1'))" in line or "FILE_SCHEMA (('IFC4X1'))" in line:
-                code_path = findValidPath(ifc4x1_exe_path, "Ifc4x1")
+                code_path = findValidPath(exe_folder_path + "\\" + ifc4x1_exe_path, "Ifc4x1")
                 if not (code_path == None):
                     runExe(code_path, config_path)
                     scheme_found = True
                 break
             if  "FILE_SCHEMA(('IFC4X2'))" in line or "FILE_SCHEMA (('IFC4X2'))" in line:
-                code_path = findValidPath(ifc4x2_exe_path, "Ifc4x2")
+                code_path = findValidPath(exe_folder_path + "\\" + ifc4x2_exe_path, "Ifc4x2")
                 if not (code_path == None):
                     runExe(code_path, config_path)
                     scheme_found = True
                 break
             if "FILE_SCHEMA(('IFC4X3'))" in line or "FILE_SCHEMA (('IFC4X3'))" in line:
-                code_path = findValidPath(ifc4x3_exe_path, "Ifc4x3")
+                code_path = findValidPath(exe_folder_path + "\\" + ifc4x3_exe_path, "Ifc4x3")
                 if not (code_path == None):
                     runExe(code_path, config_path)
                     scheme_found = True
                 break
             if "FILE_SCHEMA(('IFC4X3_ADD2'))" in line or "FILE_SCHEMA (('IFC4X3_ADD2'))" in line:
-                code_path = findValidPath(ifc4x3ADD2_exe_path, "IFC4X3_ADD2")
+                code_path = findValidPath(exe_folder_path + "\\" + ifc4x3ADD2_exe_path, "IFC4X3_ADD2")
                 if not (code_path == None):
                     runExe(code_path, config_path)
                     scheme_found = True
@@ -150,7 +156,7 @@ def runExe(code_path, json_path):
                 else:
                     tkinter.messagebox.showerror("Processing Error", "Error: Error during process")
 
-            run_button.config(text="Run", command=lambda: runCode(settings, message_div_objects,  False))
+            run_button.config(text="Run", command=lambda: runCode(preferences, settings, message_div_objects,  False))
             close_button.config(state="normal")
         def stop_process():
             stop_event.set()
@@ -484,7 +490,7 @@ separator3.pack(fill='x', pady=10)
 frame_other = tkinter.Frame(main_window)
 frame_other.pack(fill=tkinter.X)
 
-run_button = tkinter.Button(frame_other, text="Run", width=size_button_normal, command=lambda: runCode(settings, message_div_objects, False))
+run_button = tkinter.Button(frame_other, text="Run", width=size_button_normal, command=lambda: runCode(preferences, settings, message_div_objects, False))
 run_button.pack(side=tkinter.LEFT, padx=(5,0))
 
 text_toolTip = tkinter.Label(frame_other, text="hover over settings for tooltip")
@@ -568,7 +574,7 @@ load_config_menu.add_command(label="Custom pre-set",
 
 File_menu.add_cascade(label="Load config", menu=load_config_menu)
 if not is_simple:
-    File_menu.add_cascade(label="Store config", command= lambda: runCode(settings, message_div_objects, True))
+    File_menu.add_cascade(label="Store config", command= lambda: runCode(preferences, settings, message_div_objects, True, main_window= main_window))
 File_menu.add_separator()
 if not is_simple:
     File_menu.add_cascade(label="Clean JSON", command= lambda: settings.clear_custom())

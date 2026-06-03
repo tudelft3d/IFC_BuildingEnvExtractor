@@ -115,20 +115,40 @@ IfcEnvelopeExtractor can also be operated via an GUI. This GUI enables the user 
 
 The GUI can be accessed via two routes:
 
-* In the Pre_Build folder the *Ext_GUI.exe* will start the GUI. Make sure this .exe is always in the same folder as the *Extractor.exe* files.
+* In the Pre_Build folder the *Ext_GUI.exe* or *Ext_simple_GUI.exe* will start the GUI or simple GUI respectively.
 * In the GUI_code folder the python file will also start the GUI. This would require the user to have python installed on their system.
 
-<div align="center" width="100%">
-    <img src="./Images/GUI_example.JPG" alt= “The general layout of the GUI in version v0.4” width="400">
-</div>
+<figure align="center" width="100%">
+    <img src="./Images/GUI_example.JPG" alt= “The general layout of the full GUI in version v0.4” width="47%">
+    <img src="./Images/GUI_simple_example.JPG" alt= “The general layout of the simple GUI in version v0.4” width="47%">
+    <figcaption>The general layout of the full GUI (left) and simple GUI (right) in version v0.4</figcaption>
+</figure>
 
-Only a subset of the settings is available from the GUI, if more advanced settings are required a configuration JSON file has to be created. This can be initialized by using the generate button instead of the run button. This will generate a configuration JSON representing the settings set in the GUI and place it in the same folder as the GUI. This configuration JSON can then further be edited. For more info related to the settings see [here](#configuration-json). This section also explains the settings that can be accessed via the GUI.
+Only a subset of the settings are available from the GUI, if more advanced settings are required a configuration JSON file has to be created. This can be done completely manually, but the GUI can also help. By going to “File -> Store config” the current settings set in the GUI can be saved to a configJSON file which can be used as is, or further edited with more advanced settings. For more info related to the settings see [here](#configuration-json). This section also explains the settings that can be accessed via the GUI.
 
-<div align="center" width="100%">
-    <img src="./Images/GUI_example_customJSON.JPG" alt= “Isolation of the location of the pre-set configJSON files” width="300">
-</div>
+<figure align="center" width="100%">
+    <img src="./Images/GUI_example_customJSON.JPG" alt= “The location of the pre-set configJSON files” width="47%">
+    <figcaption>The location of the pre-set configJSON files</figcaption>
+</figure>
 
-The GUI also give the option to load pre-set configJSON files. These will be accessible in the top bar via "Settings -> Load Config". The "Load config" menu is populated with files that are stored in the *default-data* folder that is located in the same folder as the GUI. By default this folder is populated with config files that generate output that meet the requirements of geometry for the Dutch BAG, BGT and 3DBAG databases. Users can add their own config files in this folder which will be added to the "Load Config" upon reopening the GUI (with a max of 10 files). Other configJSON files can be opened via "Settings -> Load Config -> Custom pre-set".
+The GUI also give the option to load pre-set configJSON files. These will be accessible in the top bar via "File -> load Config". The "Load config" menu is populated with files that are stored in the *default-data* folder that is located in the same folder as the GUI. By default this folder is populated with config files that generate output that meet the requirements of geometry for the Dutch BAG, BGT and 3DBAG databases. Users can add their own config files in this folder. These will be added to the "Load Config" menu upon reopening the GUI (with a max of 10 files). Other configJSON files can be opened via "File -> Load Config -> Custom pre-set".
+
+Via "File -> Preferences" the folder can be changed from which "File -> Load config" is populated. This can be useful if there is a different folder where these pre made config files are stored.
+
+<figure align="center" width="100%">
+    <img src="./Images/GUI_startup_error.JPG" alt= “The error shown on startup if executables cannot be found”  width="47%">
+    <img src="./Images/GUI_running_error.JPG" alt= “The error shown on running the extractor if executables cannot be found” width="39.2%">
+    <figcaption>If the GUI is unable to find the folder where the executables are stored it will throw an error on GUI startup (left) or on running the extractor (right). This can be resolved by updating the env_extractor path in the preferences menu </figcaption>
+</figure>
+
+The "File -> Preferences" menu also allows the user to change the location where the envelope extractor executables (.exe) files are stored. By default the GUI looks for the executables in the same folder as the GUI or a folder named *binary* that is placed in the same folder as the GUI. If the executables are placed at a non-default location and this is not specified in the preference menu the GUI will throw an error on startup and on running of the extractor.
+
+<figure align="center" width="100%">
+    <img src="./Images/GUI_jsonSummary_example.JPG" alt= “The summary window showing the summary of the generic starting data of the GUI width="47%">
+    <figcaption>The summary window showing the summary of the generic starting data of the GUI</figcaption>
+</figure>
+
+A pre-loaded config file can also store settings that are not exposed in the GUI. To see the complete configuration go to "File -> Show Summary". If these settings are not desired, it is possible to remove these unexposed "advanced" settings by using "File -> Clean JSON". This will remove every setting that the GUI can not set. This option is not available in the simple GUI to avoid accidental errors.
 
 ## Input file requirements
 

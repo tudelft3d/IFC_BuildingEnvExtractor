@@ -52,7 +52,7 @@ def populateSettings():
 
     default_settings = {
         "defaultConfigPath" : "./default_data/",
-        "extractorLoc" : "./application/"
+        "extractorLoc" : "./binary/"
     }
 
     json_str = json.dumps(default_settings)
@@ -60,7 +60,7 @@ def populateSettings():
         f.write(json_str)
 
     return
-def loadMem(preferences):
+def loadMem(preferences, is_flexible = True):
     settings_path = "./config/settings.json"
     if not os.path.exists(settings_path):
         populateSettings()
@@ -80,8 +80,13 @@ def loadMem(preferences):
             else:
                 exe_found = False
                 for exe_key, exe_name in preferences.exe_names.items():
-                    if not os.path.isfile(appPath + "\\" + exe_name):
-                        continue
+                    if is_flexible:
+                        if not os.path.isfile(appPath + "\\" + exe_name) and not os.path.isfile(".\\" + exe_name):
+                            continue
+                    else:
+                        if not os.path.isfile(appPath + "\\" + exe_name):
+                            continue
+
                     exe_found = True
                     break
 
@@ -400,7 +405,7 @@ def update_pref(preferences, loc_app, loc_pre_set):
     with open("./config/settings.json", "w") as f:
         f.write(json_str)
 
-    loadMem(preferences)
+    loadMem(preferences, False)
 
     return
 

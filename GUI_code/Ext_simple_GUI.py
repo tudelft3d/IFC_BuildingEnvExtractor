@@ -13,30 +13,19 @@ from pathlib import Path
 import src.Settings as Settings
 import src.InterfaceExtension as IExtension
 
+# global var
 # GUI version
 is_simple = True
 
 def findValidPath(code_path, addition):
-    exe_path_root = "../Pre_Build/"
-
     if (os.path.isfile(os.path.abspath(code_path))):
         return code_path
     else:
-        code_path = exe_path_root + code_path
         if not (os.path.isfile(os.path.abspath(code_path))):
-            tkinter.messagebox.showerror("Exe Error",
-                                         "Error: Unable to find suitable executable (" + addition + ")")
             return None
         return code_path
 
-def runCode(settings,message_div_objects, is_gen):
-    ifc2_exe_path = "Ifc_Envelope_Extractor_ifc2x3.exe"
-    ifc4_exe_path = "Ifc_Envelope_Extractor_ifc4.exe"
-    ifc4x1_exe_path = "Ifc_Envelope_Extractor_ifc4x1.exe"
-    ifc4x2_exe_path = "Ifc_Envelope_Extractor_ifc4x2.exe"
-    ifc4x3_exe_path = "Ifc_Envelope_Extractor_ifc4x3.exe"
-    ifc4x3ADD2_exe_path = "Ifc_Envelope_Extractor_ifc4x3add2.exe"
-
+def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}):
     # because a text object has no variable we have to manually update the div objects when required
     settings.div.div_objects.set(message_div_objects.get('1.0', tkinter.END))
 
@@ -67,49 +56,31 @@ def runCode(settings,message_div_objects, is_gen):
     # get schema of the file
     if is_gen:
         tkinter.messagebox.showinfo("succes", "Info: Config file has been successfully created")
+
+        if "Alias" in settings.json:
+            main_window.title(main_window.title().split("|")[0] + "|    " + settings.json["Alias"])
+        else:
+            main_window.title(main_window.title().split("|")[0] + "|    " + os.path.basename(config_path))
         return
 
     scheme_found = False
+    exe_folder_path = preferences.exe_path
     for path in input_path_list:
-        counter = 0
+        counter = 0;
         for line in open(path):
-            if "FILE_SCHEMA(('IFC2X3'))" in line or "FILE_SCHEMA (('IFC2X3'))" in line:
-                code_path = findValidPath(ifc2_exe_path, "Ifc2x3")
-                if not(code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-            if  "FILE_SCHEMA(('IFC4'))" in line or "FILE_SCHEMA (('IFC4'))" in line:
-                code_path = findValidPath(ifc4_exe_path, "Ifc4")
-                if not (code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-            if  "FILE_SCHEMA(('IFC4X1'))" in line or "FILE_SCHEMA (('IFC4X1'))" in line:
-                code_path = findValidPath(ifc4x1_exe_path, "Ifc4x1")
-                if not (code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-            if  "FILE_SCHEMA(('IFC4X2'))" in line or "FILE_SCHEMA (('IFC4X2'))" in line:
-                code_path = findValidPath(ifc4x2_exe_path, "Ifc4x2")
-                if not (code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-            if "FILE_SCHEMA(('IFC4X3'))" in line or "FILE_SCHEMA (('IFC4X3'))" in line:
-                code_path = findValidPath(ifc4x3_exe_path, "Ifc4x3")
-                if not (code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-            if "FILE_SCHEMA(('IFC4X3_ADD2'))" in line or "FILE_SCHEMA (('IFC4X3_ADD2'))" in line:
-                code_path = findValidPath(ifc4x3ADD2_exe_path, "IFC4X3_ADD2")
-                if not (code_path == None):
-                    runExe(code_path, config_path)
-                    scheme_found = True
-                break
-
+            for exe_key, exe_name in preferences.exe_names.items():
+                if "FILE_SCHEMA(('{}'))".format(exe_key.upper()) in line or "FILE_SCHEMA (('{}'))".format(exe_key.upper()) in line:
+                    code_path = findValidPath(exe_folder_path + "\\" + exe_name, exe_key)
+                    if code_path == None:
+                        code_path = findValidPath(".\\" + exe_name, exe_key)
+                    if code_path != None:
+                        runExe(code_path, config_path)
+                        scheme_found = True
+                    else:
+                        tkinter.messagebox.showerror("Exe Error",
+                                                     "Error: Unable to find suitable executable (" + exe_key + ")")
+                        return
+                    break
             if scheme_found:
                 break
 
@@ -149,7 +120,7 @@ def runExe(code_path, json_path):
                 else:
                     tkinter.messagebox.showerror("Processing Error", "Error: Error during process")
 
-            run_button.config(text="Run", command=lambda: runCode(settings, message_div_objects,  False))
+            run_button.config(text="Run", command=lambda: runCode(preferences, settings, message_div_objects,  False))
             close_button.config(state="normal")
         def stop_process():
             stop_event.set()
@@ -167,10 +138,12 @@ def runExe(code_path, json_path):
                                      "Error: Was unable to process the file")
     return
 
+
 # main variables
 size_entry_small = 13
 size_button_small = 2
 size_button_normal = 8
+main_window_name_base = "IfcEnvExtractor GUI    |    "
 
 # setup the window and the grid
 main_window = tkinter.Tk()
@@ -179,10 +152,13 @@ if is_simple:
 else:
     main_window.geometry('500x590')
 main_window.resizable(1,0)
-main_window.title("IfcEnvExtactor GUI")
+main_window.title(main_window_name_base + "Untitled")
 
 # create settings classes
-settings = Settings.GuiSettings();
+settings = Settings.GuiSettings()
+preferences = Settings.Preferences()
+
+IExtension.loadMem(preferences)
 
 # the entry functions for the main ifc file
 text_file_browse = tkinter.Label(main_window, text="Input IFC path(s):")
@@ -478,7 +454,7 @@ separator3.pack(fill='x', pady=10)
 frame_other = tkinter.Frame(main_window)
 frame_other.pack(fill=tkinter.X)
 
-run_button = tkinter.Button(frame_other, text="Run", width=size_button_normal, command=lambda: runCode(settings, message_div_objects, False))
+run_button = tkinter.Button(frame_other, text="Run", width=size_button_normal, command=lambda: runCode(preferences, settings, message_div_objects, False))
 run_button.pack(side=tkinter.LEFT, padx=(5,0))
 
 text_toolTip = tkinter.Label(frame_other, text="hover over settings for tooltip")
@@ -553,22 +529,27 @@ IExtension.checkActiveToggles(toggle_dictionary, settings)
 menubar = tkinter.Menu(main_window)
 menubar.config(fg="black", activeforeground="black", activeborderwidth=1, font="Monaco 11")
 
-settings_menu = tkinter.Menu(menubar, tearoff=False)
-load_config_menu = tkinter.Menu(settings_menu, tearoff=False)
-IExtension.populateConfigJson(load_config_menu, toggle_dictionary, settings)
+File_menu = tkinter.Menu(menubar, tearoff=False)
+load_config_menu = tkinter.Menu(File_menu, tearoff=False)
+IExtension.populateConfigJson(load_config_menu, toggle_dictionary, settings, preferences.preSet_path, main_window)
 load_config_menu.add_separator()
-load_config_menu.add_command(label="Custom pre-set", command= lambda:IExtension.load_custom_config(toggle_dictionary, settings))
+load_config_menu.add_command(label="Custom pre-set",
+                             command= lambda:IExtension.load_custom_config(toggle_dictionary, settings, main_window))
 
-settings_menu.add_cascade(label="Load config", menu=load_config_menu)
+File_menu.add_cascade(label="Load config", menu=load_config_menu)
 if not is_simple:
-    settings_menu.add_cascade(label="Store config", command= lambda: runCode(settings, message_div_objects, True))
-settings_menu.add_separator()
+    File_menu.add_cascade(label="Store config", command= lambda: runCode(preferences, settings, message_div_objects, True, main_window= main_window))
+File_menu.add_separator()
 if not is_simple:
-    settings_menu.add_cascade(label="Clean JSON", command= lambda: settings.clear_custom())
-settings_menu.add_cascade(label="Show summary", command= lambda: IExtension.summarywindow(settings))
+    File_menu.add_cascade(label="Clean JSON", command= lambda: settings.clear_custom())
+File_menu.add_cascade(label="Show summary", command= lambda: IExtension.summarywindow(settings))
+File_menu.add_separator()
+File_menu.add_cascade(label="Preferences", command= lambda: IExtension.preferencesWindow(settings, size_button_normal, preferences))
+menubar.add_cascade(label="File", menu=File_menu)
+Settings_menu = tkinter.Menu(menubar, tearoff=False)
 
-menubar.add_cascade(label="File", menu=settings_menu)
-menubar.add_cascade(label="About", command= lambda: webbrowser.open("https://github.com/tudelft3d/IFC_BuildingEnvExtractor"))
+Settings_menu.add_cascade(label="About", command= lambda: webbrowser.open("https://github.com/tudelft3d/IFC_BuildingEnvExtractor"))
+menubar.add_cascade(label="Help", menu=Settings_menu)
 
 main_window.config(menu=menubar)
 

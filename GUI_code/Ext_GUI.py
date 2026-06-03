@@ -18,14 +18,10 @@ import src.InterfaceExtension as IExtension
 is_simple = False
 
 def findValidPath(code_path, addition):
-
     if (os.path.isfile(os.path.abspath(code_path))):
         return code_path
     else:
-        print(code_path)
         if not (os.path.isfile(os.path.abspath(code_path))):
-            tkinter.messagebox.showerror("Exe Error",
-                                         "Error: Unable to find suitable executable (" + addition + ")")
             return None
         return code_path
 
@@ -75,9 +71,15 @@ def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}
             for exe_key, exe_name in preferences.exe_names.items():
                 if "FILE_SCHEMA(('{}'))".format(exe_key.upper()) in line or "FILE_SCHEMA (('{}'))".format(exe_key.upper()) in line:
                     code_path = findValidPath(exe_folder_path + "\\" + exe_name, exe_key)
-                    if not (code_path == None):
+                    if code_path == None:
+                        code_path = findValidPath(".\\" + exe_name, exe_key)
+                    if code_path != None:
                         runExe(code_path, config_path)
                         scheme_found = True
+                    else:
+                        tkinter.messagebox.showerror("Exe Error",
+                                                     "Error: Unable to find suitable executable (" + exe_key + ")")
+                        return
                     break
             if scheme_found:
                 break

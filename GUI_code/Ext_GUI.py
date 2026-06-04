@@ -544,7 +544,7 @@ if not is_simple:
     File_menu.add_cascade(label="Clean JSON", command= lambda: settings.clear_custom())
 File_menu.add_cascade(label="Show summary", command= lambda: IExtension.summarywindow(settings))
 File_menu.add_separator()
-File_menu.add_cascade(label="Preferences", command= lambda: IExtension.preferencesWindow(settings, size_button_normal, preferences))
+File_menu.add_cascade(label="Preferences", command= lambda: IExtension.preferencesWindow(main_window, settings, size_button_normal, preferences))
 menubar.add_cascade(label="File", menu=File_menu)
 Settings_menu = tkinter.Menu(menubar, tearoff=False)
 

@@ -377,7 +377,7 @@ def populateConfigJson(load_config_menu, toggleDict, settings, config_folder, ma
                     break
     return
 
-def pre_browse(text_field, window, text_var):
+def pre_browse(text_field, text_var):
     new_entry = filedialog.askdirectory()
     if len(new_entry) == 0:
         return;
@@ -385,7 +385,6 @@ def pre_browse(text_field, window, text_var):
     text_var.set(new_entry)
     text_field.delete(0, tkinter.END)
     text_field.insert(0, new_entry)
-    window.focus_force()
     return new_entry
 
 def update_pref(preferences, loc_app, loc_pre_set):
@@ -409,16 +408,26 @@ def update_pref(preferences, loc_app, loc_pre_set):
 
     return
 
-def preferencesWindow(settings, size_button_normal, preferences):
+def preferencesWindow(main_window, settings, size_button_normal, preferences):
     tk_app_path = tkinter.StringVar()
     tk_app_path.set(preferences.exe_path)
     tk_preSet_path = tkinter.StringVar()
     tk_preSet_path.set(preferences.preSet_path)
 
-    preferencesWindow = tkinter.Tk()
-    preferencesWindow.geometry('500x170')
+    preferencesWindow = tkinter.Toplevel(main_window)
+    x_size = 500
+    y_size = 170
+    x_coord =  main_window.winfo_rootx() + (main_window.winfo_width() - x_size) // 2
+    y_coord = main_window.winfo_rooty() + 30
+
+    preferencesWindow.geometry('%dx%d+%d+%d' % (x_size, y_size, x_coord, y_coord))
     preferencesWindow.resizable(1, 0)
+
     preferencesWindow.title("IfcEnvExtactor preferences")
+
+    preferencesWindow.transient(main_window)
+    preferencesWindow.grab_set()
+    preferencesWindow.focus_set()
 
     text_env_loc_browse = tkinter.Label(preferencesWindow, text="location of the env_extractor (dir):")
     text_env_loc_browse.pack(pady=4)
@@ -426,10 +435,10 @@ def preferencesWindow(settings, size_button_normal, preferences):
     frame_env_loc_browse.pack(fill=tkinter.X)
     entry_env_loc_path = tkinter.Entry(frame_env_loc_browse, textvariable=tk_app_path)
     entry_env_loc_path.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True, padx=4)
+    entry_env_loc_path.delete(0, tkinter.END)
     entry_env_loc_path.insert(0, preferences.exe_path)
     button_browse = tkinter.Button(frame_env_loc_browse, text="Browse", width=size_button_normal,
                                    command=lambda: pre_browse(text_field= entry_env_loc_path,
-                                                              window= preferencesWindow,
                                                               text_var=tk_app_path))
     button_browse.pack(side=tkinter.LEFT, padx=4)
 
@@ -443,10 +452,10 @@ def preferencesWindow(settings, size_button_normal, preferences):
     frame_config_browse.pack(fill=tkinter.X)
     entry_configpath = tkinter.Entry(frame_config_browse, text="Output path", textvariable=tk_preSet_path)
     entry_configpath.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True, padx=4)
+    entry_configpath.delete(0, tkinter.END)
     entry_configpath.insert(0, preferences.preSet_path)
     button_browse2 = tkinter.Button(frame_config_browse, text="Browse", width=size_button_normal,
                                     command=lambda: pre_browse(text_field= entry_configpath,
-                                                               window= preferencesWindow,
                                                                text_var= tk_preSet_path))
     button_browse2.pack(side=tkinter.LEFT, padx=4)
 

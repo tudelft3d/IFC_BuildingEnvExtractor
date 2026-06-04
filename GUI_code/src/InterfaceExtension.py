@@ -214,23 +214,25 @@ def browse_(box, is_folder, window, initial_file):
 
     if (not is_folder):
         folder_path =  filedialog.askopenfilenames(
+            title= "Input file",
             filetypes=[("IFC file", ".ifc")],
             defaultextension=".ifc"
         )
     else:
         # get the inital filename
         initial_file_name =  Path(initial_file).name
-        folder_path = filedialog.asksaveasfilename(
+        folder_path = [filedialog.asksaveasfilename(
+            title="Output file",
             filetypes=[("JSON file", ".json"), ("CityJSON file", ".city.json")],
             defaultextension="city.json",
             initialfile=Path(initial_file_name).stem + ".json"
-        )
+        )]
 
     if len(folder_path) == 0:
         return
 
     box.delete(0, tkinter.END)
-    box.insert(0, folder_path)
+    box.insert(0, "; ".join(folder_path))
     window.focus_force()
     return
 
@@ -260,8 +262,10 @@ def decrement(value_field, increment_value):
 
 def updateDivMessage(toggleDict, settings):
     message_window = toggleDict["message_div_objects"]
-    message_window['state'] = tkinter.NORMAL
 
+    isLocked = ( message_window['state'] == tkinter.DISABLED)
+
+    message_window['state'] = tkinter.NORMAL
     if settings.div.use_default.get():
         message_window.delete('1.0', tkinter.END)
         message_window.insert(tkinter.INSERT, settings.getDefaultDivObjects() + "\t")
@@ -269,7 +273,9 @@ def updateDivMessage(toggleDict, settings):
         message_window.delete('1.0', tkinter.END)
     if not settings.div.ignore_proxy.get():
         message_window.insert(tkinter.END, "IfcBuildingElementProxy")
-    message_window['state'] = tkinter.DISABLED
+
+    if isLocked:
+        message_window['state'] = tkinter.DISABLED
     return
 
 def makeUnitWindow(frame_location, unit_variable):
@@ -382,6 +388,8 @@ def pre_browse(text_field, text_var):
     if len(new_entry) == 0:
         return;
 
+    print(new_entry)
+
     text_var.set(new_entry)
     text_field.delete(0, tkinter.END)
     text_field.insert(0, new_entry)
@@ -392,8 +400,8 @@ def update_pref(preferences, loc_app, loc_pre_set):
     if not os.path.isdir("./config/"):
         os.mkdir("./config")
 
-    preferences.preSet_path = loc_pre_set.get()
-    preferences.exe_path = loc_app.get()
+    preferences.preSet_path = loc_pre_set.get().strip()
+    preferences.exe_path = loc_app.get().strip()
 
     default_settings = {
         "defaultConfigPath" :  preferences.preSet_path,

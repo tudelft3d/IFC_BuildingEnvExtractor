@@ -29,8 +29,7 @@ def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}
     # because a text object has no variable we have to manually update the div objects when required
     settings.div.div_objects.set(message_div_objects.get('1.0', tkinter.END))
 
-    input_path_list = re.split(r'(?<!{) (?![^{]*})', settings.paths.input_path.get())
-    input_path_list = [part.replace('{', '').replace('}', '') for part in input_path_list]
+    input_path_list = re.split(r'; ', settings.paths.input_path.get())
     json_path_end = "_config.json"
 
     config_path = ""
@@ -544,7 +543,7 @@ if not is_simple:
     File_menu.add_cascade(label="Clean JSON", command= lambda: settings.clear_custom())
 File_menu.add_cascade(label="Show summary", command= lambda: IExtension.summarywindow(settings))
 File_menu.add_separator()
-File_menu.add_cascade(label="Preferences", command= lambda: IExtension.preferencesWindow(settings, size_button_normal, preferences))
+File_menu.add_cascade(label="Preferences", command= lambda: IExtension.preferencesWindow(main_window, settings, size_button_normal, preferences))
 menubar.add_cascade(label="File", menu=File_menu)
 Settings_menu = tkinter.Menu(menubar, tearoff=False)
 

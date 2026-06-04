@@ -29,8 +29,7 @@ def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}
     # because a text object has no variable we have to manually update the div objects when required
     settings.div.div_objects.set(message_div_objects.get('1.0', tkinter.END))
 
-    input_path_list = re.split(r'(?<!{) (?![^{]*})', settings.paths.input_path.get())
-    input_path_list = [part.replace('{', '').replace('}', '') for part in input_path_list]
+    input_path_list = re.split(r'; ', settings.paths.input_path.get())
     json_path_end = "_config.json"
 
     config_path = ""

@@ -230,18 +230,19 @@ class GuiSettings:
             return False
 
         # check paths
-        input_path_list = re.split(r'(?<!{) (?![^{]*})', input_path)
-        input_path_list = [part.replace('{', '').replace('}', '') for part in input_path_list]
-
+        input_path_list = re.split(r'; ', input_path)
         for path in input_path_list:
             if (not os.path.isfile(path) and bool_run):
-                tkinter.messagebox.showerror("Settings Error", "Error: No Valid input file supplied")
+                tkinter.messagebox.showerror("Settings Error", "Error: No valid input file supplied")
                 return False
 
         if (not os.path.isdir(os.path.dirname(output_path)) or len(output_path) == 0) and bool_run:
             tkinter.messagebox.showerror("Settings Error",
                                          "Error: No Valid output folder supplied\n (GUI can not create new folders)")
             return False
+
+        input_path_list = [s.strip() for s in input_path_list]
+        output_path = output_path.strip()
 
         # write data to json
         json_dictionary = self.json

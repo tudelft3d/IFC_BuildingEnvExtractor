@@ -3,7 +3,7 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD034 -->
 
-The IfcEnvelopeExtractor enables users to automatically abstract BIM models (IFC) to format compliant GIS models (CityJSON, STEP, and OBJ). Automating this process allows designs to be quickly and easily place the building BIM model into a GIS environment without the need of a lengthy manual conversion or without the need of surveying data. This can be used to use GIS analysis methods without compromise but also to update GIS environment models faster and with more detail (such as overhang and facade/roof openings). The converter adheres geometrically to a selection of LoD from the LoD framework developed by the TU Delft [(Biljecki et al., 2016)](#2). The software can create CityJSON models with overhang (LoD3/3.2) and interior spaces and/or storeys (LoD0.2, 0.3, 1.2, 2.2, 3.2). The capabilities of the application has been expanded by experimental LoD that fall outside of this framework that utilize the data of BIM.
+The IfcEnvelopeExtractor enables users to automatically abstract BIM models (IFC) to format compliant GIS models (CityJSON, STEP, and OBJ). Automating this process allows designs/BIM models to be quickly and easily placed into a GIS environment without the need of a lengthy manual conversion or without the need of surveying data. This can be used to evaluate BIM models with GIS scale analysis methods without compromise but it can also be used to update GIS scale models faster and with more detail (such as overhang and facade/roof openings) than is currently possible. The converter builds on the LoD framework developed by the TU Delft [(Biljecki et al., 2016)](#2). The software can create CityJSON models with overhang (LoD3/3.2) and interior spaces and/or storeys (LoD0.2, 0.3, 1.2, 2.2, 3.2). The capabilities of the application has been expanded by experimental LoD that fall outside of this framework that utilize the data of BIM.
 
 The development of this conversion process is one of the steps required to close the gap between architecture/BIM and GIS/city scale models.
 
@@ -14,36 +14,44 @@ The development of this conversion process is one of the steps required to close
 The software is able to extract multiple different LoD (Level of Detail) shells from an IFC-model. The actual LoDs it is able to extract is dependent on the accuracy and validity of the input model.
 A full description of the methods applied in this application can be found in the [technical report](#3). A summary of this report can be found in the [Journal paper](#4) covering the tool.
 
-Current possible output shells (*non-standard LoD in Italic type*):
+Current possible output shells:
 
-* Lod0.0 - exterior only
-* Lod0.2 - exterior roof outline, footprint, interior stories and rooms
-* LoD0.3 - exterior roof structure and interior stories
-* *LoD0.4 - exterior roof structure (LoDa.0, roof structure)*
-* LoD1.0 - exterior only
-* LoD1.2 - exterior and rooms
-* LoD1.3 - exterior only
-* LoD2.2 - exterior and rooms
-* LoD3.2 - exterior and rooms (WIP)
-* *LoD4.0 - exterior (All external space bounding objects)*
-* *LoD4.1 - exterior and interior (All space bounding objects)*
-* *LoD4.2 - exterior and interior (All objects with a spacial representation)*
-* *LoD5.0 - exterior and interior rooms (voxelized representation)*
+* [Lod0.0](./Documentation/2_LoD.md/#lod00) - exterior only
+* [Lod0.2](./Documentation/2_LoD.md/#lod02) - exterior roof outline, footprint, interior stories and rooms
+* [LoD0.3](./Documentation/2_LoD.md/#lod03) - exterior roof structure and interior stories
+* *[LoD0.4](./Documentation/2_LoD.md/#lod04) - exterior roof structure (LoDa.0, roof structure)*
+* [LoD1.0](./Documentation/2_LoD.md/#lod10) - exterior only
+* [LoD1.2](./Documentation/2_LoD.md/#lod12) - exterior and rooms
+* [LoD1.3](./Documentation/2_LoD.md/#lod13) - exterior only
+* [LoD2.2](./Documentation/2_LoD.md/#lod22) - exterior and rooms
+* [LoD3.2](./Documentation/2_LoD.md/#lod32) - exterior and rooms (WIP)
+* *[LoD4.0](./Documentation/2_LoD.md/#lod40) - exterior (All external space bounding objects)*
+* *[LoD4.1](./Documentation/2_LoD.md/#lod41) - exterior and interior (All space bounding objects)*
+* *[LoD4.2](./Documentation/2_LoD.md/#lod42) - exterior and interior (All objects with a spacial representation)*
+* *[LoD5.0](./Documentation/2_LoD.md/#lod50) - exterior and interior rooms (voxelized representation)*
 * *LoDb.0 - exterior only (footprint extruded upwards to roof structure but retaining overhang from roofs)*
-* *LoDc.1 - exterior only (extruded LoD0.2 surfaces)*
+* *LoDc.1- exterior only (extruded LoD0.2 surfaces)*
 * *LoDc.2 - exterior only (WIP) (extruded LoD0.2 surfaces with LoD0.4 roofs)*
 * *LoDd.1 - exterior only (WIP) (extruded LoD0.3 internal surfaces)*
 * *LoDd.2 - exterior only (planned) (extruded LoD0.3 internal surfaces with LoD0.4 roofs)*
-* *LoDe.1 - exterior unrefined LoD3.2*
+* *[LoDe.1](./Documentation/2_LoD.md/#lode1) - exterior unrefined LoD3.2*
+
+[More info about the LoD can be found here](./Documentation/2_LoD.md)
+
+*non-standard LoD are displayed in italic type
 
 Current supported IFC versions:
 
 * IFC2x3
 * IFC4
-* IFC4x3 (Partial material support)
+* *IFC4x1*
+* *IFC4x2*
+* *IFC4x3 (Partial material support)*
 * IFC4x3 ADD2 (Partial material support)
 
-A video summary covering the tool and GUI can be found [here](https://www.youtube.com/watch?v=3bJyBj61a-Y)
+*not supplied binary are displayed in italic type
+
+A video summary covering the tool and GUI can be found [here](https://www.youtube.com/watch?v=3bJyBj61a-Y).
 
 More information about the input requirement can be found at the [input requirements paragraph](#input-file-requirements).
 
@@ -53,6 +61,7 @@ Below you can see a speed comparison between the software and manual processing 
 
 This application and the related research has been funded by multiple parties:
 
+* [TU Delft 3D geoinformation research group](https://3d.bk.tudelft.nl/) (2022-2025)
 * [CHEK project](https://chekdbp.eu/) (2022-2025)
 * [Geonovum](https://www.geonovum.nl/) (2025)
 * [VNG](https://vng.nl/) (2026)
@@ -74,6 +83,7 @@ This application and the related research has been funded by multiple parties:
   * [Storey extraction](#storey-extraction)
   * [Room/space extraction](#roomspace-extraction)
   * [Apartment/area extraction](#apartmentarea-extraction)
+* [Output LoD](#ouput-lod)
 * [Configuration JSON](#configuration-json)
 * [Report JSON](#report-json)
 * [Additional stored attributes](#additional-stored-attributes)
@@ -87,13 +97,13 @@ The tool can be used directly with the executables located in the release tab. F
 
 * Ifc_Envelope_Extractor_ifc2x3(.exe)
 * Ifc_Envelope_Extractor_ifc4(.exe)
-* Ifc_Envelope_Extractor_ifc4x3(.exe)
 * IFC_Envelope_Extractor_ifc4x3add2(.exe)
-* Ext_GUI.exe (windows only)
 
-The *Ifc_Envelope_Extractor_ifc2x3*, *Ifc_Envelope_Extractor_ifc4*, *Ifc_Envelope_Extractor_ifc4x3*, and *Ifc_Envelope_Extractor_ifc4x3add2*  application can be called with a path to a configuration JSON file. This config file is used to supply the tool the needed information related to the input IFC model and the desired output ([more info](#configuration-json)). It is important to make sure that the correct executable for the IFC version of the model is used. An IFC4 file will not be processed by the IFC2x3 version of the tool.
+The *Ifc_Envelope_Extractor_ifc2x3*, *Ifc_Envelope_Extractor_ifc4*, and *Ifc_Envelope_Extractor_ifc4x3add2* are console applications that take a single path as command line argument. This path is to a configuration JSON file. This configJSON is used to supply the tool the needed information related to the input IFC model and the desired output ([more info](#configuration-json)). Sadly, due to the way the tool was initially developed a single application can only process a single IFC version, so it is important to make sure that the correct executable for the IFC version of the model is used. An IFC4 file will not be processed by the IFC2x3 version of the tool.
 
-If a more direct (human) user friendly approach is desired on windows, the extractors can be configured with the help of the *Ext_GUI.exe* ([more info](#gui)).
+If a more direct (human) user friendly approach is desired on windows, the application can be configured with the help of the *Ext_GUI.exe* ([more info](#gui)).
+
+[Back to top](#table-of-content)
 
 ## How to build
 
@@ -112,7 +122,9 @@ To set the IFC version a single line has to be changed. In *helper.h* the first 
 #define iterationVersion "x.x.x"
 ```
 
-Please note that CJT is developed in tandem with the IFcEnvExtractor. So possible version mismatches may occur due to CJT being updated at a slightly different time compared to the IFcEnvExtractor. If this is encountered feel free to open a new issue and I will resolve it.
+Please note that [CJT](https://github.com/jaspervdv/CJT) is developed in tandem with the IFcEnvExtractor. So possible version mismatches may occur due to CJT being updated at a slightly different time compared to the IFcEnvExtractor. If this is encountered feel free to open a new issue and I will resolve it.
+
+[Back to top](#table-of-content)
 
 ## GUI
 
@@ -155,6 +167,8 @@ The "File -> Preferences" menu also allows the user to change the location where
 
 A pre-loaded config file can also store settings that are not exposed in the GUI. To see the complete configuration go to "File -> Show Summary". If these settings are not desired, it is possible to remove these unexposed "advanced" settings by using "File -> Clean JSON". This will remove every setting that the GUI can not set. This option is not available in the simple GUI to avoid accidental errors.
 
+[Back to top](#table-of-content)
+
 ## Input file requirements
 
 The algorithms in this tool have been developed to work with models created by people who may not be BIM experts. As a result, the tool can accept somewhat unconventional input files. However, To enlarge the chances of success, there are currently some requirements that should be followed whenever possible. This list of requirements can be grouped depending on the geometric reliance of the methods that are applied.
@@ -195,6 +209,8 @@ Performance of the tool is depending on the complexity of the input model. The t
 
 <sup>5</sup> Note that IFC output from software like Autodesk Revit constructively fails to correctly set up the relations between spaces and areas which can cause issues during processing.
 
+[Back to top](#table-of-content)
+
 ## Output file structure
 
 The output files are CityJSON format compliant but might follow a different structure than is usually encountered. Every object that represents a building is split up in 2 building parts: The "Outer Shell" and the "Inner Shell". The "Outer Shell" follows the regular structure that is often seen in established city scale models. It is populated with the different exterior LoD shells. The "Inner Shell" is, depending on the process settings and input file quality, split further over storeys, apartments and rooms. If LoD4 is converted the objects will be placed under the "Complex" sub-group.
@@ -214,6 +230,8 @@ CityJSON File
 *Object that does not directly store any geometry.
 
 **Depending on the quality of the input, the nature of the input and the user settings these objects can occur many times.
+
+[Back to top](#table-of-content)
 
 ## Outer shell generation methods
 
@@ -261,6 +279,8 @@ Due to the heavy reliance on the *IfcSpace* objects there is, aside from LoD5.0 
 
 Additionally the tool will also be able to export a shell based on the voxel grid that is used in the other processes. This will be stored as LoD5.0. Note that this is a voxel grid that is used primarily for filtering and ray-casting purposes. Possibly this will follow different rules than are anticipated.
 
+[Back to top](#table-of-content)
+
 ## Inner shell generation methods
 
 Inner shell creation relies heavily on both geometric and semantic data in an IFC file. This means that for (somewhat) reliable interior extraction the model has to be constructed in an accurate way.
@@ -268,6 +288,12 @@ Inner shell creation relies heavily on both geometric and semantic data in an IF
 ### Apartment/area extraction
 
 *Method still in development.*
+
+[Back to top](#table-of-content)
+
+## Ouput LoD
+
+
 
 ## Configuration JSON
 
@@ -479,6 +505,8 @@ Optional:
 
 More options will be added in the future.
 
+[Back to top](#table-of-content)
+
 ## Report JSON
 
 **THE REPORT JSON IS STILL BEING DEVELOPED SO CERTAIN ELEMENTS CAN BE MISSING OR PARTIALLY IMPLEMENTED**.
@@ -490,6 +518,8 @@ The input settings section of the json show which settings have been used to gen
 The duration section shows the computing time for each part of the process. This is timed by the *chrono* library.
 
 The errors section shows the issues that the tool encountered during processing. This section will also include warnings. If the process was terminated in an unexpected way possibly this section will document the reason for the termination (WIP).
+
+[Back to top](#table-of-content)
 
 ## Additional stored attributes
 
@@ -512,12 +542,15 @@ The EnvExtractor allows the voxel shell to be used for the approximation of a se
 
 These attributes are prefaced with "Env_ex V" to highlight that these values are approximated utilizing the voxel grid. The accuracy of these variables are heavily dependent on the size of the utilized voxels and the shape of the buildings. If the proper voxel size is selected the volume approximations and the footprint area can be very accurate. However, the shell area computations area extremely unreliable regardless of the input variables.
 
+[Back to top](#table-of-content)
+
 ## known issues
 
 * Lower precisions than the standard 1e-6 (the high precision value) can cause missing surfaces or completely missing models, this issue seems to primarily impact LoD1.3 and 2.2.
 * LoD3.2 can be inaccurate for complex models.
-* The merging surfaces process can be extremely slow.
 * Complex curved surfaces and meshes can slow down the processes significantly and can impact the quality of the out.
+
+[Back to top](#table-of-content)
 
 ## References
 
@@ -532,3 +565,5 @@ van der Vaart, J.A.J., Arroyo Ohori, G.A.K., & Stoter, J. (2025). BIM2Geo conver
 
 <a id="4"></a>
 van der Vaart, J.A.J., Arroyo Ohori, G.A.K., & Stoter, J. (2025). A Methodology to Convert Highly Detailed BIM Models into 3D Geospatial Building Models at Different LoDs. TU Delft Repositories. Retrieved December 12, 2025, from https://repository.tudelft.nl/record/uuid:152c471b-479b-45e7-9dbe-e5e50d2f4a71
+
+[Back to top](#table-of-content)

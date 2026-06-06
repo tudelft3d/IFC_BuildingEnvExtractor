@@ -184,10 +184,9 @@ class GuiSettings:
         return;
 
     def getDefaultDivObjects(self):
-
         output_string = ""
         for div_ob in self.div.default_div_ob:
-            output_string += div_ob + "\t"
+            output_string += div_ob + " "
 
         return output_string
 

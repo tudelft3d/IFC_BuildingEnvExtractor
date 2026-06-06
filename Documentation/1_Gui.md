@@ -71,13 +71,18 @@ The additional settings allow the user to fine tune the LoD output to their need
 * Export footprint: Generate and output the footprint of the model.
 * Export roof outline: Output the roof outline of the model.
 * Footprint based abstraction: Trim the LoD1.2, 1.3, and/or 2.2 solid to comply with the footprint.
-* Ignore IsExternal: do not rely on the IsExternal attribute of the IFC model but detect self what is interior or exterior. This is very reliable, but also slows down the processing speed.
+* Ignore IsExternal: do not rely on the IsExternal attribute of the IFC model but detect self what is interior or exterior. This is fairly reliable, but also slows down the processing speed. The IsExternal attribute is often not properly set in an IFC model, so it can only relied upon if the IFC models are very well made.
 
 Based on the selected LoD some of these settings will not be available. The GUI will communicate this by disabling the toggles.
 
 <figure align="center" width="100%">
     <img src="../Images/footprintrestrictedex.jpg" alt= "The difference between normal and footprint based abstraction" width="100%">
     <figcaption>The difference between normal (middle) and footprint based abstraction (right) in a LoD2.2 representation based on the same input (left). </figcaption>
+</figure>
+
+<figure align="center" width="100%">
+    <img src="../Images/Gui_summary/isExternal_example.jpg" alt= "Example of where the IsExternal attribute can be seen in BIMvision" width="100%">
+    <figcaption>The IsExternal attribute value of an object can be found in an IFC viewer like BIMvision. Note that if this attribute is not populated it can not only show as "No" but the whole IsExternal attribute can also be missing. This is an altered FZK Haus model of KIT where the IsExternal attribute is manually populated.</figcaption>
 </figure>
 
 ## voxel and footprint settings (E)

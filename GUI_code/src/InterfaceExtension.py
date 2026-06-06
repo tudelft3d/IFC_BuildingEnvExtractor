@@ -268,11 +268,11 @@ def updateDivMessage(toggleDict, settings):
     message_window['state'] = tkinter.NORMAL
     if settings.div.use_default.get():
         message_window.delete('1.0', tkinter.END)
-        message_window.insert(tkinter.INSERT, settings.getDefaultDivObjects() + "\t")
+        message_window.insert(tkinter.INSERT, settings.getDefaultDivObjects())
     else:
         message_window.delete('1.0', tkinter.END)
     if not settings.div.ignore_proxy.get():
-        message_window.insert(tkinter.END, "IfcBuildingElementProxy")
+        message_window.insert(tkinter.END, "IfcBuildingElementProxy ")
 
     if isLocked:
         message_window['state'] = tkinter.DISABLED

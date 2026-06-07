@@ -1,3 +1,6 @@
+<!-- markdownlint-disable MD033 -->
+<!-- markdownlint-disable MD034 -->
+
 # Graphical User Interface
 
 The Graphical User Interface (GUI) was created to allow normal people without extremely advanced knowledge to use the tool easily. However, the GUI is still a complex interface. This document will go through every part of the GUI and briefly explain how it works. The image below shows the GUI split up in groups that reflect the sections in this document. This will make it easy to hop to the settings which need explanation.
@@ -56,6 +59,10 @@ A loaded configJSON file can set more settings than are available in the GUI. So
 
 The I/O path settings set the input and output paths. The input path is the path to the input IFC file(s). The tool supports multi-file model processing, so this means that different aspect models can be selected at once. It is recommended to not add all aspect models. For example, a plumbing model is usually not important for a building representation in GIS.
 
+Paths can also be set manually without browsing the directories. The entry bars left of the browse buttons allow for typing, copying and pasting. If the paths are entered via the entry bars make sure that if multiple paths are used that they are split with a ";". Otherwise the application will presume the entry is a single path. E.g. *C:\Path\To\a\File ; C:\Path\To\Another\File ; C:\Path\To\a\Third\File*
+
+For the output only a single path is allowed. If multiple paths are supplied the tool will attempt to process them as if they are a single long path. Additionally, the tool is not allowed to make new directories. So if a path is entered that has directories that do not exist it will throw an error.
+
 ## Output LoD settings (C)
 
 The LoD settings allows the user to select the LoD that is desired as output. These LoD are sorted based on their complexity. The first row only covers non-volumetric output. The second row is only 2.5D output. The third row is 3D shell and shell like output. The fourth row is non-shell like output (or 1:1 output). [More info about what every LoD means can be found here](./2_LoD.md).
@@ -82,7 +89,7 @@ Based on the selected LoD some of these settings will not be available. The GUI 
 
 <figure align="center" width="100%">
     <img src="../Images/Gui_summary/isExternal_example.jpg" alt= "Example of where the IsExternal attribute can be seen in BIMvision" width="100%">
-    <figcaption>The IsExternal attribute value of an object can be found in an IFC viewer like BIMvision. Note that if this attribute is not populated it can not only show as "No" but the whole IsExternal attribute can also be missing. This is an altered FZK Haus model of KIT where the IsExternal attribute is manually populated.</figcaption>
+    <figcaption>The IsExternal attribute value of an object can be found in an IFC viewer like BIMvision. Note that if this attribute is not populated it can show as "No" but the whole IsExternal attribute can also be missing from the list. The example in this figure is an altered FZK Haus model of KIT where the IsExternal attribute is manually populated.</figcaption>
 </figure>
 
 ## voxel and footprint settings (E)
@@ -110,7 +117,7 @@ As long as no very large (+2 meter) or extremely small (-0.005 meter) size voxel
 The footprint elevation is the elevation of the ground floor in the IFC model. This is not the height it has in real life, but the height in the IFC model itself. You can find this height in the attributes of an IfcStorey object. Usually this elevation is 0m, but it can be different.
 
 <figure align="center" width="100%">
-    <img src="../Images/Gui_summary/elevation_example.jpg" alt= “Example of where to find the elevation value in an IFC model” width="80%">
+    <img src="../Images/Gui_summary/elevation_example.jpg" alt= “Example of where to find the elevation value in an IFC model” width="100%">
     <figcaption>The elevation value of a storey can be found in an IFC viewer like BIMvision</figcaption>
 </figure>
 
@@ -118,7 +125,7 @@ Automatic detection can be checked. If this is done the tool will try to find th
 
 ## Input object related settings (F)
 
-The input object related settings mostly covers which and how IFC objects of the input file(s) are to be used. 
+The input object related settings mostly covers which and how IFC objects of the input file(s) are to be used.
 
 The top row of settings and the text window cover which objects are to be used. By default the tool uses 12 different IfcClasses: IfcWall IfcCurtainWall IfcWallStandardCase IfcRoof IfcSlab IfcWindow IfcColumn IfcBeam IfcDoor IfcCovering IfcMember IfcPlate. The rest of the objects in the IFC model are not used by the tool, these are completely ignored. For most cases these 12 classes suffice. If not, the toggles allow them to be changed. The "Custom div objects" enables the text window so that types can be typed. This is not cases sensitive, but it does require valid IfcClasses. [A complete list of these classes can be found here](https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/annex-b.html).
 

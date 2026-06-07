@@ -1,6 +1,9 @@
+<!-- markdownlint-disable MD033 -->
+<!-- markdownlint-disable MD034 -->
+
 # Output LoD
 
-The envelope extractor has a large set of possible LoD output that builds on the framework developed by the TU Delft [(Biljecki et al., 2016)](#2). This document covers the most useful different LoD that the tool outputs.
+The envelope extractor has a large set of possible LoD output that builds on the framework developed by the TU Delft [(Biljecki et al., 2016)](#2). This document covers the most useful different LoD that the tool outputs. LoDb, c, and d are not covered because the related processes were only added for research purposes. These algorithms are not robust nor well optimized. [More info about this research and these LoD can be found here](https://research.tudelft.nl/en/publications/defining-lods-to-support-bim-based-3d-building-abstractions-in-gi/). The only "research" LoD abstractions that are covered here are LoD0.4 (LoDa), LoDe.1, and LoD5.0 (LoDV). These were, as of v0.4, the only "research" LoD that continued development past an initial research/experimental state.
 
 The examples show output that is based on the Institute model created by KIT.
 
@@ -83,7 +86,7 @@ The representation consists out of:
   * $n \geq  1$
   * Type: *GroundSurface*.
 * Storey surface:
-  * A storey surface is created by making a section through the entire BIM model at the storey's elevation height. Horizontal surfaces that lie within $+-0.15$ meter of this height are also included. For each of the surfaces it is evaluated if they lie they represent internal or external surfaces. Per group these surfaces are merged together.
+  * A storey surface is created by making a section through the IfcStorey object's related object at the storey's elevation height. Horizontal surfaces that lie within $+-0.15$ meter of this height are also included. For each of the surfaces it is evaluated if they lie they represent internal or external surfaces. Per group these surfaces are merged together.
   * $n \geq  1$ if the model includes IfcStorey objects, if not $n =  0$
   * Type: *FloorSurface* or *OuterFloorSurface*.
 
@@ -143,7 +146,7 @@ The representation consists out of:
     * The LoD0.2 roof surface can be extruded downwards to the ground level elevation.
     * The LoD0.2 ground surface can be extruded upwards to the top building height.
   * $n \geq  1$
-  * Type: *RoofSurface*, *GroundSurface*, and *WallSurface*. 
+  * Type: *RoofSurface*, *GroundSurface*, and *WallSurface*.
 * Inner shell:
   * Volume that is created, per space, by extruding the LoD0.2 *+ProjectedCeilingOutline* surfaces upwards to the space's top height.
   * $n \geq  1$ if the model includes IfcSpace objects, if not $n =  0$
@@ -183,12 +186,11 @@ The representation consists out of:
 * Outer shell:
   * Volume that is created by extruding the LoD0.4 surfaces to the ground surface elevation height. The resulting solids are merged into one if they share surfaces. Depending on the settings this solid is trimmed to comply with the footprint dimension.
   * $n \geq  1$
-  * Type: *RoofSurface*, *GroundSurface*, and *WallSurface*. 
+  * Type: *RoofSurface*, *GroundSurface*, and *WallSurface*.
 * Inner shell:
   * Volume that is created, per space, by extruding the IfcSpace's roof surface to the IfcSpace's minimal floor height.
   * $n \geq  1$ if the model includes IfcSpace objects, if not $n =  0$
   * Type: *CeilingSurface*, *FloorSurface*, and *InteriorWallSurface*.
-
 
 ## LoD3
 
@@ -298,7 +300,9 @@ The representation consists out of:
 3D polygon representation of the input model. This can be seen as the second step of the LoD3.2 creation. LoD4.0 can be seen as step one.
 
 The representation consists out of:
+
 * Outer polygons:
+
   * collection of surfaces that is created by taking the LoD4.0 objects and isolating the outer surfaces with the help of a ray-casting process.
   * $n \geq  1$
   * Type: *RoofSurface*, *GroundSurface*, *WallSurface*, *window*, and *door*.

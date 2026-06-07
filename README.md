@@ -75,15 +75,14 @@ This application and the related research has been funded by multiple parties:
 * [Input file requirements](#input-file-requirements)
 * [Output file structure](#output-file-structure)
 * [Outer shell generation methods](#outer-shell-generation-methods)
-  * [Lower detail shells](#lower-detail-shells)
-  * [Middle level shells](#middle-level-shells)
-  * [High level shells](#high-level-shells-wip)
+  * [Lower detail shells](#low-geometric-dependent-abstraction)
+  * [Middle level shells](#middle-geometric-dependent-abstraction)
+  * [High level shells](#high-geometric-dependent-abstraction)
   * [Voxel shells](#voxel-shells)
 * [Inner shell generation methods](#inner-shell-generation-methods)
   * [Storey extraction](#storey-extraction)
   * [Room/space extraction](#roomspace-extraction)
   * [Apartment/area extraction](#apartmentarea-extraction)
-* [Output LoD](#ouput-lod)
 * [Configuration JSON](#configuration-json)
 * [Report JSON](#report-json)
 * [Additional stored attributes](#additional-stored-attributes)
@@ -128,7 +127,7 @@ Please note that [CJT](https://github.com/jaspervdv/CJT) is developed in tandem 
 
 ## GUI
 
-IfcEnvelopeExtractor can also be operated via an GUI. This GUI enables the user to easily access a subset of the settings. The goal of the GUI is making the tool more accessible for non-expert users. The GUI is a python based front that automatically generates the configuration JSON and calls the suitable extractor executable.
+IfcEnvelopeExtractor can also be operated via an GUI. This GUI enables the user to easily access a subset of the settings. The goal of the GUI is making the tool more accessible for non-expert users. The GUI is a python based front that automatically generates the configuration JSON and calls the suitable extractor executable. [More information about the GUI can be found here](./Documentation/1_Gui.md).
 
 The GUI can be accessed via two routes:
 
@@ -140,32 +139,6 @@ The GUI can be accessed via two routes:
     <img src="./Images/GUI_simple_example.JPG" alt= “The general layout of the simple GUI in version v0.4” width="47%">
     <figcaption>The general layout of the full GUI (left) and simple GUI (right) in version v0.4</figcaption>
 </figure>
-
-Only a subset of the settings are available from the GUI, if more advanced settings are required a configuration JSON file has to be created. This can be done completely manually, but the GUI can also help. By going to “File -> Store config” the current settings set in the GUI can be saved to a configJSON file which can be used as is, or further edited with more advanced settings. For more info related to the settings see [here](#configuration-json). This section also explains the settings that can be accessed via the GUI.
-
-<figure align="center" width="100%">
-    <img src="./Images/GUI_example_customJSON.JPG" alt= “The location of the pre-set configJSON files” width="47%">
-    <figcaption>The location of the pre-set configJSON files</figcaption>
-</figure>
-
-The GUI also give the option to load pre-set configJSON files. These will be accessible in the top bar via "File -> load Config". The "Load config" menu is populated with files that are stored in the *default-data* folder that is located in the same folder as the GUI. By default this folder is populated with config files that generate output that meet the requirements of geometry for the Dutch BAG, BGT and 3DBAG databases. Users can add their own config files in this folder. These will be added to the "Load Config" menu upon reopening the GUI (with a max of 10 files). Other configJSON files can be opened via "File -> Load Config -> Custom pre-set".
-
-Via "File -> Preferences" the folder can be changed from which "File -> Load config" is populated. This can be useful if there is a different folder where these pre made config files are stored.
-
-<figure align="center" width="100%">
-    <img src="./Images/GUI_startup_error.JPG" alt= “The error shown on startup if executables cannot be found”  width="47%">
-    <img src="./Images/GUI_running_error.JPG" alt= “The error shown on running the extractor if executables cannot be found” width="39.2%">
-    <figcaption>If the GUI is unable to find the folder where the executables are stored it will throw an error on GUI startup (left) or on running the extractor (right). This can be resolved by updating the env_extractor path in the preferences menu </figcaption>
-</figure>
-
-The "File -> Preferences" menu also allows the user to change the location where the envelope extractor executables (.exe) files are stored. By default the GUI looks for the executables in the same folder as the GUI or a folder named *binary* that is placed in the same folder as the GUI. If the executables are placed at a non-default location and this is not specified in the preference menu the GUI will throw an error on startup and on running of the extractor.
-
-<figure align="center" width="100%">
-    <img src="./Images/GUI_jsonSummary_example.JPG" alt= “The summary window showing the summary of the generic starting data of the GUI width="47%">
-    <figcaption>The summary window showing the summary of the generic starting data of the GUI</figcaption>
-</figure>
-
-A pre-loaded config file can also store settings that are not exposed in the GUI. To see the complete configuration go to "File -> Show Summary". If these settings are not desired, it is possible to remove these unexposed "advanced" settings by using "File -> Clean JSON". This will remove every setting that the GUI can not set. This option is not available in the simple GUI to avoid accidental errors.
 
 [Back to top](#table-of-content)
 
@@ -263,18 +236,6 @@ The footprint geometry of LoD0.2, 0.3, and 0.4 are the same. This geometry is cr
 
 The high level shells (Lod3.2) are extracted via a voxelization system that is refined by ray casting. The voxelization process is inspired by the room growing process described by [Vaart et al., (2022)](#1). The starting point is a voxel that is outside of the building. Every object that intersects with the growing shape is stored. The surfaces of each found object are then filtered with the help of a ray casting system which casts rays from points on each surface to the center of the exterior voxels. The found objects are merged into the LoD3.2 shell.
 
-### Interior geometric dependent abstraction
-
-Interior geometric dependent abstraction (LoD0.2, 1.2, 2.2 and 3.2 spaces) are extracted based on the *IfcSpace* geometry. This choice was made due to time constraints. If this project is funded in the future we hope to be able to change this logic to rely on the actual tangible geometry of the model since *IfcSpace* geometry can be unreliable.
-
-To construct the LoD 0.2 and 1.2 space representation the ceiling surfaces are all projected to the xy plane and merged in one single surface. This merged surface can be converted to the LoD 0.2 representation. To get the LoD 1.2 representation this surface is extruded in a positive z-direction to the max z-height of the original space.
-
-The ceiling surfaces can be extruded downwards to the footprint height and merged to create the LoD2.2 space representation.
-
-The LoD3.2 space representation is a 1:1 conversion of the *IfcSpace* geometry as is.
-
-Due to the heavy reliance on the *IfcSpace* objects there is, aside from LoD5.0 export, no space export if the model has no *IfcSpace* are objects present. The LoD5.0 spaces will be abele to approximate the space's shape but they will only have generic semantic data stored.
-
 ### voxel shells
 
 Additionally the tool will also be able to export a shell based on the voxel grid that is used in the other processes. This will be stored as LoD5.0. Note that this is a voxel grid that is used primarily for filtering and ray-casting purposes. Possibly this will follow different rules than are anticipated.
@@ -285,15 +246,31 @@ Additionally the tool will also be able to export a shell based on the voxel gri
 
 Inner shell creation relies heavily on both geometric and semantic data in an IFC file. This means that for (somewhat) reliable interior extraction the model has to be constructed in an accurate way.
 
+### Storey extraction
+
+Storey extraction is based on the IfcStorey objects and their stored data. Depending on the abstraction level it relies on the IfcStorey elevation only (LoD0.2) or the IfcStorey elevation and related objects (LoD0.3).
+
+For every IfcStorey the tool makes a horizontal section through the model at the IfcStorey's elevation. For LoD0.2 it takes this section through the entire BIM model. This will result in odd storeys if partial or half storeys are present in the model. For LoD0.3 it makes the section through the objects that are related to the IfcStorey object. This will result in a more accurate shape, but will rely on the correct IfcStorey object relations. Horizontal surfaces that fall within $+-0.15$ meter are included in the resulting surfaces of this section.
+
+The surfaces resulting from the horizontal section process will be merged into larger surfaces for the LoD0.2 output. For LoD0.3 this will be done after it is evaluated if a surface is an interior surface, or an exterior surface. These surfaces are grouped before the merging process. So that only surfaces of the same type are merged together.
+
+### Room/space extraction
+
+The room/space extraction for LoD0.2, 1.2, 2.2 and 3.2 are based solely on the *IfcSpace* geometry. This choice was made due to time constraints. If this project is funded in the future we hope to be able to change this logic to rely on the actual tangible geometry of the model since *IfcSpace* geometry can be unreliable.
+
+To construct the LoD 0.2 and 1.2 space representation the ceiling surfaces are all projected to the xy plane and merged in one single surface. This merged surface can be converted to the LoD 0.2 representation. To get the LoD 1.2 representation this surface is extruded in a positive z-direction to the max z-height of the original space.
+
+The ceiling surfaces can be extruded downwards to the footprint height and merged to create the LoD2.2 space representation.
+
+The LoD3.2 space representation is a 1:1 conversion of the *IfcSpace* geometry as is.
+
+Due to the heavy reliance on the *IfcSpace* objects there is, aside from LoD5.0 export, no space export if the model has no *IfcSpace* are objects present. The LoD5.0 spaces will be abele to approximate the space's shape but they will only have generic semantic data stored.
+
 ### Apartment/area extraction
 
 *Method still in development.*
 
 [Back to top](#table-of-content)
-
-## Ouput LoD
-
-
 
 ## Configuration JSON
 

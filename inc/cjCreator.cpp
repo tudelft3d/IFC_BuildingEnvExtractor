@@ -2610,7 +2610,8 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD00(DataManager* h, CJT::Kernel
 
 	double footprintHeight = settingsCollection.footprintElevation() + h->getObjectTranslation().TranslationPart().Z();
 	bool hasFootprint = false;
-	if (settingsCollection.makeRoofPrint())
+
+	if (settingsCollection.makeFootPrint())
 	{
 		double buffer = settingsCollection.horizontalSectionBuffer();
 		bg::model::box <BoostPoint3D> searchBox = helperFunctions::createBBox(gp_Pnt(lll.X(), lll.Y(), footprintHeight - buffer), gp_Pnt(urr.X(), urr.Y(), footprintHeight + buffer), 0);
@@ -2654,7 +2655,6 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD00(DataManager* h, CJT::Kernel
 			hasFootprint = true;
 		}
 	}
-
 
 	if (settingsCollection.makeRoofPrint())
 	{

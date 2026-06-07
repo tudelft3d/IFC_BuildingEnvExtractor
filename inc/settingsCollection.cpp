@@ -509,7 +509,7 @@ void SettingsCollection::setMakeOutlines(const nlohmann::json& json)
 
 void SettingsCollection::setMakeFootPrint(const nlohmann::json& json)
 {
-	if (!make02() && !make03() && !make04())
+	if (!make00() && !make02() && !make03() && !make04())
 	{
 		setMakeFootPrint(false);
 		return;
@@ -536,7 +536,7 @@ void SettingsCollection::setMakeFootPrint(const nlohmann::json& json)
 
 void SettingsCollection::setMakeRoofPrint(const nlohmann::json& json)
 {
-	if (!make02())
+	if (!make00() && !make02())
 	{
 		setMakeRoofPrint(false);
 		return;

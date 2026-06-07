@@ -3027,7 +3027,7 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 	//get baseplane
 	if (outerWires.empty())
 	{
-		std::cout << "hit" << std::endl;
+		//std::cout << "hit" << std::endl;
 		return {};
 	}
 

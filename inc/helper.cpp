@@ -1495,20 +1495,6 @@ bool helperFunctions::LineShapeIntersection(const TopoDS_Face& theFace, const gp
 		gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
 		gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
 		gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
-
-		/*if (inZdir)
-		{
-			double baseArea = triangleArea2D(p1, p2, p3);
-			double areaSum = triangleArea2D(p1, p2, lP1);
-			if (baseArea + areaTol < areaSum) { return false; }
-			  
-			areaSum += triangleArea2D(p1, lP1, p3);
-			if (baseArea + areaTol < areaSum) { return false; }
-
-			areaSum = triangleArea2D(lP1, p2, p3);
-			if (baseArea + areaTol < areaSum) { return false; }
-			return true;
-		}*/
 		
 		if (helperFunctions::triangleIntersecting({ lP1, lp2 }, {p1, p2, p3}))
 		{

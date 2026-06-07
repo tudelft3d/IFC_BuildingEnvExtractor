@@ -1520,8 +1520,6 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 
 	}
 
-	DebugUtils::WriteToSTEP(inputFaceList, "C:/Users/Jasper/Desktop/desk/test.STEP");
-
 	if (!bufferSurfaceList.empty())
 	{
 		for (const TopoDS_Face& bufferSurface : bufferSurfaceList)

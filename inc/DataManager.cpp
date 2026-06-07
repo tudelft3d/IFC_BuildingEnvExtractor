@@ -117,7 +117,7 @@ fileKernelCollection::fileKernelCollection(const std::string& filePath)
 {
 	file_ = new IfcParse::IfcFile(filePath);
 	if (!file_->good()) { return; }
-	kernel_ = std::make_unique<IfcGeom::Kernel>(file_);;
+	kernel_ = std::make_unique<IfcGeom::Kernel>(file_);
 	IfcGeom::Kernel* kernelObject = kernel_.get();
 	kernel_.get()->setValue(kernelObject->GV_PRECISION, SettingsCollection::getInstance().spatialTolerance());
 	setUnits();

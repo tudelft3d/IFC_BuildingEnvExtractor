@@ -228,11 +228,12 @@ void SettingsCollection::setTolerances(const nlohmann::json& json)
 
 	try
 	{
-		setSpatialTolerance(tolerancesJson);
+		setLinearTolerance(tolerancesJson);
 		setAngularTolerance(tolerancesJson);
 		setAreaTolerance(tolerancesJson);
 		setMeshLinearDeflection(tolerancesJson);
 		setMeshAngularDeflection(tolerancesJson);
+		setSurfaceGridSize(tolerancesJson);
 	}
 	catch (const std::string& errorString)
 	{
@@ -1039,6 +1040,25 @@ void SettingsCollection::setVoxelSize(const nlohmann::json& json)
 	return;
 }
 
+void SettingsCollection::setSurfaceGridSize(const nlohmann::json& json)
+{
+	std::string gridResolutionOName = JsonObjectInEnum::getString(JsonObjectInID::gridResolution);
+	if (json.contains(gridResolutionOName))
+	{
+		try
+		{
+			double gridResolutionValue = getJsonDouble(json[gridResolutionOName]);
+			setSurfaceGridSize(gridResolutionValue);
+		}
+		catch (const ErrorID& exceptionId)
+		{
+			ErrorCollection::getInstance().addError(exceptionId, gridResolutionOName);
+			throw std::string(errorWarningStringEnum::getString(exceptionId) + gridResolutionOName);
+		}
+	}
+	return;
+}
+
 void SettingsCollection::setRotation(const nlohmann::json& json)
 {
 	std::string rotationAngleOName = JsonObjectInEnum::getString(JsonObjectInID::IFCRotationAngle);
@@ -1121,15 +1141,15 @@ void SettingsCollection::setHorizontalSectionOffset(const nlohmann::json& json)
 	return;
 }
 
-void SettingsCollection::setSpatialTolerance(const nlohmann::json& json)
+void SettingsCollection::setLinearTolerance(const nlohmann::json& json)
 {
-	std::string toleranceOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesSpatial);
+	std::string toleranceOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesLinear);
 	if (json.contains(toleranceOName))
 	{
 		try
 		{
 			double toleranceValue = getJsonDouble(json[toleranceOName]);
-			setSpatialTolerance(toleranceValue);
+			setLinearTolerance(toleranceValue);
 		}
 		catch (const ErrorID& exceptionId)
 		{
@@ -1158,13 +1178,13 @@ void SettingsCollection::setAngularTolerance(const nlohmann::json& json)
 	}
 	else
 	{
-		if (spatialTolerance() < 1e-4)
+		if (linearTolerance() < 1e-4)
 		{
 			setAngularTolerance(1e-4);
 		}
 		else
 		{
-			setAngularTolerance(spatialTolerance());
+			setAngularTolerance(linearTolerance());
 		}
 	}
 	return;
@@ -1188,13 +1208,13 @@ void SettingsCollection::setAreaTolerance(const nlohmann::json& json)
 	}
 	else
 	{
-		if (spatialTolerance() < 1e-4)
+		if (linearTolerance() < 1e-4)
 		{
 			setAreaTolerance(1e-4);
 		}
 		else
 		{
-			setAreaTolerance(spatialTolerance() * 10);
+			setAreaTolerance(linearTolerance() * 10);
 		}
 	}
 	return;

@@ -119,7 +119,7 @@ fileKernelCollection::fileKernelCollection(const std::string& filePath)
 	if (!file_->good()) { return; }
 	kernel_ = std::make_unique<IfcGeom::Kernel>(file_);
 	IfcGeom::Kernel* kernelObject = kernel_.get();
-	kernel_.get()->setValue(kernelObject->GV_PRECISION, SettingsCollection::getInstance().spatialTolerance());
+	kernel_.get()->setValue(kernelObject->GV_PRECISION, SettingsCollection::getInstance().linearTolerance());
 	setUnits();
 }
 
@@ -322,7 +322,7 @@ void DataManager::computeBoundingData(gp_Pnt* lllPoint, gp_Pnt* urrPoint)
 
 gp_Vec DataManager::computeObjectTranslation()
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	gp_Vec translationVec = computeObjectTranslation("IfcSlab");
 	if (translationVec.Magnitude() > precision) { return translationVec; }
 
@@ -692,7 +692,7 @@ std::vector<TopoDS_Shape> DataManager::computeEmptyVoids(IfcSchema::IfcRelVoidsE
 
 TopoDS_Shape DataManager::applyVoidtoShape(const TopoDS_Shape& untrimmedShape, std::vector<TopoDS_Shape>& voidObjectList)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	// bool out voidShape
 	BOPAlgo_Splitter aSplitter;
@@ -1151,7 +1151,7 @@ void DataManager::fetchGroundFloorElevation()
 	}
 
 	double firstElevation = groundfloorElevationList[0];
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	for (double elevation : groundfloorElevationList)
 	{
 		if (firstElevation - precision < elevation && firstElevation + precision > elevation) { continue; }

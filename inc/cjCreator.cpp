@@ -374,7 +374,7 @@ std::vector<CJGeoCreator::BuildingSurfaceCollection> CJGeoCreator::sortRoofStruc
 			gp_Pnt projectedPoint = gp_Pnt(currentPoint.X(), currentPoint.Y(), 0);
 			for (BuildingSurfaceCollection& currentSurfaceCol : buildingSurfaceCollectionList)
 			{
-				if (helperFunctions::pointOnShape(currentSurfaceCol.getRoofOutline(), projectedPoint, SettingsCollection::getInstance().spatialTolerance())) //TODO: check if this can be changed to normal tolerance
+				if (helperFunctions::pointOnShape(currentSurfaceCol.getRoofOutline(), projectedPoint, SettingsCollection::getInstance().linearTolerance())) //TODO: check if this can be changed to normal tolerance
 				{
 					currentSurfaceCol.addRoof(currentSurface);
 
@@ -393,7 +393,7 @@ std::vector<CJGeoCreator::BuildingSurfaceCollection> CJGeoCreator::sortRoofStruc
 std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared_ptr<SurfaceGridPair>>& Collection)
 {
 	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	//index
 	bgi::rtree<Value, bgi::rstar<treeDepth_>> spatialIndex;
@@ -472,7 +472,7 @@ void CJGeoCreator::simpleRaySurfaceCast(
 )
 {
 	double searchBuffer = SettingsCollection::getInstance().searchBufferLod32();
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
 
 	int c = 0;
@@ -615,7 +615,7 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<T>& shape
 	double buffer = SettingsCollection::getInstance().horizontalSectionBuffer();
 
 	std::vector<TopoDS_Face> spltFaceCollection;
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	gp_Pnt lll;
 	gp_Pnt urr;
@@ -747,7 +747,7 @@ void CJGeoCreator::SplitInAndOuterHFaces(const TopoDS_Shape& inputFaces, std::ve
 TopoDS_Solid CJGeoCreator::extrudeFace(const TopoDS_Face& evalFace, bool downwards, double splittingFaceHeight)
 {
 	if (evalFace.IsNull()) { return {}; }
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	BRep_Builder brepBuilder;
 	BRepBuilderAPI_Sewing brepSewer(precision);
@@ -962,7 +962,7 @@ void CJGeoCreator::makeFootprint(DataManager* h)
 
 			BRepExtrema_DistShapeShape distanceFootRoof(buildingSurfaceData.getRoofOutline(), currentCleanFootprint);
 			double verticalDistatance = abs(distanceFootRoof.PointOnShape1(1).Z() - distanceFootRoof.PointOnShape2(1).Z());
-			if (abs(verticalDistatance - distanceFootRoof.Value()) > settingsCollection.spatialTolerance())
+			if (abs(verticalDistatance - distanceFootRoof.Value()) > settingsCollection.linearTolerance())
 			{
 				continue;
 			}
@@ -1171,7 +1171,7 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitFaces(
 
 void CJGeoCreator::getSplitFaces(std::vector<TopoDS_Face>& outFaceList, std::mutex& listMutex, const std::vector<TopoDS_Face>& inputFaceList, bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> cuttingFaceIdx)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTol = SettingsCollection::getInstance().angularTolerance();
 
 	// split the topfaces with the cutting faces
@@ -1344,7 +1344,7 @@ std::vector<TopoDS_Face> CJGeoCreator::getVisTopSurfaces(const std::vector<TopoD
 
 std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_Face>& inputFaceList, double lowestZ, bool preFilter, const std::vector<TopoDS_Face>& bufferSurfaceList)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
 
 	if (inputFaceList.empty()) { return {}; }
@@ -1498,7 +1498,7 @@ std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_F
 
 std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS_Face>& inputFaceList, double lowestZ, const std::vector<TopoDS_Face>& bufferSurfaceList)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
 
 	bool allFlat = true; // if all surfaces horizontal only projected intersections are required
@@ -1578,7 +1578,7 @@ TopoDS_Shape CJGeoCreator::simplefySolid(const TopoDS_Shape& solidShape, bool ev
 		return {};
 	}
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	std::vector<TopoDS_Face> facelist;
 	std::vector<gp_Dir> normalList;
@@ -1668,7 +1668,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 	std::vector<int> mergedSurfaceIdxList = {0};
 	std::vector<int> evalList(surfaceList.size());
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	while (true)
 	{
 		size_t currentSurfaceIdxSize = mergedSurfaceIdxList.size();
@@ -1815,7 +1815,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 
 bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> CJGeoCreator::indexUniqueFaces(const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<treeDepth_>>& faceIndx)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> cuttingFaceIdx; // pair bbox | extruded shape faces
 	for (const auto& [currentBox, currentFace] : faceIndx)
@@ -1850,7 +1850,7 @@ bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> CJGeoCreator::ind
 TopoDS_Face CJGeoCreator::mergeFaces(const std::vector<TopoDS_Face>& mergeFaces) {
 	if (mergeFaces.size() == 1) { return mergeFaces[0]; }
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	gp_Vec clusterNormal = helperFunctions::computeFaceNormal(mergeFaces[0]);
 	gp_Vec horizontalNormal = gp_Vec(0, 0, 1);
 
@@ -1920,7 +1920,7 @@ TopoDS_Face makeFace(const std::vector<gp_Pnt>& voxelPointList, const std::vecto
 
 bool CJGeoCreator::useFace(const TopoDS_Face& face, gp_Pnt* centerPoint)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTol = SettingsCollection::getInstance().angularTolerance();
 
 	// ignore face when the area is very small
@@ -1979,7 +1979,7 @@ std::vector<TopoDS_Shape> CJGeoCreator::getUniqueShapedObjects(const std::vector
 	std::vector<double> uniqueTopMass;
 	std::vector<double> uniqueTopArea;
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	for (const TopoDS_Shape& currentShape : topObjectList) //TODO: this could be using indexing
 	{
@@ -2213,7 +2213,7 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::getObjectTopSurfaces
 	std::vector<gp_Pnt> centerpointHList;
 	bgi::rtree<Value, bgi::rstar<treeDepth_>> spatialIndex;
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	// index the valid surfaces
 	for (TopExp_Explorer expl(shape, TopAbs_FACE); expl.More(); expl.Next()) {
@@ -2313,7 +2313,7 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeStoreyObjects(Da
 	std::vector<std::shared_ptr<CJT::CityObject>> cityStoreyObjects;
 	std::vector<double> elevList;
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	for (int i = 0; i < h->getSourceFileCount(); i++)
 	{
 		IfcSchema::IfcBuildingStorey::list::ptr storeyList = h->getSourceFile(i)->instances_by_type<IfcSchema::IfcBuildingStorey>();
@@ -2910,7 +2910,7 @@ void CJGeoCreator::make2DStorey(
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	double storeyUserBuffer = settingsCollection.horizontalSectionOffset();
-	double precision = settingsCollection.spatialTolerance();
+	double precision = settingsCollection.linearTolerance();
 
 	gp_Trsf trsf;
 	trsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
@@ -3936,7 +3936,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDc2(DataManager* h, CJT::Kernel*
 	std::vector< CJT::GeoObject> geoObjectList;
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	double angularTolerance = settingsCollection.angularTolerance();
-	double precision = settingsCollection.spatialTolerance();
+	double precision = settingsCollection.linearTolerance();
 
 	gp_Trsf trsf;
 	trsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -SettingsCollection::getInstance().gridRotation());
@@ -4668,7 +4668,7 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	{
 		const TopoDS_Face& currentFace = finalOuterSurfacePairList[i].first;
 		gp_Vec currentVec = helperFunctions::computeFaceNormal(currentFace);
-		if (currentVec.Magnitude() < settingsCollection.spatialTolerance())
+		if (currentVec.Magnitude() < settingsCollection.linearTolerance())
 		{
 			eliminatedFaceIndxList.emplace_back(i);
 			continue;
@@ -4779,7 +4779,7 @@ void CJGeoCreator::makeComplexLoDRooms(DataManager* h, CJT::Kernel* kernel, std:
 
 			// compute the angle of the surface to see if it is a wall 
 			gp_Vec faceNormal = helperFunctions::computeFaceNormal(currentFace);
-			if (faceNormal.Magnitude() < SettingsCollection::getInstance().spatialTolerance()) { continue; }
+			if (faceNormal.Magnitude() < SettingsCollection::getInstance().linearTolerance()) { continue; }
 
 			gp_Vec vertical = gp_Vec(0, 0, 2);
 			double angle = faceNormal.Angle(vertical);
@@ -5061,7 +5061,7 @@ TopoDS_Shape CJGeoCreator::voxels2Shape(int roomNum, std::vector<int>* typeList)
 	std::vector<std::pair<TopoDS_Face, CJObjectID>> threadFaceLists;
 	std::mutex faceListMutex;
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double minArea = SettingsCollection::getInstance().areaTolerance();
 
 	for (int i = 0; i < 6; i++) {
@@ -5364,7 +5364,7 @@ void CJGeoCreator::getOuterRayObjects(
 )
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
-	double precision = settingsCollection.spatialTolerance();
+	double precision = settingsCollection.linearTolerance();
 	double searchBuffer = settingsCollection.searchBufferLod32();
 	double voxelSize = settingsCollection.voxelSize();
 
@@ -5654,7 +5654,7 @@ void CJGeoCreator::extrudeStoreyGeometry(
 	std::map<double, std::vector<TopoDS_Face>>& outHorizontalStoreyFaces)
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
-	double precision = settingsCollection.spatialTolerance();
+	double precision = settingsCollection.linearTolerance();
 	double angularTolerance = settingsCollection.angularTolerance();
 	double minArea = settingsCollection.areaTolerance();
 
@@ -5736,7 +5736,7 @@ void CJGeoCreator::extrudeStoreyGeometry(
 
 std::vector<TopoDS_Face> CJGeoCreator::TrimHStoreyFaces(const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<treeDepth_>>& horizontalFaceIndex)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	std::vector<TopoDS_Face> outerShapeFaces;
 	// split and filter out the repeating horizontal faces
@@ -5826,7 +5826,7 @@ std::vector<TopoDS_Face> CJGeoCreator::projectionSplitting(const std::vector<Top
 
 void CJGeoCreator::projectionSplitting(const std::vector<TopoDS_Face>& inputFaceList, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, std::mutex& processMutex, std::vector<TopoDS_Face>& splitFaceListOut)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
 	for (const TopoDS_Face& currentTopFace : inputFaceList)
 	{
@@ -5949,7 +5949,7 @@ std::vector<TopoDS_Face> CJGeoCreator::intersectionSplitting(const std::vector<T
 
 void CJGeoCreator::intersectionSplitting(const std::vector<TopoDS_Face>& inputFaceList, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, std::mutex& processMutex, std::vector<TopoDS_Face>& splitFaceListOut)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
 
 	for (const TopoDS_Face& currentTopFace : inputFaceList)
@@ -6377,9 +6377,9 @@ void CJGeoCreator::createSemanticData(CJT::GeoObject* geoObject, const TopoDS_Sh
 		TopoDS_Face face = TopoDS::Face(faceExp.Current());
 
 		gp_Vec faceNormal = helperFunctions::computeFaceNormal(face);
-		if (abs(faceNormal.Z()) > settingsCollection.spatialTolerance())
+		if (abs(faceNormal.Z()) > settingsCollection.linearTolerance())
 		{
-			if (helperFunctions::getHighestZ(face) - lowestShapeZ < settingsCollection.spatialTolerance()) // is floor
+			if (helperFunctions::getHighestZ(face) - lowestShapeZ < settingsCollection.linearTolerance()) // is floor
 			{
 				functionList.emplace_back(0);
 			}
@@ -6461,7 +6461,7 @@ void CJGeoCreator::splitOuterSurfaces(
 	const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& outerSurfacePairList
 )
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
 
 	for (const auto& [currentFace, currentProduct] : outerSurfacePairList)
@@ -6618,7 +6618,7 @@ void CJGeoCreator::splitFacesToFootprint(std::vector<TopoDS_Face>& outRoofFaces,
 { //TODO: this can be smarter
 
 	BOPAlgo_Splitter divider;
-	divider.SetFuzzyValue(SettingsCollection::getInstance().spatialTolerance());
+	divider.SetFuzzyValue(SettingsCollection::getInstance().linearTolerance());
 	divider.SetRunParallel(Standard_False);
 	for (const TopoDS_Face& currentFootprint: footprintFaceList)
 	{

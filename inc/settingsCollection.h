@@ -99,7 +99,7 @@ private:
 	int intersectionLogic_ = 3;
 
 	double voxelSize_ = 0.5;
-	double surfaceGridSize_ = 0.2; //TODO: make accessible for user
+	double surfaceGridSize_ = 0.2;
     int minGridPointCount_ = 5;
 
 	bool autoRotateGrid_ = true;
@@ -114,7 +114,7 @@ private:
 	int threadcount_ = 0;
 
     // precision settings
-    double spatialTolerance_ = 1e-6;
+    double linearTolerance_ = 1e-6;
     double angularTolerance_ = 1e-4;
     double areaTolerance_ = 1e-4;
     double windowBuffer_ = 0.001;
@@ -391,6 +391,7 @@ public:
 
     double surfaceGridSize() const { return surfaceGridSize_; }
     void setSurfaceGridSize(double value) { surfaceGridSize_ = value; }
+    void setSurfaceGridSize(const nlohmann::json& json);
 
     int minGridPointCount() const { return minGridPointCount_; }
     void setMinGridPointCount(int value) { minGridPointCount_ = value; }
@@ -418,9 +419,9 @@ public:
     double horizontalSectionBuffer() const { return horizontalSectionBuffer_; }
     void sethorizontalSectionBuffer(double value) { horizontalSectionBuffer_ = value; }
 
-    double spatialTolerance() const { return spatialTolerance_; }
-    void setSpatialTolerance(double value) { spatialTolerance_ = value; }
-    void setSpatialTolerance(const nlohmann::json& json);
+    double linearTolerance() const { return linearTolerance_; }
+    void setLinearTolerance(double value) { linearTolerance_ = value; }
+    void setLinearTolerance(const nlohmann::json& json);
 
     double angularTolerance() const { return angularTolerance_; }
     void setAngularTolerance(double value) { angularTolerance_ = value; }

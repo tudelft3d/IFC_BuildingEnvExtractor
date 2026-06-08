@@ -138,7 +138,7 @@ bool SurfaceGridPair::testIsVisable(const std::vector<std::shared_ptr<SurfaceGri
 {
 	if (otherSurfaces.empty()) { return visibility_; }
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	
 	if (!pointGrid_.size()) { populateGrid(SettingsCollection::getInstance().surfaceGridSize()); }
 
@@ -196,7 +196,7 @@ bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, std::
 {
 	if (otherSurfacesIndx.empty()) { return visibility_; }
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	if (!pointGrid_.size()) { populateGrid(SettingsCollection::getInstance().surfaceGridSize()); }
 	for (const std::shared_ptr<EvaluationPoint>& currentEvalPoint : pointGrid_)

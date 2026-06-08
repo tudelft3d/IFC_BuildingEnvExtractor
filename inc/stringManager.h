@@ -211,11 +211,12 @@ enum class JsonObjectInID {
 	filePathReport,
 
 	tolerances,
-	tolerancesSpatial,
+	tolerancesLinear,
 	tolerancesAngular,
 	tolerancesArea,
 	meshLinearDeflection,
 	meshAngularDeflection,
+	gridResolution,
 
 	voxel,
 	voxelSize,

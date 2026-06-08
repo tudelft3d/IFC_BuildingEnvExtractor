@@ -196,7 +196,7 @@ void IOManager::printSummary()
 
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "Tolerances\n";
 	std::cout << "- Spatial tolerance:\n";
-	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.spatialTolerance() << "\n";
+	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.linearTolerance() << "\n";
 	std::cout << "- angular tolerance:\n";
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.angularTolerance() << "\n";
 	std::cout << "- area tolerance:\n";
@@ -206,7 +206,9 @@ void IOManager::printSummary()
 	std::cout << "- mesh angular deflection:\n";
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.meshAngularDeflection() << "\n";
 	std::cout << "- refine mesh parameters:\n";
-	std::cout << boolToString(settingsCollection.refineMesh()) << "\n\n";
+	std::cout << boolToString(settingsCollection.refineMesh()) << "\n";
+	std::cout << "- grid resolution:\n";
+	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.surfaceGridSize() << "\n\n";
 
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "IFC settings\n";
 	std::cout << "- Model rotation:\n";
@@ -403,13 +405,19 @@ nlohmann::json IOManager::settingsToJSON()
 
 	// store the tolerance data
 	nlohmann::json tolJSON;
-	std::string spatialTolOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesSpatial);
+	std::string spatialTolOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesLinear);
 	std::string angularTolOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesAngular);
 	std::string areaTolOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesArea);
+	std::string meshLinDefOName = JsonObjectInEnum::getString(JsonObjectInID::meshLinearDeflection);
+	std::string meshAngDefOName = JsonObjectInEnum::getString(JsonObjectInID::meshAngularDeflection);
+	std::string sufraceGridOName = JsonObjectInEnum::getString(JsonObjectInID::gridResolution);
 
-	tolJSON[spatialTolOName] = settingsCollection.spatialTolerance();
+	tolJSON[spatialTolOName] = settingsCollection.linearTolerance();
 	tolJSON[angularTolOName] = settingsCollection.angularTolerance();
 	tolJSON[areaTolOName] = settingsCollection.areaTolerance();
+	tolJSON[meshLinDefOName] = settingsCollection.meshLinearDeflection();
+	tolJSON[meshAngDefOName] = settingsCollection.meshAngularDeflection();
+	tolJSON[sufraceGridOName] = settingsCollection.surfaceGridSize();
 	settingsJSON[JsonObjectInEnum::getString(JsonObjectInID::tolerances)] = tolJSON;
 
 	// store the voxel data

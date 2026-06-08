@@ -270,7 +270,7 @@ gp_Pnt helperFunctions::rotatePointPoint(const gp_Pnt& p, const gp_Pnt& anchorP,
 std::vector<gp_Pnt> helperFunctions::getPointGridOnSurface(const TopoDS_Face& theface, const double& resolution)
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
-	double precision = settingsCollection.spatialTolerance();
+	double precision = settingsCollection.linearTolerance();
 	int minSurfacePoints = settingsCollection.minGridPointCount(); 
 
 	// greate points on grid over surface
@@ -341,7 +341,7 @@ std::vector<gp_Pnt> helperFunctions::getPointGridOnSurface(const TopoDS_Face& th
 std::vector<gp_Pnt> helperFunctions::getPointGridOnWire(const TopoDS_Face& theface, const double& resolution)
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
-	double precision = settingsCollection.spatialTolerance();
+	double precision = settingsCollection.linearTolerance();
 
 	//if (helperFunctions::computeArea(theface) < 1e-5) { return {}; }
 	std::vector<gp_Pnt> wirePointList;
@@ -404,7 +404,7 @@ std::vector<gp_Pnt> helperFunctions::getPointGridOnWire(const TopoDS_Face& thefa
 
 bool helperFunctions::pointIsSame(const BoostPoint3D& lp, const BoostPoint3D& rp)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	if (abs(lp.get<0>() - rp.get<0>()) > precision ) { return false; }
 	if (abs(lp.get<1>() - rp.get<1>()) > precision ) { return false; }
@@ -422,9 +422,9 @@ void helperFunctions::bBoxDiagonal(const std::vector<T>& theShapeList, gp_Pnt* l
 template<typename T>
 void helperFunctions::bBoxDiagonal(const T& theShape, gp_Pnt* lllPoint, gp_Pnt* urrPoint, const double buffer, const double angle, const double secondAngle)
 {
-	if (lllPoint->Distance(*urrPoint) < SettingsCollection::getInstance().spatialTolerance() && 
-		lllPoint->Distance(gp_Pnt(0,0,0)) < SettingsCollection::getInstance().spatialTolerance() &&
-		urrPoint->Distance(gp_Pnt(0, 0, 0)) < SettingsCollection::getInstance().spatialTolerance())
+	if (lllPoint->Distance(*urrPoint) < SettingsCollection::getInstance().linearTolerance() && 
+		lllPoint->Distance(gp_Pnt(0,0,0)) < SettingsCollection::getInstance().linearTolerance() &&
+		urrPoint->Distance(gp_Pnt(0, 0, 0)) < SettingsCollection::getInstance().linearTolerance())
 	{
 		lllPoint->SetCoord(9999999, 9999999, 9999999);
 		urrPoint->SetCoord(-9999999, -9999999, -9999999);
@@ -602,9 +602,9 @@ bg::model::box <BoostPoint3D>  helperFunctions::createBBox(const gp_Pnt& p1, con
 
 TopoDS_Shape helperFunctions::createBBOXOCCT(const gp_Pnt& lll, const gp_Pnt& urr, double buffer, double horizontalAngle, double verticalAngle) 
 {
-	if (abs(urr.X() - lll.X()) < SettingsCollection::getInstance().spatialTolerance()) { return TopoDS_Solid(); }
-	if (abs(urr.Y() - lll.Y()) < SettingsCollection::getInstance().spatialTolerance()) { return TopoDS_Solid(); }
-	if (abs(urr.Z() - lll.Z()) < SettingsCollection::getInstance().spatialTolerance()) { return TopoDS_Solid(); }
+	if (abs(urr.X() - lll.X()) < SettingsCollection::getInstance().linearTolerance()) { return TopoDS_Solid(); }
+	if (abs(urr.Y() - lll.Y()) < SettingsCollection::getInstance().linearTolerance()) { return TopoDS_Solid(); }
+	if (abs(urr.Z() - lll.Z()) < SettingsCollection::getInstance().linearTolerance()) { return TopoDS_Solid(); }
 	
 	gp_Ax1 vertRotation(gp_Pnt(0, 0, 0), gp_Dir(0, 1, 0));
 
@@ -642,7 +642,7 @@ TopoDS_Shape helperFunctions::createBBOXOCCT(const gp_Pnt& lll, const gp_Pnt& ur
 TopoDS_Shape helperFunctions::boxSimplefyShape(const TopoDS_Shape& shape)
 {
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	// get the vectors of the shape
 	std::vector<gp_Pnt> pointList = getPoints(shape);
 	gp_Vec hVector = getShapedir(pointList, true);
@@ -695,7 +695,7 @@ TopoDS_Shape helperFunctions::boxSimplefyShape(const TopoDS_Shape& shape)
 	gp_Pnt lllPoint;
 	gp_Pnt urrPoint;
 	helperFunctions::bBoxDiagonal(pointList, &lllPoint, &urrPoint, SettingsCollection::getInstance().windowBuffer(), angleFlat, angleVert);
-	if (lllPoint.IsEqual(urrPoint, SettingsCollection::getInstance().spatialTolerance())) { return TopoDS_Shape(); }
+	if (lllPoint.IsEqual(urrPoint, SettingsCollection::getInstance().linearTolerance())) { return TopoDS_Shape(); }
 	TopoDS_Shape boxShape = helperFunctions::createBBOXOCCT(lllPoint, urrPoint, 0.0, angleFlat, angleVert);
 	helperFunctions::triangulateShape(boxShape);
 	return boxShape;
@@ -869,7 +869,7 @@ gp_Pnt helperFunctions::getLastPointShape(const TopoDS_Shape& shape) {
 
 bool helperFunctions::pointInShape(const TopoDS_Shape& shape, const gp_Pnt& thePoint, double precision)
 {
-	if (precision == 0.0) { precision = SettingsCollection::getInstance().spatialTolerance(); }
+	if (precision == 0.0) { precision = SettingsCollection::getInstance().linearTolerance(); }
 
 	gp_Pnt endPoint = thePoint.Translated(gp_Vec(0, 0, 1000));
 
@@ -887,7 +887,7 @@ bool helperFunctions::pointInShape(const TopoDS_Shape& shape, const gp_Pnt& theP
 
 bool helperFunctions::pointOnShape(const TopoDS_Shape& shape, const gp_Pnt& thePoint, double precision)
 {
-	if (precision == 0.0) { precision = SettingsCollection::getInstance().spatialTolerance(); }
+	if (precision == 0.0) { precision = SettingsCollection::getInstance().linearTolerance(); }
 
 	for (TopExp_Explorer faceExpl(shape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 	{
@@ -899,7 +899,7 @@ bool helperFunctions::pointOnShape(const TopoDS_Shape& shape, const gp_Pnt& theP
 
 bool helperFunctions::pointOnFace(const TopoDS_Face& theFace, const gp_Pnt& thePoint, double precision)
 {
-	if (precision == 0.0) { precision = SettingsCollection::getInstance().spatialTolerance(); }
+	if (precision == 0.0) { precision = SettingsCollection::getInstance().linearTolerance(); }
 	
 	TopLoc_Location loc;
 	auto mesh = BRep_Tool::Triangulation(theFace, loc);
@@ -953,7 +953,7 @@ bool helperFunctions::pointOnMesh(const Handle(Poly_Triangulation)& theMesh, con
 
 bool helperFunctions::pointOnTriangle(const gp_Pnt& thePoint, const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	gp_Vec v12 = gp_Vec(p1, p2);
 	if (v12.Magnitude() < precision) { return false; }
 	gp_Vec v13 = gp_Vec(p1, p3);
@@ -1025,7 +1025,7 @@ bool helperFunctions::pointOnWire(const TopoDS_Wire& theWire, const gp_Pnt& theP
 
 bool helperFunctions::pointOnEdge(const TopoDS_Edge& theEdge, const gp_Pnt& thePoint, double precision)
 {
-	if (precision == 0.0) { precision = SettingsCollection::getInstance().spatialTolerance(); }
+	if (precision == 0.0) { precision = SettingsCollection::getInstance().linearTolerance(); }
 
 	gp_Pnt p1 = getFirstPointShape(theEdge);
 	gp_Pnt p2 = getLastPointShape(theEdge);
@@ -1053,7 +1053,7 @@ bool helperFunctions::pointOnEdge(const TopoDS_Edge& theEdge, const gp_Pnt& theP
 
 gp_Vec helperFunctions::computeEdgeDir(const TopoDS_Edge& theEdge)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	gp_Pnt startpoint = getFirstPointShape(theEdge);
 	gp_Pnt endpoint = getLastPointShape(theEdge);
 
@@ -1067,7 +1067,7 @@ gp_Vec helperFunctions::computeFaceNormal(const T& theFace)
 	if (theFace.IsNull()) { return gp_Vec(0, 0, 0); }
 
 	TopAbs_ShapeEnum shapeType = theFace.ShapeType();
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	if (shapeType == TopAbs_WIRE)
 	{
@@ -1117,7 +1117,7 @@ gp_Vec helperFunctions::newellsNormal(const std::vector<gp_Pnt>& pointList)
 		normal.SetZ(normal.Z() + (p0.X() - p1.X()) * (p0.Y() + p1.Y()));
 	}
 
-	if (normal.Magnitude() < SettingsCollection::getInstance().spatialTolerance())
+	if (normal.Magnitude() < SettingsCollection::getInstance().linearTolerance())
 	{
 		return normal;
 	}
@@ -1129,7 +1129,7 @@ gp_Vec helperFunctions::newellsNormal(const std::vector<gp_Pnt>& pointList)
 
 double helperFunctions::computeSmallestAngle(const TopoDS_Face& theFace)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	std::vector<gp_Pnt> pointList = getUniquePoints(theFace);
 	if (pointList.size() != 3) { std::cout << "smallest angle only works for triangles\n"; }
@@ -1151,7 +1151,7 @@ double helperFunctions::computeSmallestAngle(const TopoDS_Face& theFace)
 gp_Vec helperFunctions::getShapedir(const std::vector<gp_Pnt>& pointList, bool isHorizontal)
 {
 	std::vector<std::pair<gp_Vec, int>> vecCountMap;
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	// compute median lenght of all edges
 	std::vector<double> distances;
@@ -1231,7 +1231,7 @@ gp_Vec helperFunctions::getShapedir(const std::vector<gp_Pnt>& pointList, bool i
 
 bool helperFunctions::shareEdge(const TopoDS_Face& theFace, const TopoDS_Face& theotherFace)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	for (TopExp_Explorer currentExpl(theFace, TopAbs_EDGE); currentExpl.More(); currentExpl.Next())
 	{
 		TopoDS_Edge currentEdge = TopoDS::Edge(currentExpl.Current());
@@ -1251,7 +1251,7 @@ bool helperFunctions::edgeEdgeOVerlapping(const TopoDS_Edge& currentEdge, const 
 	gp_Pnt oP0 = getFirstPointShape(otherEdge);
 	gp_Pnt oP1 = getLastPointShape(otherEdge);
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	// check if edges are parallel
 	gp_Vec currentVec = gp_Vec(cP0, cP1);
@@ -1286,7 +1286,7 @@ bool helperFunctions::edgeEdgeOVerlapping(const TopoDS_Edge& currentEdge, const 
 
 bool helperFunctions::edgeEdgeAreSame(const TopoDS_Edge& currentEdge, const TopoDS_Edge& otherEdge)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	gp_Pnt currentP1 = helperFunctions::getFirstPointShape(currentEdge);
 	gp_Pnt currentP2 = helperFunctions::getLastPointShape(currentEdge);
 	gp_Pnt otherP1 = helperFunctions::getFirstPointShape(otherEdge);
@@ -1303,7 +1303,7 @@ bool helperFunctions::edgeEdgeAreSame(const TopoDS_Edge& currentEdge, const Topo
 bool helperFunctions::faceFaceOverlapping(const TopoDS_Face& upperFace, const TopoDS_Face& lowerFace)
 {
 	// compute area
-	double setPresicion = SettingsCollection::getInstance().spatialTolerance();
+	double setPresicion = SettingsCollection::getInstance().linearTolerance();
 	if (abs(computeArea(upperFace) - computeArea(lowerFace)) > setPresicion) { return false; }
 
 	// align verts
@@ -1335,7 +1335,7 @@ bool helperFunctions::faceFaceOverlapping(const TopoDS_Face& upperFace, const To
 
 bool helperFunctions::surfaceIsIncapsulated(const TopoDS_Face& innerSurface, const TopoDS_Face& outerSurface)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	for (TopExp_Explorer explorer(innerSurface, TopAbs_VERTEX); explorer.More(); explorer.Next())
 	{
 		const TopoDS_Vertex& vertex = TopoDS::Vertex(explorer.Current());
@@ -1360,7 +1360,7 @@ bool helperFunctions::surfaceIsIncapsulated(const TopoDS_Face& innerSurface, con
 
 bool helperFunctions::surfaceIsIncapsulated(const TopoDS_Face& innerSurface, const std::vector<TopoDS_Face>& outerSurfaceList, bool ignoreSelf)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	for (TopExp_Explorer explorer(innerSurface, TopAbs_VERTEX); explorer.More(); explorer.Next())
 	{
 		const TopoDS_Vertex& vertex = TopoDS::Vertex(explorer.Current());
@@ -1418,7 +1418,7 @@ bool helperFunctions::surfaceIsIncapsulated(const TopoDS_Face& innerSurface, con
 
 bool helperFunctions::triangleIntersecting(const std::array<gp_Pnt, 2>& line, const std::array<gp_Pnt, 3>& triangle)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	const gp_Pnt& lineStart = line[0];
 	const gp_Pnt& lineEnd = line[1];
@@ -1451,7 +1451,7 @@ bool helperFunctions::triangleIntersecting(const std::array<gp_Pnt, 2>& line, co
 
 bool helperFunctions::baryCentricTest(const gp_Pnt& point, const std::array<gp_Pnt, 3>& triangle)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	gp_Vec v0(triangle[0], triangle[2]);
 	gp_Vec v1(triangle[0], triangle[1]);
@@ -1477,7 +1477,6 @@ bool helperFunctions::baryCentricTest(const gp_Pnt& point, const std::array<gp_P
 
 bool helperFunctions::LineShapeIntersection(const TopoDS_Face& theFace, const gp_Pnt& lP1, const gp_Pnt& lp2, bool inZdir)
 {
-	double areaTol = SettingsCollection::getInstance().areaTolerance();
 	TopLoc_Location loc;
 	auto mesh = BRep_Tool::Triangulation(theFace, loc);
 
@@ -1505,7 +1504,7 @@ bool helperFunctions::LineShapeIntersection(const TopoDS_Face& theFace, const gp
 }
 
 TopoDS_Wire helperFunctions::mergeWireOrientated(const TopoDS_Wire& baseWire, const TopoDS_Wire& mergingWire) {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	
 	gp_Pnt connectionPoint1 = getFirstPointShape(baseWire);
 	gp_Pnt connectionPoint2 = getLastPointShape(baseWire);
@@ -1605,7 +1604,7 @@ TopoDS_Wire helperFunctions::mergeWireOrientated(const TopoDS_Wire& baseWire, co
 std::vector<TopoDS_Face> helperFunctions::mergeFaces(const std::vector<TopoDS_Face>& theFaceList)
 {
 	if (theFaceList.size() == 1) { return theFaceList; }
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	std::vector<gp_Vec> faceNormalList;
 	std::vector<TopoDS_Face> faceCopyList;
@@ -1673,7 +1672,7 @@ std::vector<TopoDS_Face> helperFunctions::mergeFaces(const std::vector<TopoDS_Fa
 
 std::vector<TopoDS_Face> helperFunctions::mergeCoFaces(const std::vector<TopoDS_Face>& theFaceList)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	if (!theFaceList.size()) { return theFaceList; }
 
@@ -1769,7 +1768,7 @@ TopoDS_Wire helperFunctions::closeWireOrientated(const TopoDS_Wire& baseWire) {
 	gp_Pnt p1 = helperFunctions::getFirstPointShape(baseWire);
 	gp_Pnt p2 = helperFunctions::getLastPointShape(baseWire);
 
-	if (p1.Distance(p2) < SettingsCollection::getInstance().spatialTolerance()) { return baseWire; }
+	if (p1.Distance(p2) < SettingsCollection::getInstance().linearTolerance()) { return baseWire; }
 
 	TopoDS_Wire closingWire = BRepBuilderAPI_MakeWire(BRepBuilderAPI_MakeEdge(p2, p1));
 
@@ -1788,7 +1787,7 @@ TopoDS_Face helperFunctions::createHorizontalFace(const gp_Pnt& lll, const gp_Pn
 
 TopoDS_Face helperFunctions::createPlanarFace(const gp_Pnt& p0, const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3) {
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	if (p0.IsEqual(p1, precision)) { return {}; }
 	if (p1.IsEqual(p2, precision)) { return {}; }
 	if (p2.IsEqual(p3, precision)) { return {}; }
@@ -1804,7 +1803,7 @@ TopoDS_Face helperFunctions::createPlanarFace(const gp_Pnt& p0, const gp_Pnt& p1
 
 TopoDS_Face helperFunctions::createPlanarFace(const gp_Pnt& p0, const gp_Pnt& p1, const gp_Pnt& p2)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	if (p0.IsEqual(p1, precision)) { return {}; }
 	if (p1.IsEqual(p2, precision)) { return {}; }
 	if (p2.IsEqual(p0, precision)) { return {}; }
@@ -1818,7 +1817,7 @@ TopoDS_Face helperFunctions::createPlanarFace(const gp_Pnt& p0, const gp_Pnt& p1
 
 TopoDS_Face helperFunctions::projectFaceFlat(const TopoDS_Face& theFace, double height) {
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
 	if (theFace.IsNull()) { return TopoDS_Face(); }
 	// check if face is flat
@@ -1878,7 +1877,7 @@ TopoDS_Face helperFunctions::projectFaceFlat(const TopoDS_Face& theFace, double 
 
 TopoDS_Face helperFunctions::projectFace(const TopoDS_Face& theFace, const gp_Pln& theReferencePlane)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	std::vector<TopoDS_Wire> wireList;
 	for (TopExp_Explorer wireExplorer(theFace, TopAbs_WIRE); wireExplorer.More(); wireExplorer.Next())
@@ -1949,7 +1948,7 @@ TopoDS_Face helperFunctions::projectFace(const TopoDS_Face& theFace, const gp_Pl
 TopoDS_Wire helperFunctions::projectWireFlat(const TopoDS_Wire& theWire, double height)
 {
 	BRepBuilderAPI_MakeWire builder;
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	for (BRepTools_WireExplorer expl(theWire); expl.More(); expl.Next()) {
 
 		TopoDS_Edge edge = TopoDS::Edge(expl.Current());
@@ -2069,7 +2068,7 @@ bool helperFunctions::fixFace(TopoDS_Face* theFace)
 		faceFixer.FixOrientation(); // fixes the innerwire invalid issue
 	}
 	faceFixer.FixIntersectingWires();
-	faceFixer.SetPrecision(SettingsCollection::getInstance().spatialTolerance());
+	faceFixer.SetPrecision(SettingsCollection::getInstance().linearTolerance());
 	faceFixer.Perform();
 	TopoDS_Face fixedFace = faceFixer.Face();
 
@@ -2124,7 +2123,7 @@ std::vector<TopoDS_Face> helperFunctions::TriangulateFace(const TopoDS_Face& the
 	if (mesh.IsNull()) { return {}; }
 
 	double angularTol = SettingsCollection::getInstance().angularTolerance();
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	gp_Vec currentNormal = helperFunctions::computeFaceNormal(theFace);
 
 	std::vector<TopoDS_Face> triangleFaceList;
@@ -2182,7 +2181,7 @@ std::vector<TopoDS_Wire> helperFunctions::growWires(const std::vector<TopoDS_Edg
 
 	tempEdgeList.emplace_back(currentEdge);
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	bool isReversed = false;
 	while (true)
 	{
@@ -2388,7 +2387,7 @@ TopoDS_Wire helperFunctions::cleanWire(const TopoDS_Wire& wire) {
 		allEdges.emplace_back(currentEdge);
 	}
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	TopTools_MapOfShape visited;
 	BRepBuilderAPI_MakeWire wireMaker;
@@ -2489,7 +2488,7 @@ TopoDS_Wire helperFunctions::cleanWire(const TopoDS_Wire& wire) {
 
 TopoDS_Face helperFunctions::wireCluster2Faces(const std::vector<TopoDS_Wire>& wireList) {
 
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	BRepBuilderAPI_MakeFace faceBuilder;
 	std::vector<TopoDS_Face> faceList;
@@ -2577,7 +2576,7 @@ std::vector<TopoDS_Face> helperFunctions::TrimFaceToFace(const TopoDS_Face& argu
 {
 	std::vector<TopoDS_Face> outList;
 	
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	TopTools_ListOfShape toolList;
 	for (const TopoDS_Face& otherStoryFace : toolFaceList)
 	{
@@ -2618,7 +2617,7 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 	if (planarFaces.size() == 1) { return planarFaces; }
 
 	gp_Trsf transform;
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTol = SettingsCollection::getInstance().angularTolerance();
 
 	// rotate the cluster so that all lie parallel to the xy plane
@@ -2683,7 +2682,7 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 
 std::vector<TopoDS_Shape> helperFunctions::planarFaces2Cluster(const std::vector<TopoDS_Face>& planarFaces)
 {
-	double precisionCoarse = SettingsCollection::getInstance().spatialTolerance(); //TODO: this has been uncoarsened 
+	double precisionCoarse = SettingsCollection::getInstance().linearTolerance(); //TODO: this has been uncoarsened 
 
 	std::vector<TopoDS_Shape> clusteredShapeList;
 	FaceComplex faceComplex;
@@ -2885,7 +2884,7 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 {
 	std::vector<HalfEdgeLoop> loopLists;
 	SettingsCollection& settingCol = SettingsCollection::getInstance();
-	double precision = settingCol.spatialTolerance();
+	double precision = settingCol.linearTolerance();
 	double pointOffset = precision * 100; //I do not like this
 
 	std::vector<TopoDS_Face> triangulatedSourceList = TriangulateFace(planarFaces);
@@ -3810,7 +3809,7 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 
 TopoDS_Wire helperFunctions::CurveToCompound(const TopoDS_Edge& theEdge)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double stepLenght = 0.3;
 
 	Standard_Real first, last;
@@ -3820,7 +3819,7 @@ TopoDS_Wire helperFunctions::CurveToCompound(const TopoDS_Edge& theEdge)
 	double curveLength = GCPnts_AbscissaPoint::Length(adaptorCurve, first, last);
 
 	int splitSteps = std::ceil(curveLength / stepLenght);
-	if (curveLength / 3 < SettingsCollection::getInstance().spatialTolerance()) { splitSteps = 2; }
+	if (curveLength / 3 < SettingsCollection::getInstance().linearTolerance()) { splitSteps = 2; }
 	else if (splitSteps < 2) { splitSteps = 3; }
 
 	GCPnts_UniformAbscissa abscissa(adaptorCurve, splitSteps, first, last);
@@ -3852,7 +3851,7 @@ TopoDS_Wire helperFunctions::replaceCurves(const TopoDS_Wire& theWire)
 {
 
 	std::vector<TopoDS_Edge> fixedEdges;
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	bool isEdited = false;
 
 	for (BRepTools_WireExplorer expl(theWire); expl.More(); expl.Next()) {
@@ -3977,7 +3976,7 @@ bool helperFunctions::isStraight(const TopoDS_Edge& theEdge)
 
 bool helperFunctions::hasVolume(const bg::model::box<BoostPoint3D>& bbox)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	const auto& t1 = bbox.min_corner();
 	const auto& t2 = bbox.max_corner();
@@ -4004,7 +4003,7 @@ bool helperFunctions::isSame(const bg::model::box<BoostPoint3D>& bboxL, const bg
 
 bool helperFunctions::isSame(const TopoDS_Face& faceL, const TopoDS_Face& faceR)
 {
-	double precision = SettingsCollection::getInstance().spatialTolerance();
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	double areaTolerance = SettingsCollection::getInstance().areaTolerance();
 
 	if (abs(computeArea(faceL) - computeArea(faceR)) > areaTolerance)

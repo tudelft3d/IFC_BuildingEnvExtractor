@@ -191,6 +191,9 @@ private:
 	// check if the site contains all the required data for georeferencing according to IfcGRef (ifc2x3) only
 	bool validateProjectionData(const nlohmann::json& sitePropertySetData);
 
+	// get the scale and projection data from the file
+	void getScaleAndProjection(CJT::ObjectTransformation* transformation, CJT::metaDataObject* metaData);
+
 	// populate a map that has all the guid related propertysets 
 	void populateAttributeLookup();
 

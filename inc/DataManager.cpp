@@ -832,6 +832,72 @@ bool DataManager::validateProjectionData(const nlohmann::json& sitePropertySetDa
 	return false;
 }
 
+void DataManager::getScaleAndProjection(CJT::ObjectTransformation* transformation, CJT::metaDataObject* metaData)
+{
+	IfcParse::IfcFile* fileObject = datacollection_[0]->getFilePtr();
+
+#if defined(USE_IFC2x3)
+	IfcSchema::IfcSite::list::ptr ifcSiteList = fileObject->instances_by_type<IfcSchema::IfcSite>();
+
+	if (ifcSiteList->size() != 0) {
+		if (ifcSiteList->size() > 1) { std::cout << "[WARNING] multiple sites detected" << std::endl; }
+
+		IfcSchema::IfcSite* ifcSite = *ifcSiteList->begin();
+		IfcSchema::IfcRelDefines::list::ptr relDefinesList = ifcSite->IsDefinedBy();
+
+		nlohmann::json sitePropertySetData = helperFunctions::getAttributes(ifcSite, "ePSet_MapConversion");
+
+		if (sitePropertySetData.empty()) { return; }
+		if (sitePropertySetData.contains("TargetCRS"))
+		{
+			if (sitePropertySetData["TargetCRS"].is_string())
+			{
+				metaData->setReferenceSystem(sitePropertySetData["TargetCRS"]);
+			}
+		}
+		if (sitePropertySetData.contains("Scale"))
+		{
+			if (sitePropertySetData["Scale"].is_number())
+			{
+				transformation->setScale(transformation->getScale()[0] * sitePropertySetData["Scale"].get<float>());
+			}
+		}
+	}
+
+#else
+	IfcSchema::IfcMapConversion::list::ptr mapList = fileObject->instances_by_type<IfcSchema::IfcMapConversion>();
+	if (mapList->size() != 0) {
+		if (mapList->size() > 1) {
+			ErrorCollection::getInstance().addError(ErrorID::warningIfcMultipleProjections);
+			std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMultipleProjections) << std::endl;
+		}
+
+		IfcSchema::IfcMapConversion* mapConversion = *(mapList->begin());
+
+#if defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
+		boost::optional<std::string> targetCRSOptionalName = mapConversion->TargetCRS()->Name();
+		if (targetCRSOptionalName->empty()) { return; }
+		metaData->setReferenceSystem(*targetCRSOptionalName);
+#else
+		metaData->setReferenceSystem(mapConversion->TargetCRS()->Name());
+#endif // defined(USE_IFC4x3add2)
+
+		if (mapConversion->Scale().has_value())
+		{
+			std::array<double, 3> scaleCity = transformation->getScale();
+			double scaleIfc = mapConversion->Scale().get();
+
+			for (size_t i = 0; i < scaleCity.size(); i++)
+			{
+				scaleCity[i] = scaleCity[i] * scaleIfc;
+			}
+			transformation->setScale(scaleCity);
+		}
+	}
+#endif // !USE_IFC4
+	return;
+}
+
 void DataManager::populateAttributeLookup()
 {
 	for (size_t i = 0; i < getSourceFileCount(); i++)
@@ -1058,7 +1124,6 @@ void DataManager::internalizeGeo()
 		std::cout << "\n";
 		objectTranslation_.SetTranslationPart(ifcTrsf);
 	}
-
 	objectIfcTranslation_.SetTranslationPart(-ifcTrsf + geoTrsf.TranslationPart());
 	elementCountSummary();
 
@@ -1311,81 +1376,17 @@ gp_Trsf DataManager::getProjectionTransformation()
 
 void DataManager::getProjectionData(CJT::ObjectTransformation* transformation, CJT::metaDataObject* metaData)
 {
-	IfcParse::IfcFile* fileObject = datacollection_[0]->getFilePtr();
+	// get and set the scale and projection
+	getScaleAndProjection(transformation, metaData);
 
-#if defined(USE_IFC2x3)
-	IfcSchema::IfcSite::list::ptr ifcSiteList = fileObject->instances_by_type<IfcSchema::IfcSite>();
-
-	if (ifcSiteList->size() != 0) {
-		if (ifcSiteList->size() > 1) { std::cout << "[WARNING] multiple sites detected" << std::endl; }
-
-		IfcSchema::IfcSite* ifcSite = *ifcSiteList->begin();
-		IfcSchema::IfcRelDefines::list::ptr relDefinesList = ifcSite->IsDefinedBy();
-
-		nlohmann::json sitePropertySetData = helperFunctions::getAttributes(ifcSite, "ePSet_MapConversion");
-
-		if (sitePropertySetData.empty()) { return; }
-
-		if (sitePropertySetData.contains("TargetCRS"))
-		{
-			if (sitePropertySetData["TargetCRS"].is_string())
-			{
-				metaData->setReferenceSystem(sitePropertySetData["TargetCRS"]);
-			}
-		}
-		if (sitePropertySetData.contains("Scale"))
-		{
-			if (sitePropertySetData["Scale"].is_number())
-			{
-				transformation->setScale(transformation->getScale()[0] * sitePropertySetData["Scale"].get<float>());
-			}
-		}
-	}
-
+	// apply the georef + ifc translation
 	gp_XYZ invertedObjectTrsf = objectIfcTranslation_.TranslationPart();
 	transformation->setTranslation(
 		invertedObjectTrsf.X(),
 		invertedObjectTrsf.Y(),
 		invertedObjectTrsf.Z()
 	);
-#else
-	IfcSchema::IfcMapConversion::list::ptr mapList = fileObject->instances_by_type<IfcSchema::IfcMapConversion>();
-	if (mapList->size() != 0) {
-		if (mapList->size() > 1) {
-			ErrorCollection::getInstance().addError(ErrorID::warningIfcMultipleProjections);
-			std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMultipleProjections) << std::endl;
-		}
 
-		IfcSchema::IfcMapConversion* mapConversion = *(mapList->begin());
-
-#if defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
-		boost::optional<std::string> targetCRSOptionalName = mapConversion->TargetCRS()->Name();
-		if (targetCRSOptionalName->empty()) { return; }
-		metaData->setReferenceSystem(*targetCRSOptionalName);
-#else
-		metaData->setReferenceSystem(mapConversion->TargetCRS()->Name());
-#endif // defined(USE_IFC4x3add2)
-
-		if (mapConversion->Scale().has_value())
-		{
-			std::array<double, 3> scaleCity = transformation->getScale();
-			double scaleIfc = mapConversion->Scale().get();
-
-			for (size_t i = 0; i < scaleCity.size(); i++)
-			{
-				scaleCity[i] = scaleCity[i] * scaleIfc;
-			}
-			transformation->setScale(scaleCity);
-		}
-	}
-	gp_XYZ invertedObjectTrsf = objectIfcTranslation_.TranslationPart();
-
-	transformation->setTranslation(
-		invertedObjectTrsf.X(),
-		invertedObjectTrsf.Y(),
-		invertedObjectTrsf.Z()
-	);
-#endif // !USE_IFC4
 	return;
 }
 

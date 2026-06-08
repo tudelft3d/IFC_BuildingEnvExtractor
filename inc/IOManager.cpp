@@ -217,6 +217,8 @@ void IOManager::printSummary()
 	{
 		std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.desiredRotation() << "\n";
 	}
+	std::cout << "- Correct local placement\n";
+	std::cout << boolToString(settingsCollection.correctPlacement()) << "\n";
 	std::cout << "- Ignore void grade:\n";
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.ignoreVoidGrade() << "\n";
 	std::cout << "- Simplify geometry:\n";
@@ -533,6 +535,7 @@ void IOManager::setMetaData(std::shared_ptr<CJT::CityCollection> collection)
 	{
 		internalDataManager_.get()->getProjectionData(&transformation, &metaData);
 	}
+
 	transformation.setScale(transformation.getScale()[0]);
 
 	// compute the extends

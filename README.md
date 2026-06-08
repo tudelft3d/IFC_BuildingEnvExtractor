@@ -134,11 +134,14 @@ The GUI can be accessed via two routes:
 * In the Pre_Build folder the *Ext_GUI.exe* or *Ext_simple_GUI.exe* will start the GUI or simple GUI respectively.
 * In the GUI_code folder the python file will also start the GUI. This would require the user to have python installed on their system.
 
-<figure align="center" width="100%">
-    <img src="./Images/GUI_example.JPG" alt= “The general layout of the full GUI in version v0.4” width="47%">
-    <img src="./Images/GUI_simple_example.JPG" alt= “The general layout of the simple GUI in version v0.4” width="47%">
-    <figcaption>The general layout of the full GUI (left) and simple GUI (right) in version v0.4</figcaption>
-</figure>
+<p align="center">
+  <img src="./Images/GUI_example.JPG" width="47%">
+  <img src="./Images/GUI_simple_example.JPG" width="47%">
+</p>
+
+<p align="center">
+  <em>The general layout of the full GUI (left) and simple GUI (right) in version v0.4</em>
+</p>
 
 [Back to top](#table-of-content)
 

@@ -5,10 +5,13 @@
 
 The Graphical User Interface (GUI) was created to allow normal people without extremely advanced knowledge to use the tool easily. However, the GUI is still a complex interface. This document will go through every part of the GUI and briefly explain how it works. The image below shows the GUI split up in groups that reflect the sections in this document. This will make it easy to hop to the settings which need explanation.
 
-<figure align="center" width="100%">
-    <img src="../Images/Gui_summary/GUI_overlay.jpg" alt= “The GUI with parts highlighted” width="80%">
-    <figcaption>The GUI with different parts highlighted</figcaption>
-</figure>
+<p align="center">
+  <img src="../Images/Gui_summary/GUI_overlay.jpg" alt= “The GUI with parts highlighted” width="80%">
+</p>
+
+<p align="center">
+  <em>The GUI with different parts highlighted</em>
+</p>
 
 Note that not all settings are available in the simple version of the GUI.
 
@@ -20,10 +23,13 @@ The top ribbon menu gives the user some options to process configJSON files. Add
 
 The settings can be set in the GUI but the settings can also be loaded from a configuration JSON file. The GUI give the option to easily load pre-set configJSON files. These will be accessible in the ribbon menu via "File -> load Config". The "Load config" menu is populated with files that are stored in the *default-data* folder that is located in the same folder as the GUI. By default this folder is populated with config files that are set up to meet the requirements of geometry for the Dutch BAG, BGT and 3DBAG databases. Users can add their own config files in this folder. These will be added to the "Load Config" menu upon reopening the GUI (with a max of 10 files). Other configJSON files can be opened via "File -> Load Config -> Custom pre-set".
 
-<figure align="center" width="100%">
+<p align="center" width="100%">
     <img src="../Images/GUI_example_customJSON.JPG" alt= “The location of the pre-set configJSON files” width="47%">
-    <figcaption>The location of the pre-set configJSON files</figcaption>
-</figure>
+</p>
+
+<p align="center">
+  <em>The location of the pre-set configJSON files</em>
+</p>
 
 Only a subset of the settings are available from the GUI. The complete settings collection is only available via a configuration JSON file. So, if more advanced settings are required a configuration JSON file has to be created. This can be done completely manually, but the GUI can also help. By going to “File -> Store config” the current settings set in the GUI can be saved to a configJSON file which can be used as is, or further edited with more advanced settings. For more info related to the settings see [here](../README.md/#configuration-json). This section also explains the settings that can be accessed via the GUI.
 
@@ -31,10 +37,13 @@ Only a subset of the settings are available from the GUI. The complete settings 
 
 Via "File -> Preferences" the preferences menu can be opened. From here the default folder can be changed from which "File -> Load config" menu is populated. This can be useful if there is a different folder where these pre-made config files are stored.
 
-<figure align="center" width="100%">
+<p align="center" width="100%">
     <img src="../Images/preferences_window.JPG" alt= “The preferences window” width="80%">
-    <figcaption>The preferences window</figcaption>
-</figure>
+</p>
+
+<p align="center">
+  <em>The preferences window</em>
+</p>
 
 <figure align="center" width="100%">
     <img src="../Images/GUI_startup_error.JPG" alt= “The error shown on startup if executables cannot be found”  width="50%">

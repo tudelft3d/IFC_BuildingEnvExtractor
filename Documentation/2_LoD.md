@@ -7,10 +7,10 @@ The envelope extractor has a large set of possible LoD output that builds on the
 
 The examples show output that is based on the Institute model created by KIT.
 
-<figure align="center" width="100%">
+<p align="center" width="100%">
     <img src="../Images/LoD_summary/LoD42.jpg" alt= “The input model that is used for the LoD examples” width="100%">
-    <figcaption>The input model that is used for the LoD examples</figcaption>
-</figure>
+    <p align="center" label="figcaption"><em>The input model that is used for the LoD examples</em></p>
+</p>
 
 The tool does some pre-filtering, type isolation and complex shape simplifications regardless of the output LoD. These processes are utilized for the output of each LoD unless it is clearly specified in the description. More information about these processes can be found in the technical report of the tool.
 

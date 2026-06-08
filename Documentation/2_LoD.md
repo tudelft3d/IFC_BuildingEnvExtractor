@@ -7,10 +7,14 @@ The envelope extractor has a large set of possible LoD output that builds on the
 
 The examples show output that is based on the Institute model created by KIT.
 
-<p align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD42.jpg" alt= “The input model that is used for the LoD examples” width="100%">
-    <p align="center" label="figcaption"><em>The input model that is used for the LoD examples</em></p>
-</p>
+<div  label="figure">
+    <p align="center" label="image">
+           <img src="../Images/LoD_summary/LoD42.jpg" alt= “The input model that is used for the LoD examples” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>The input model that is used for the LoD examples</em>
+    </p>
+</div>
 
 The tool does some pre-filtering, type isolation and complex shape simplifications regardless of the output LoD. These processes are utilized for the output of each LoD unless it is clearly specified in the description. More information about these processes can be found in the technical report of the tool.
 
@@ -22,10 +26,14 @@ LoD0 is an officially supported LoD. It is described by the [CityGML3.0 standard
 
 A 2D bounding surface representation of the input BIM model in the XY plane.
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD00.jpg" alt= “Example of LoD0.0” width="100%">
-    <figcaption>Example of LoD0.0</figcaption>
-</figure>
+<div  label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD00.jpg" alt= “Example of LoD0.0” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD0.0</em>
+    </p>
+</div>
 
 The representation consists out of:
 
@@ -40,10 +48,14 @@ The representation consists out of:
 
 ### LoD0.2
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD02.jpg" alt= “Example of LoD0.2” width="100%">
-    <figcaption>Example of LoD0.2. Left: the external roof and ground surfaces. Middle: the internal spaces. Right: the internal storeys.</figcaption>
-</figure>
+<div  label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD02.jpg" alt= “Example of LoD0.2” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD0.2. Left: the external roof and ground surfaces. Middle: the internal spaces. Right: the internal storeys.</em>
+    </p>
+</div>
 
 Simple 2.5D 2D surface representation of the input BIM model where every surface has a normal direction of $(0,0,1)$. The model is 2.5D between surfaces created from the same "source" (such as the roof surfaces). Overhang is allowed between surfaces that are based on different "sources" even if they have the same surface type (such as different storey representations).
 
@@ -68,10 +80,14 @@ The representation consists out of:
 
 ### LoD0.3
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD03.jpg" alt= “Example of LoD0.3” width="100%">
-    <figcaption>Example of LoD0.3. Left: the external roof and ground surfaces. Middle: the internal storeys.</figcaption>
-</figure>
+<div  label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD03.jpg" alt= “Example of LoD0.3” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD0.3. Left: the external roof and ground surfaces. Middle: the internal storeys.</em>
+    </p>
+</div>
 
 2.5D 2D surface representation of the input BIM model where every surface has a normal direction of $(0,0,1)$. The model is 2.5D between surfaces created from the same "source" (such as the roof surfaces). Overhang is allowed between surfaces that are based on different "sources" even if they have the same surface type (such as different storey representations).
 
@@ -92,10 +108,14 @@ The representation consists out of:
 
 ### LoD0.4
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD04.jpg" alt= “Example of LoD0.4” width="100%">
-    <figcaption>Example of LoD0.4.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD04.jpg" alt= “Example of LoD0.4” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD0.4.</em>
+    </p>
+</div>
 
 2.5D surface representation where every surface has the same normal as it's source shape. The model is 2.5D between surfaces created from the same "source" (such as the roof surfaces). Overhang is allowed between surfaces that are based on different "sources".
 
@@ -116,10 +136,14 @@ LoD1 is an officially supported LoD. It is described by the [CityGML3.0 standard
 
 ### LoD1.0
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD10.jpg" alt= “Example of LoD1.0” width="100%">
-    <figcaption>Example of LoD1.0.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD10.jpg" alt= “Example of LoD1.0” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD1.0.</em>
+    </p>
+</div>
 
 3D bounding box representation of the input BIM model.
 
@@ -132,10 +156,14 @@ The representation consists out of:
 
 ### LoD1.2
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD12.jpg" alt= “Example of LoD1.2” width="100%">
-    <figcaption>Example of LoD1.2. Left: outer shell. Middle: inner shell.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD12.jpg" alt= “Example of LoD1.2” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD1.2. Left: outer shell. Middle: inner shell.</em>
+    </p>
+</div>
 
 2.5D volumetric representation of the input BIM model with uniform flat top and bottom surfaces.
 
@@ -154,10 +182,14 @@ The representation consists out of:
 
 ### LoD1.3
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD13.jpg" alt= “Example of LoD1.3” width="100%">
-    <figcaption>Example of LoD1.3.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD13.jpg" alt= “Example of LoD1.3” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD1.3.</em>
+    </p>
+</div>
 
 2.5D volumetric representation of the input BIM model with flat top and bottom surfaces. Every surface has a normal Z-component that is either 1 or 0.
 
@@ -174,10 +206,14 @@ LoD2 is an officially supported LoD. It is described by the [CityGML3.0 standard
 
 ### LoD2.2
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD22.jpg" alt= “Example of LoD2.2” width="100%">
-    <figcaption>Example of LoD2.2. Left: outer shell. Middle: inner shell.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD22.jpg" alt= “Example of LoD2.2” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD2.2. Left: outer shell. Middle: inner shell.</em>
+    </p>
+</div>
 
 2.5D volumetric representation of the Input BIM model.
 
@@ -198,10 +234,14 @@ LoD3 is an officially supported LoD. It is described by the [CityGML3.0 standard
 
 ### LoD3.2
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD32.jpg" alt= “Example of LoD3.2” width="100%">
-    <figcaption>Example of LoD3.2. Left: outer shell. Middle: inner shell.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD32.jpg" alt= “Example of LoD3.2” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD3.2. Left: outer shell. Middle: inner shell.</em>
+    </p>
+</div>
 
 3D volumetric representation of the input BIM model.
 
@@ -218,10 +258,14 @@ LoD4 is not an officially supported LoD. LoD4 was described by the CityGML2.0 st
 
 ### LoD4.0
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD40.jpg" alt= “Example of LoD4.0” width="100%">
-    <figcaption>Example of LoD4.0.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD40.jpg" alt= “Example of LoD4.0” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD4.0.</em>
+    </p>
+</div>
 
 3D complex representation (not a shell) of all the objects that are part of the external facade of the BIM model. LoD4.0 can also be seen as the first step in the creation of LoD3.2 where all the external objects are isolated.
 
@@ -236,10 +280,14 @@ The representation consists out of:
 
 ### LoD4.1
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD41.jpg" alt= “Example of LoD4.1” width="100%">
-    <figcaption>Example of LoD4.1.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD41.jpg" alt= “Example of LoD4.1” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD4.1.</em>
+    </p>
+</div>
 
 3D complex representation (not a shell) of all the selected space dividing objects.
 
@@ -252,10 +300,14 @@ The representation consists out of:
 
 ### LoD 4.2
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD42.jpg" alt= “Example of LoD4.2” width="100%">
-    <figcaption>Example of LoD4.2.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD42.jpg" alt= “Example of LoD4.2” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD4.2.</em>
+    </p>
+</div>
 
 3D complex representation (not a shell) of the input model. This is unfiltered and unabstracted, completely bypassing the geometric optimization of the tool. The closest possible to a 1:1 conversion.
 
@@ -272,10 +324,14 @@ These LoD models are not officially supported LoD. The were used for scientific 
 
 ### LoD5.0/V
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoD50.jpg" alt= “Example of LoD5.0” width="100%">
-    <figcaption>Example of LoD5.0.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoD50.jpg" alt= “Example of LoD5.0” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoD5.0. Left: outer shell. Middle: inner shell.</em>
+    </p>
+</div>
 
 3D voxel representation of the input model.
 
@@ -292,10 +348,14 @@ The representation consists out of:
 
 ### LoDe.1
 
-<figure align="center" width="100%">
-    <img src="../Images/LoD_summary/LoDe1.jpg" alt= “Example of LoDe.1” width="100%">
-    <figcaption>Example of LoDe.1.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+      <img src="../Images/LoD_summary/LoDe1.jpg" alt= “Example of LoDe.1” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>Example of LoDe.1.</em>
+    </p>
+</div>
 
 3D polygon representation of the input model. This can be seen as the second step of the LoD3.2 creation. LoD4.0 can be seen as step one.
 

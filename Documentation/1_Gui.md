@@ -5,13 +5,14 @@
 
 The Graphical User Interface (GUI) was created to allow normal people without extremely advanced knowledge to use the tool easily. However, the GUI is still a complex interface. This document will go through every part of the GUI and briefly explain how it works. The image below shows the GUI split up in groups that reflect the sections in this document. This will make it easy to hop to the settings which need explanation.
 
-<p align="center">
-  <img src="../Images/Gui_summary/GUI_overlay.jpg" alt= “The GUI with parts highlighted” width="80%">
-</p>
-
-<p align="center">
-  <em>The GUI with different parts highlighted</em>
-</p>
+<div  label="figure">
+    <p align="center" label="image">
+        <img src="../Images/Gui_summary/GUI_overlay.jpg" alt= “The GUI with parts highlighted” width="80%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>The GUI with different parts highlighted</em>
+    </p>
+</div>
 
 Note that not all settings are available in the simple version of the GUI.
 
@@ -23,13 +24,14 @@ The top ribbon menu gives the user some options to process configJSON files. Add
 
 The settings can be set in the GUI but the settings can also be loaded from a configuration JSON file. The GUI give the option to easily load pre-set configJSON files. These will be accessible in the ribbon menu via "File -> load Config". The "Load config" menu is populated with files that are stored in the *default-data* folder that is located in the same folder as the GUI. By default this folder is populated with config files that are set up to meet the requirements of geometry for the Dutch BAG, BGT and 3DBAG databases. Users can add their own config files in this folder. These will be added to the "Load Config" menu upon reopening the GUI (with a max of 10 files). Other configJSON files can be opened via "File -> Load Config -> Custom pre-set".
 
-<p align="center" width="100%">
-    <img src="../Images/GUI_example_customJSON.JPG" alt= “The location of the pre-set configJSON files” width="47%">
-</p>
-
-<p align="center">
-  <em>The location of the pre-set configJSON files</em>
-</p>
+<div  label="figure">
+    <p align="center" label="image">
+        <img src="../Images/GUI_example_customJSON.JPG" alt= “The location of the pre-set configJSON files” width="47%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>The location of the pre-set configJSON files</em>
+    </p>
+</div>
 
 Only a subset of the settings are available from the GUI. The complete settings collection is only available via a configuration JSON file. So, if more advanced settings are required a configuration JSON file has to be created. This can be done completely manually, but the GUI can also help. By going to “File -> Store config” the current settings set in the GUI can be saved to a configJSON file which can be used as is, or further edited with more advanced settings. For more info related to the settings see [here](../README.md/#configuration-json). This section also explains the settings that can be accessed via the GUI.
 
@@ -37,19 +39,24 @@ Only a subset of the settings are available from the GUI. The complete settings 
 
 Via "File -> Preferences" the preferences menu can be opened. From here the default folder can be changed from which "File -> Load config" menu is populated. This can be useful if there is a different folder where these pre-made config files are stored.
 
-<p align="center" width="100%">
-    <img src="../Images/preferences_window.JPG" alt= “The preferences window” width="80%">
-</p>
+<div label="figure">
+    <p align="center" label="image">
+        <img src="../Images/preferences_window.JPG" alt= “The preferences window” width="80%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>The preferences window</em>
+    </p>
+</div>
 
-<p align="center">
-  <em>The preferences window</em>
-</p>
-
-<figure align="center" width="100%">
-    <img src="../Images/GUI_startup_error.JPG" alt= “The error shown on startup if executables cannot be found”  width="50%">
+<div label="figure">
+    <p align="center" label="image">
+       <img src="../Images/GUI_startup_error.JPG" alt= “The error shown on startup if executables cannot be found”  width="50%">
     <img src="../Images/GUI_running_error.JPG" alt= “The error shown on running the extractor if executables cannot be found” width="42%">
-    <figcaption>If the GUI is unable to find the folder where the executables are stored it will throw an error on GUI startup (left) or on running the extractor (right). This can be resolved by updating the env_extractor path in the preferences menu </figcaption>
-</figure>
+    </p>
+    <p align="center" label="figcaption">
+        <em> If the GUI is unable to find the folder where the executables are stored it will throw an error on GUI startup (left) or on running the extractor (right). This can be resolved by updating the env_extractor path in the preferences menu </em>
+    </p>
+</div>
 
 The preferences menu also allows the user to change the location where the envelope extractor executables (.exe) files are stored. By default the GUI looks for the executables in the same folder as the GUI or a folder named *binary* that is placed in the same folder as the GUI. If the executables are placed at a non-default location and this is not specified in the preference menu the GUI will throw an error on startup and on running of the extractor.
 
@@ -57,10 +64,14 @@ The preferences menu also allows the user to change the location where the envel
 
 A loaded configJSON file can set more settings than are available in the GUI. So in the background some undesirable settings could be passed on to the extractor or to the saved configJSON files. The interface passes all settings, also the settings that cannot be changed in the GUI.
 
-<figure align="center" width="100%">
-    <img src="../Images/GUI_jsonSummary_example.JPG" alt= “The summary window showing the summary of the generic starting data of the GUI width="47%">
-    <figcaption>The summary window showing the summary of the generic starting data of the GUI</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+        <img src="../Images/GUI_jsonSummary_example.JPG" alt= “The summary window showing the summary of the generic starting data of the GUI width="47%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>The summary window showing the summary of the generic starting data of the GUI</em>
+    </p>
+</div>
 
 "File -> Show summary" opens a windows that displays all the settings that are being set (by the GUI and the loaded config file). If there are settings present that are undesirable the "File -> Clean JSON" option can help. This option will remove all settings that are unavailable from the GUI from the memory. So it will present a completely "clean" file.
 
@@ -91,15 +102,23 @@ The additional settings allow the user to fine tune the LoD output to their need
 
 Based on the selected LoD some of these settings will not be available. The GUI will communicate this by disabling the toggles.
 
-<figure align="center" width="100%">
-    <img src="../Images/footprintrestrictedex.jpg" alt= "The difference between normal and footprint based abstraction" width="100%">
-    <figcaption>The difference between normal (middle) and footprint based abstraction (right) in a LoD2.2 representation based on the same input (left). </figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+        <img src="../Images/footprintrestrictedex.jpg" alt= "The difference between normal and footprint based abstraction" width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>The difference between normal (middle) and footprint based abstraction (right) in a LoD2.2 representation based on the same input (left).</em>
+    </p>
+</div>
 
-<figure align="center" width="100%">
-    <img src="../Images/Gui_summary/isExternal_example.jpg" alt= "Example of where the IsExternal attribute can be seen in BIMvision" width="100%">
-    <figcaption>The IsExternal attribute value of an object can be found in an IFC viewer like BIMvision. Note that if this attribute is not populated it can show as "No" but the whole IsExternal attribute can also be missing from the list. The example in this figure is an altered FZK Haus model of KIT where the IsExternal attribute is manually populated.</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+        <img src="../Images/Gui_summary/isExternal_example.jpg" alt= "Example of where the IsExternal attribute can be seen in BIMvision" width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>The IsExternal attribute value of an object can be found in an IFC viewer like BIMvision. Note that if this attribute is not populated it can show as "No" but the whole IsExternal attribute can also be missing from the list. The example in this figure is an altered FZK Haus model of KIT where the IsExternal attribute is manually populated.</em>
+    </p>
+</div>
 
 ## voxel and footprint settings (E)
 
@@ -125,10 +144,14 @@ As long as no very large (+2 meter) or extremely small (-0.005 meter) size voxel
 
 The footprint elevation is the elevation of the ground floor in the IFC model. This is not the height it has in real life, but the height in the IFC model itself. You can find this height in the attributes of an IfcStorey object. Usually this elevation is 0m, but it can be different.
 
-<figure align="center" width="100%">
-    <img src="../Images/Gui_summary/elevation_example.jpg" alt= “Example of where to find the elevation value in an IFC model” width="100%">
-    <figcaption>The elevation value of a storey can be found in an IFC viewer like BIMvision</figcaption>
-</figure>
+<div label="figure">
+    <p align="center" label="image">
+        <img src="../Images/Gui_summary/elevation_example.jpg" alt= “Example of where to find the elevation value in an IFC model” width="100%">
+    </p>
+    <p align="center" label="figcaption">
+        <em>The elevation value of a storey can be found in an IFC viewer like BIMvision</em>
+    </p>
+</div>
 
 Automatic detection can be checked. If this is done the tool will try to find the footprint elevation itself. It will do so based on the rules set by the [BIM base IDS](https://www.digigo.nu/en/ilsen-en-richtlijnen/bim-base-ids/3-3-construction-level-arrangement-and-naming/) ([BIM basis ILS](https://www.digigo.nu/ilsen-en-richtlijnen/bim-basis-ils/3-3-bouwlaagindeling-en-naamgeving/)) of DIGIGO. In summary, the tool will search for a IfcStorey object that starts with "00" and use its "Elevation" attribute value. If it is unable to find a suitable storey the application will terminate.
 

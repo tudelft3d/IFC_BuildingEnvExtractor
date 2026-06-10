@@ -627,76 +627,71 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<T>& shape
 
 	for (const TopoDS_Shape& currentShape : shapes)
 	{
-		for (TopExp_Explorer solidExpl(currentShape, TopAbs_SOLID); solidExpl.More(); solidExpl.Next())
+		BRepAlgoAPI_Splitter splitter;
+		splitter.SetFuzzyValue(1e-6);
+		TopTools_ListOfShape argumentList;
+		argumentList.Append(cuttingFace);
+		TopTools_ListOfShape toolList;
+
+		for (TopExp_Explorer solidExpl(currentShape, TopAbs_FACE); solidExpl.More(); solidExpl.Next())
 		{
-			TopoDS_Solid currentSolid = TopoDS::Solid(solidExpl.Current());
+			TopoDS_Face currentFace = TopoDS::Face(solidExpl.Current());
+			if (helperFunctions::computeArea(currentFace) < 0.005) { continue; }
 
 			gp_Pnt objectLll;
 			gp_Pnt objectUrr;
-			helperFunctions::bBoxDiagonal(currentSolid, &objectLll, &objectUrr);
+			helperFunctions::bBoxDiagonal(currentFace, &objectLll, &objectUrr);
 			if (cutlvl + buffer < objectLll.Z() || cutlvl - buffer > objectUrr.Z()) { continue; }
 
-			for (TopExp_Explorer expl(currentSolid, TopAbs_FACE); expl.More(); expl.Next())
+			// check if the face is flush to the cuttting plane if flat 
+			gp_Vec faceNormal = helperFunctions::computeFaceNormal(currentFace);
+
+			if (std::abs(faceNormal.X()) < 0.05 && std::abs(faceNormal.Y()) < 0.05)
 			{
-				TopoDS_Face face = TopoDS::Face(expl.Current());
-				// ignore extremely small surfaces
-				if (helperFunctions::computeArea(face) < 0.005) { continue; }
+				// if flush store as is
+				std::vector<gp_Pnt> facePoints = helperFunctions::getUniquePoints(currentFace);
 
-				// check if the face is flush to the cuttting plane if flat 
-				gp_Vec faceNormal = helperFunctions::computeFaceNormal(face);
-
-				if (std::abs(faceNormal.X()) < 0.05 && std::abs(faceNormal.Y()) < 0.05)
+				for (const gp_Pnt& currentFacePoint : facePoints)
 				{
-					// if flush store as is
-					std::vector<gp_Pnt> facePoints = helperFunctions::getUniquePoints(face);
-
-					for (const gp_Pnt& currentFacePoint : facePoints)
-					{
-						if (abs(currentFacePoint.Z() - cutlvl) > buffer) { continue; }
-						spltFaceCollection.emplace_back(helperFunctions::projectFaceFlat(face, cutlvl));
-						break;
-					}
-					continue;
+					if (abs(currentFacePoint.Z() - cutlvl) > buffer) { continue; }
+					spltFaceCollection.emplace_back(helperFunctions::projectFaceFlat(currentFace, cutlvl));
+					break;
 				}
+				continue;
 			}
 
-			BRepAlgoAPI_Splitter splitter;
-			splitter.SetFuzzyValue(1e-6);
-			TopTools_ListOfShape argumentList;
-			argumentList.Append(cuttingFace);
-			TopTools_ListOfShape toolList;
-			toolList.Append(currentSolid);
+			toolList.Append(currentFace);
+		}
 
-			splitter.SetArguments(argumentList);
-			splitter.SetTools(toolList);
-			splitter.Build();
+		splitter.SetArguments(argumentList);
+		splitter.SetTools(toolList);
+		splitter.Build();
 
-			if (!splitter.IsDone()) { continue; } //TODO: add error
-			if (splitter.HasErrors()) { continue; }
+		if (!splitter.IsDone()) { continue; } //TODO: add error
+		if (splitter.HasErrors()) { continue; }
 
-			for (TopExp_Explorer expl(splitter.Shape(), TopAbs_FACE); expl.More(); expl.Next())
+		for (TopExp_Explorer expl(splitter.Shape(), TopAbs_FACE); expl.More(); expl.Next())
+		{
+			TopoDS_Face face = TopoDS::Face(expl.Current());
+
+			bool isOutside = false;
+			for (TopExp_Explorer expl2(face, TopAbs_VERTEX); expl2.More(); expl2.Next())
 			{
-				TopoDS_Face face = TopoDS::Face(expl.Current());
+				TopoDS_Vertex vertex = TopoDS::Vertex(expl2.Current());
+				gp_Pnt point = BRep_Tool::Pnt(vertex);
 
-				bool isOutside = false;
-				for (TopExp_Explorer expl2(face, TopAbs_VERTEX); expl2.More(); expl2.Next())
+				if (point.IsEqual(p0, 1e-6))
 				{
-					TopoDS_Vertex vertex = TopoDS::Vertex(expl2.Current());
-					gp_Pnt point = BRep_Tool::Pnt(vertex);
-
-					if (point.IsEqual(p0, 1e-6))
-					{
-						isOutside = true;
-						break;
-					}
+					isOutside = true;
+					break;
 				}
-				if (isOutside) { continue; }
-
-				std::optional<gp_Pnt> optionalPoint = helperFunctions::getPointOnFace(face);
-				if (optionalPoint == std::nullopt) { continue; }
-				if (!helperFunctions::pointInShape(currentSolid, *optionalPoint)) { continue; }
-				spltFaceCollection.emplace_back(face);
 			}
+			if (isOutside) { continue; }
+
+			std::optional<gp_Pnt> optionalPoint = helperFunctions::getPointOnFace(face);
+			if (optionalPoint == std::nullopt) { continue; }
+			if (!helperFunctions::pointInShape(currentShape, *optionalPoint)) { continue; }
+			spltFaceCollection.emplace_back(face);
 		}
 	}
 	return spltFaceCollection;
@@ -1001,7 +996,6 @@ void CJGeoCreator::makeFloorSection(std::vector<TopoDS_Face>& facesOut, DataMana
 	}
 
 	std::vector<TopoDS_Face> cleanedFaceList = helperFunctions::removeDubFaces(splitFaceList, true);
-
 
 	if (!cleanedFaceList.size())
 	{

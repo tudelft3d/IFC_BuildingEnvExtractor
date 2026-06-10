@@ -2675,7 +2675,6 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 	else
 	{
 		orientedFaces = clippedFaceList;
-
 	}
 	return orientedFaces;
 }
@@ -2885,7 +2884,7 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 	std::vector<HalfEdgeLoop> loopLists;
 	SettingsCollection& settingCol = SettingsCollection::getInstance();
 	double precision = settingCol.linearTolerance();
-	double pointOffset = precision * 100; //I do not like this
+	double pointOffset = 0.1; //I do not like this
 
 	std::vector<TopoDS_Face> triangulatedSourceList = TriangulateFace(planarFaces);
  	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> triangulatedShapeIndx;
@@ -2921,7 +2920,10 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 			std::vector<std::pair<BoostBox3D, int>> qResult;
 			qResult.clear();
 			triangulatedShapeIndx.query(bgi::intersects(
-				helperFunctions::createBBox(evalP1, middlePoint)), std::back_inserter(qResult));
+				helperFunctions::createBBox(
+					gp_Pnt(evalP1.X() - 0.1, evalP1.Y() - 0.1, evalP1.Z() - 0.1),
+					gp_Pnt(evalP1.X() + 0.1, evalP1.Y() + 0.1, evalP1.Z() + 0.1)
+				)), std::back_inserter(qResult));
 
 			for (const std::pair<BoostBox3D, int>& resultPair : qResult)
 			{
@@ -2936,22 +2938,41 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 					const gp_Pnt& evalP3 = getFirstPointShape(straightenedEdge);
 					const gp_Pnt& evalP4 = getLastPointShape(straightenedEdge);
 
+					double denominator = ((evalP1.X() - evalP2.X()) * (evalP3.Y() - evalP4.Y()) - (evalP1.Y() - evalP2.Y()) * (evalP3.X() - evalP4.X()));
+
+					if (abs(denominator) < 1e-12) { continue; }
+
 					double t =
-						((evalP1.X() - evalP3.X()) * (evalP3.Y() - evalP4.Y()) - (evalP1.Y() - evalP3.Y()) * (evalP3.X() - evalP4.X())) /
-						((evalP1.X() - evalP2.X()) * (evalP3.Y() - evalP4.Y()) - (evalP1.Y() - evalP2.Y()) * (evalP3.X() - evalP4.X()));
+						((evalP1.X() - evalP3.X()) * (evalP3.Y() - evalP4.Y()) - (evalP1.Y() - evalP3.Y()) * (evalP3.X() - evalP4.X())) / denominator;
 					if (t < -1e-6 || t > 1 + 1e-6) { continue; }
 
 					double u = -
-						((evalP1.X() - evalP2.X()) * (evalP1.Y() - evalP3.Y()) - (evalP1.Y() - evalP2.Y()) * (evalP1.X() - evalP3.X())) /
-						((evalP1.X() - evalP2.X()) * (evalP3.Y() - evalP4.Y()) - (evalP1.Y() - evalP2.Y()) * (evalP3.X() - evalP4.X()));
+						((evalP1.X() - evalP2.X()) * (evalP1.Y() - evalP3.Y()) - (evalP1.Y() - evalP2.Y()) * (evalP1.X() - evalP3.X())) / denominator;
 
 					if (-1e-6 < u && u < 1 + 1e-6) {
 						intCount++;
 					}
 				}
 
+				//std::cout << "evalPoint" << std::endl;
+				//DebugUtils::printPoint(evalP1);
+				//std::cout << "edge" << std::endl;
+				//DebugUtils::printPoint(p1);
+				//DebugUtils::printPoint(p2);
+				//std::cout << "triangle" << std::endl;
+				//DebugUtils::printFaces(sourceFace);
+				//std::cout << "intCount" << std::endl;
+				//std::cout << intCount << std::endl;
+
 				if (intCount == 1)
 				{
+					//std::cout << "evalPoint" << std::endl;
+					//DebugUtils::printPoint(evalP1);
+					//std::cout << "edge" << std::endl;
+					//DebugUtils::printPoint(p1);
+					//DebugUtils::printPoint(p2);
+					//std::cout << "triangle" << std::endl;
+					//DebugUtils::printFaces(sourceFace);
 					isExterior = false;
 					break;
 				}

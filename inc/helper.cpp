@@ -2949,7 +2949,6 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 			if (isInner) { break; }
 		}
 		if (isInner) { continue; }
-		DebugUtils::printPoints(currentLoop.getWire());
 		loopLists.emplace_back(currentLoop);
 	}
 	return loopLists;

@@ -2896,15 +2896,17 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 
 	for (const HalfEdgeLoop& currentLoop : planarLoopList)
 	{
-		bool isExterior = true;
+		int totalCount = currentLoop.halfEdgeList_.size() / 2;
+		int innerCount = 0;
+		bool isInner = false;
+
 		for (const HalfEdge& currentHalfEdge : currentLoop.halfEdgeList_)
 		{
 			gp_Vec edgeDir = currentHalfEdge.getDir();
 			gp_Vec perpDir = gp_Vec(edgeDir.Y(), -edgeDir.X(), 0) * pointOffset;
-			gp_Vec castDir = gp_Vec(-edgeDir.Y(), edgeDir.X(), 0) * 1000;
+
 			const gp_Pnt& p1 = currentHalfEdge.p1_;
 			const gp_Pnt& p2 = currentHalfEdge.p2_;
-
 			gp_Pnt middlePoint(
 				(p1.X() + p2.X()) / 2,
 				(p1.Y() + p2.Y()) / 2,
@@ -2912,11 +2914,8 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 			);
 
 			gp_Pnt evalP1 = middlePoint.Translated(perpDir);
-			gp_Pnt evalP2 = evalP1.Translated(castDir);
 
 			double currentZ = p1.Z();
-			int intCount = 0;
-
 			std::vector<std::pair<BoostBox3D, int>> qResult;
 			qResult.clear();
 			triangulatedShapeIndx.query(bgi::intersects(
@@ -2927,66 +2926,31 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 
 			for (const std::pair<BoostBox3D, int>& resultPair : qResult)
 			{
+				if (isInner) { break; }
 				const TopoDS_Face& sourceFace = triangulatedSourceList[resultPair.second];
 
 				double otherZ = getAZ(sourceFace);
 				if (abs(otherZ - currentZ) > 1E-6) { continue; }
 
-				for (TopExp_Explorer expl(sourceFace, TopAbs_EDGE); expl.More(); expl.Next()) {
-					TopoDS_Edge straightenedEdge = TopoDS::Edge(expl.Current());
+				std::vector<gp_Pnt> trianglePoints = getPoints(sourceFace);
 
-					const gp_Pnt& evalP3 = getFirstPointShape(straightenedEdge);
-					const gp_Pnt& evalP4 = getLastPointShape(straightenedEdge);
-
-					double denominator = ((evalP1.X() - evalP2.X()) * (evalP3.Y() - evalP4.Y()) - (evalP1.Y() - evalP2.Y()) * (evalP3.X() - evalP4.X()));
-
-					if (abs(denominator) < 1e-12) { continue; }
-
-					double t =
-						((evalP1.X() - evalP3.X()) * (evalP3.Y() - evalP4.Y()) - (evalP1.Y() - evalP3.Y()) * (evalP3.X() - evalP4.X())) / denominator;
-					if (t < -1e-6 || t > 1 + 1e-6) { continue; }
-
-					double u = -
-						((evalP1.X() - evalP2.X()) * (evalP1.Y() - evalP3.Y()) - (evalP1.Y() - evalP2.Y()) * (evalP1.X() - evalP3.X())) / denominator;
-
-					if (-1e-6 < u && u < 1 + 1e-6) {
-						intCount++;
-					}
-				}
-
-				//std::cout << "evalPoint" << std::endl;
-				//DebugUtils::printPoint(evalP1);
-				//std::cout << "edge" << std::endl;
-				//DebugUtils::printPoint(p1);
-				//DebugUtils::printPoint(p2);
-				//std::cout << "triangle" << std::endl;
-				//DebugUtils::printFaces(sourceFace);
-				//std::cout << "intCount" << std::endl;
-				//std::cout << intCount << std::endl;
-
-				if (intCount == 1)
+				if (pointOnTriangle(
+					gp_Pnt2d(evalP1.X(), evalP1.Y()),
+					gp_Pnt2d(trianglePoints[0].X(), trianglePoints[0].Y()), 
+					gp_Pnt2d(trianglePoints[2].X(), trianglePoints[2].Y()), 
+					gp_Pnt2d(trianglePoints[4].X(), trianglePoints[4].Y()))
+					)
 				{
-					//std::cout << "evalPoint" << std::endl;
-					//DebugUtils::printPoint(evalP1);
-					//std::cout << "edge" << std::endl;
-					//DebugUtils::printPoint(p1);
-					//DebugUtils::printPoint(p2);
-					//std::cout << "triangle" << std::endl;
-					//DebugUtils::printFaces(sourceFace);
-					isExterior = false;
+					innerCount++;
+					if (innerCount>= totalCount) { isInner = true; }
 					break;
 				}
-				intCount = 0;
 			}
-			if (!isExterior)
-			{
-				break;
-			}
+			if (isInner) { break; }
 		}
-		if (isExterior)
-		{
-			loopLists.emplace_back(currentLoop);
-		}		
+		if (isInner) { continue; }
+		DebugUtils::printPoints(currentLoop.getWire());
+		loopLists.emplace_back(currentLoop);
 	}
 	return loopLists;
 }

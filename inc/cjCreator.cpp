@@ -1084,7 +1084,6 @@ TopoDS_Face CJGeoCreator::eleminateInnerVoids(const TopoDS_Face& theFace)
 	for (TopExp_Explorer expl(theFace, TopAbs_WIRE); expl.More(); expl.Next())
 	{
 		const TopoDS_Wire& innerWire = TopoDS::Wire(expl.Current());
-
 		if (outerWire.IsSame(innerWire)) { continue; }
 
 		BRepBuilderAPI_MakeFace innerFaceMaker(innerWire);
@@ -1094,7 +1093,7 @@ TopoDS_Face CJGeoCreator::eleminateInnerVoids(const TopoDS_Face& theFace)
 
 		std::vector<gp_Pnt> pointList = helperFunctions::getPointListOnFace(innerFace);
 
-		bool isInside = false;
+		int insideCounter = 0;
 		for (gp_Pnt facePoint : pointList)
 		{
 			facePoint.SetZ(facePoint.Z() + SettingsCollection::getInstance().voxelSize() * 0.6);
@@ -1102,11 +1101,10 @@ TopoDS_Face CJGeoCreator::eleminateInnerVoids(const TopoDS_Face& theFace)
 			voxel boxel = voxelGrid_->getVoxel(voxelIndx);
 			if (boxel.getIsIntersecting() || boxel.getIsInside())
 			{
-				isInside = true;
-				break;
+				insideCounter++;
 			}
 		}
-		if (!isInside)
+		if (insideCounter < pointList.size() * 0.95)
 		{
 			faceMaker.Add(innerWire);
 		}

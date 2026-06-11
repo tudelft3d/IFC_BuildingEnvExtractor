@@ -2658,7 +2658,6 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 	//TODO: remove not required vertex
 	std::vector<TopoDS_Face> clippedFaceList = outerLoops2Faces(outerLoopList);
 
-
 	// return the surfaces to the input orientation
 	std::vector<TopoDS_Face> orientedFaces;
 	orientedFaces.reserve(clippedFaceList.size());

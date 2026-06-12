@@ -1,5 +1,5 @@
 #define USE_IFC4x3add2
-#define iterationVersion "0.4.0"
+#define iterationVersion "0.4.1"
 
 #ifdef USE_IFC2x3
 #include <ifcparse/Ifc2x3.h>

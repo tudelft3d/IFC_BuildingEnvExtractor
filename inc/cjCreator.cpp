@@ -911,6 +911,7 @@ void CJGeoCreator::makeFootprint(DataManager* h)
 		floorlvl = h->getLllPoint().Z();
 		settingsCollection.setFootprintElevation(floorlvl);
 		ErrorCollection::getInstance().addError(ErrorID::warningInputIncFootprintElev);
+		ErrorCollection::getInstance().addError(ErrorID::warningInputIncFootprintElev);
 		std::cout << errorWarningStringEnum::getString(ErrorID::warningInputIncFootprintElev) << std::endl;
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoCoasreFootFiltering) << floorlvl << std::endl;
 	}
@@ -1534,12 +1535,13 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 		}
 		trimmedFace = intersectionSplitting(trimmedFace, trimmedFaceIdx);	
 	}
-	std::vector<TopoDS_Face> visibleFaceList = getVisTopSurfaces(trimmedFace, lowestZ, bufferSurfaceList);
+
+	std::vector<TopoDS_Face> cleanedFace = helperFunctions::TessellateFace(trimmedFace); //TODO: can this be removed?
+	std::vector<TopoDS_Face> visibleFaceList = getVisTopSurfaces(cleanedFace, lowestZ, bufferSurfaceList);
 	std::vector<TopoDS_Face> visibleMergedFaceList = helperFunctions::mergeFaces(visibleFaceList);
-	std::vector<TopoDS_Face> visibleCleanFaceList = helperFunctions::TessellateFace(visibleMergedFaceList);
 
 	//clean the surfaces
-	return  visibleCleanFaceList;
+	return  visibleMergedFaceList;
 }
 
 

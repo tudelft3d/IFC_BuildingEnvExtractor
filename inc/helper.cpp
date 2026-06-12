@@ -2875,6 +2875,7 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 		}
 		startEdge = bestEdge;
 	}
+
 	return loopList;
 }
 
@@ -2883,7 +2884,7 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 	std::vector<HalfEdgeLoop> loopLists;
 	SettingsCollection& settingCol = SettingsCollection::getInstance();
 	double precision = settingCol.linearTolerance();
-	double pointOffset = 0.1; //I do not like this
+	double pointOffset = 1e-6 * 100; //I do not like this
 
 	std::vector<TopoDS_Face> triangulatedSourceList = TriangulateFace(planarFaces);
  	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> triangulatedShapeIndx;

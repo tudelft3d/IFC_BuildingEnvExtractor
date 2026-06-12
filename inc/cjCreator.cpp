@@ -1539,7 +1539,6 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 	std::vector<TopoDS_Face> cleanedFace = helperFunctions::TessellateFace(trimmedFace); //TODO: can this be removed?
 	std::vector<TopoDS_Face> visibleFaceList = getVisTopSurfaces(cleanedFace, lowestZ, bufferSurfaceList);
 	std::vector<TopoDS_Face> visibleMergedFaceList = helperFunctions::mergeFaces(visibleFaceList);
-
 	//clean the surfaces
 	return  visibleMergedFaceList;
 }

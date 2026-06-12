@@ -1,4 +1,4 @@
-#define USE_IFC4x3add2
+#define USE_IFC4
 #define iterationVersion "0.4.1"
 
 #ifdef USE_IFC2x3

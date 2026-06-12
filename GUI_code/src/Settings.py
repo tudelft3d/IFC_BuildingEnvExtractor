@@ -311,6 +311,8 @@ class GuiSettings:
         lod_list = []
         if (lod_settings.lod00.get()):
             lod_list.append(0.0)
+            json_dictionary["JSON"]["Generate footprint"] = footprint_settings.make_footprint.get()
+            json_dictionary["JSON"]["Generate roof outline"] = footprint_settings.make_roofprint.get()
         if (lod_settings.lod02.get()):
             lod_list.append(0.2)
             json_dictionary["JSON"]["Generate footprint"] = footprint_settings.make_footprint.get()

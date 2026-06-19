@@ -279,7 +279,7 @@ class GuiSettings:
         else:
             json_dictionary["IFC"]["Default div"] = False
             json_dictionary["IFC"]["Ignore proxy"] = False
-            json_dictionary["IFC"]["Div objects"] = settings.div.div_objects.split()
+            json_dictionary["IFC"]["Div objects"] = div_settings.div_objects.get().split()
 
         if div_settings.simple_geo.get():
             json_dictionary["IFC"]["Ignore voids"] = 2

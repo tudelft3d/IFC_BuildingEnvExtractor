@@ -385,7 +385,7 @@ gp_Vec DataManager::computeObjectTranslation(const std::string& objectType)
 	return gp_Vec();
 }
 
-void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::set<std::string>& uniqueKeySet, bool addToRoomIndx)
+void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::unordered_set<std::string>& uniqueKeySet, bool addToRoomIndx)
 {
 	auto startTime = std::chrono::high_resolution_clock::now();
 	std::cout << "\t" + typeName + " objects ";
@@ -411,11 +411,14 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::se
 		);
 		if (!it.initialize()) { continue; }
 
+		int itCount = 0;
+
 		std::vector<IfcGeom::BRepElement*> shapeList;
 		shapeList.reserve(collectionItem->getFilePtr()->instances_by_type(typeName)->size()); //TODO: optimize this
-		do { shapeList.emplace_back(it.get_native()); } while (it.next());
+		do { shapeList.emplace_back((it.get_native())); } while (it.next());
 
 		int coreUse = settings.threadcount();
+		if (shapeList.empty()) { continue; }
 		if (shapeList.size() < coreUse) { coreUse = shapeList.size(); }
 		int splitListSize = static_cast<int>(std::floor(shapeList.size() / coreUse));
 
@@ -946,8 +949,15 @@ void DataManager::populateAttributeLookup()
 	return;
 }
 
-void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::set<std::string>& uniqueKeySet, bool isRoom)
+void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::unordered_set<std::string>& uniqueKeySet, bool isRoom)
 {
+	SettingsCollection& settings = SettingsCollection::getInstance();
+	bool ignoreIsExternal = settings.ignoreIsExternal();
+	bool simplefyGeo = settings.simplefyGeo();
+	bool makeLoD41 = settings.make41();
+	double gridRotation = settings.gridRotation();
+	const std::vector<std::string>& ignoreList = SettingsCollection::getInstance().getIgnoreSimplificationList();
+
 	for (IfcGeom::BRepElement* boundaryRepElem : shapeList)
 	{
 		if (!boundaryRepElem) { continue; }
@@ -958,25 +968,26 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		shape.Move(objectTranslation_);
 		
 		gp_Trsf trs;
-		trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
+		trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), gridRotation);
 		shape.Move(trs);
 
 		if (shape.ShapeType() != TopAbs_SOLID)
 		{
-			indexMutex_.lock();
+			solidSemanticMutex_.lock();
 			shape = helperFunctions::addSolidSemantic(shape);
-			indexMutex_.unlock();
+			solidSemanticMutex_.unlock();
 		}
 
 		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
+
 		if (product == nullptr) { continue; }
 
 		bool storeLookupOnly = false;
-		if (!SettingsCollection::getInstance().ignoreIsExternal())
+		if (!ignoreIsExternal)
 		{
 			if (!helperFunctions::isExternal(product)) 
 			{ 
-				if (!SettingsCollection::getInstance().make41()) { continue; }
+				if (!makeLoD41) { continue; }
 				storeLookupOnly = true;
 			}
 		}
@@ -984,20 +995,19 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		std::string productType = product->data().type()->name();
 		std::string productGuid = product->GlobalId();
 
-		indexMutex_.lock();
+		uniqueKeyMutex_.lock();
 		if (uniqueKeySet.find(productGuid) != uniqueKeySet.end()) 
 		{ 
 			indexMutex_.unlock();
 			continue;
 		}
 		uniqueKeySet.emplace(productGuid);
-		indexMutex_.unlock();
+		uniqueKeyMutex_.unlock();
 
-		if (SettingsCollection::getInstance().simplefyGeo())
+		if (simplefyGeo)
 		{
 			if (productType == "IfcDoor" || productType == "IfcWindow")
 			{
-				const std::vector<std::string>& ignoreList = SettingsCollection::getInstance().getIgnoreSimplificationList();
 				if (std::find(ignoreList.begin(), ignoreList.end(), product->GlobalId()) == ignoreList.end())
 				{
 					shape = helperFunctions::boxSimplefyShape(shape);
@@ -1034,11 +1044,9 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 
 		if (isRoom)
 		{
-			indexMutex_.lock();
 			std::lock_guard<std::mutex> spaceLock(spaceIndexMutex_);
 			spaceIndex_.insert(std::make_pair(box, (int)spaceIndex_.size()));
 			SpaceLookup_.emplace_back(std::move(lookup));
-			indexMutex_.unlock();
 			continue;
 		}
 
@@ -1250,7 +1258,7 @@ void DataManager::indexGeo()
 		return;
 	}
 
-	std::set<std::string> uniqueKeySet;
+	std::unordered_set<std::string> uniqueKeySet;
 	if (settingsCollection.useDefaultDiv())
 	{
 		bool addToRoomIndex = false;

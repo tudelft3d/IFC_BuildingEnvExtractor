@@ -137,6 +137,8 @@ private:
 	std::vector<std::unique_ptr<IfcProductSpatialData>> SpaceLookup_;
 
 	std::mutex convertMutex_;
+	std::mutex solidSemanticMutex_;
+	std::mutex uniqueKeyMutex_;
 
 	std::map <std::string, std::unordered_map < std::string, int >> productIndxLookup_;
 
@@ -154,7 +156,7 @@ private:
 	gp_Vec computeObjectTranslation(const std::string& objectType);
 
 	/// adds all instances of the type to the index and reports to user
-	void timedAddObjectListToIndex(const std::string& typeName, std::set<std::string>& uniqueKeySet, bool addToRoomIndx = false);
+	void timedAddObjectListToIndex(const std::string& typeName, std::unordered_set<std::string>& uniqueKeySet, bool addToRoomIndx = false);
 	
 	/// get the kernel which contains the product with the supplied product guid
 	IfcGeom::Kernel* getKernelObject(const std::string& productGuid);
@@ -197,7 +199,7 @@ private:
 	// populate a map that has all the guid related propertysets 
 	void populateAttributeLookup();
 
-	void AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::set<std::string>& uniqueKeySet, bool isRoom = false);
+	void AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::unordered_set<std::string>& uniqueKeySet, bool isRoom = false);
 
 public:
 	/*

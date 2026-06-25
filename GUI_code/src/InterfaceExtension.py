@@ -104,6 +104,8 @@ def toggleEnableDiv(toggleDict, settings):
     default_toggle = toggleDict["useDefault_toggle"]
     proxy_toggle = toggleDict["igoreproxy_toggle"]
 
+    print(settings.div.custom_enabled.get());
+
     if  settings.div.custom_enabled.get() == 1:
         widget['state'] = tkinter.NORMAL
         widget['bg'] = 'SystemWindow'
@@ -269,8 +271,10 @@ def updateDivMessage(toggleDict, settings):
     if settings.div.use_default.get():
         message_window.delete('1.0', tkinter.END)
         message_window.insert(tkinter.INSERT, settings.getDefaultDivObjects())
+        settings.div.div_objects.set("");
     else:
         message_window.delete('1.0', tkinter.END)
+        message_window.insert(tkinter.INSERT, settings.div.div_objects.get())
     if not settings.div.ignore_proxy.get():
         message_window.insert(tkinter.END, "IfcBuildingElementProxy ")
 

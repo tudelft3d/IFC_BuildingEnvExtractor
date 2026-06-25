@@ -278,7 +278,7 @@ class GuiSettings:
             json_dictionary["IFC"]["Div objects"] = []
         else:
             json_dictionary["IFC"]["Default div"] = False
-            json_dictionary["IFC"]["Ignore proxy"] = False
+            json_dictionary["IFC"]["Ignore proxy"] = True
             json_dictionary["IFC"]["Div objects"] = div_settings.div_objects.get().split()
 
         if div_settings.simple_geo.get():
@@ -450,6 +450,7 @@ class GuiSettings:
                     self.throw_error_window("IFC Default div")
                     return False
                 self.div.use_default.set(default_div_setting)
+                self.div.custom_enabled.set(not default_div_setting)
 
             if "Ignore proxy" in json_data_ifc:
                 ignore_proxy_setting = json_data_ifc["Ignore proxy"]

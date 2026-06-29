@@ -104,8 +104,6 @@ def toggleEnableDiv(toggleDict, settings):
     default_toggle = toggleDict["useDefault_toggle"]
     proxy_toggle = toggleDict["igoreproxy_toggle"]
 
-    print(settings.div.custom_enabled.get());
-
     if  settings.div.custom_enabled.get() == 1:
         widget['state'] = tkinter.NORMAL
         widget['bg'] = 'SystemWindow'

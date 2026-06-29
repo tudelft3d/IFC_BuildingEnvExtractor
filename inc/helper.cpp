@@ -830,18 +830,24 @@ std::optional<gp_Pnt> helperFunctions::getPointOnFace(const TopoDS_Face& theFace
 std::vector<gp_Pnt> helperFunctions::getPointListOnFace(const TopoDS_Face& theFace)
 {
 	triangulateShape(theFace);
-
-	TopLoc_Location loc;
-	auto mesh = BRep_Tool::Triangulation(theFace, loc);
-	if (mesh.IsNull()) { return {}; }
-	
-	std::vector<gp_Pnt> pointList;
-	for (int i = 1; i <= mesh.get()->NbTriangles(); i++)
+	try
 	{
-		const Poly_Triangle& theTriangle = mesh->Triangles().Value(i);
-		pointList.emplace_back(getTriangleCenter(mesh, theTriangle, loc));
+		TopLoc_Location loc;
+		auto mesh = BRep_Tool::Triangulation(theFace, loc);
+		if (mesh.IsNull()) { return {}; }
+
+		std::vector<gp_Pnt> pointList;
+		for (int i = 1; i <= mesh.get()->NbTriangles(); i++)
+		{
+			const Poly_Triangle& theTriangle = mesh->Triangles().Value(i);
+			pointList.emplace_back(getTriangleCenter(mesh, theTriangle, loc));
+		}
+		return pointList;
 	}
-	return pointList;
+	catch (const std::exception&)
+	{
+		return {};
+	}
 }
 
 gp_Pnt helperFunctions::getFirstPointShape(const TopoDS_Shape& shape) {
@@ -1993,7 +1999,6 @@ TopoDS_Shape helperFunctions::TesselateShape(const TopoDS_Shape& theShape)
 	compBuilder.MakeCompound(collection);
 
 	bool isCreated = false;
-	std::vector<TopoDS_Face> triangleList;
 	for (TopExp_Explorer solidExpl(theShape, TopAbs_SOLID); solidExpl.More(); solidExpl.Next())
 	{
 		isCreated = true;
@@ -2002,18 +2007,13 @@ TopoDS_Shape helperFunctions::TesselateShape(const TopoDS_Shape& theShape)
 		for (TopExp_Explorer faceExpl(currentSolid, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 		{
 			TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
-			std::vector<TopoDS_Face> meshFaceList = TriangulateFace(currentFace);
-			std::vector<TopoDS_Face> collapsedTriangles = mergeFaces(meshFaceList);
 
-			for (const TopoDS_Face& triangle : meshFaceList)
-			{
-				triangleList.emplace_back(triangle);
-			}
+			std::vector<TopoDS_Face> collapsedTriangles = TessellateFace(currentFace);
 
 			for (const TopoDS_Face& cleanFace : collapsedTriangles)
 			{
 				brepSewer.Add(cleanFace);
-			}
+			}			
 		}
 		brepSewer.Perform();
 
@@ -2051,6 +2051,62 @@ TopoDS_Shape helperFunctions::TesselateShape(const TopoDS_Shape& theShape)
 
 std::vector<TopoDS_Face> helperFunctions::TessellateFace(const TopoDS_Face& theFace, bool knownIsFlat)
 {
+	// check if needed to be tesselated
+	bool isTesselated = true;
+	for (TopExp_Explorer expl(theFace, TopAbs_WIRE); expl.More(); expl.Next())
+	{
+		TopoDS_Wire currentWire = TopoDS::Wire(expl.Current());
+		for (BRepTools_WireExplorer expl(currentWire); expl.More(); expl.Next()) {
+			TopoDS_Edge currentEdge = TopoDS::Edge(expl.Current());
+
+			if (!isStraight(currentEdge)) {
+				isTesselated = false;
+				break;
+			}
+		}
+
+		if (!isTesselated)
+		{
+			break;
+		}
+	}
+
+	if (isTesselated) {
+		return { theFace };
+	}
+
+	double precision = SettingsCollection::getInstance().linearTolerance();
+	if (isFlat(theFace) || knownIsFlat) //if flat only curves need to be replaced
+	{
+		TopoDS_Wire outerWire = BRepTools::OuterWire(theFace);
+		if (outerWire.IsNull()) { return {}; }
+		if (!outerWire.Closed()) { return {}; }
+
+		TopoDS_Wire cleanWire = replaceCurves(outerWire);
+		gp_Pnt p0 = getFirstPointShape(cleanWire);
+		Handle(Geom_Plane) plane = new Geom_Plane(p0, computeFaceNormal(theFace));
+		BRepBuilderAPI_MakeFace faceMaker(plane, cleanWire, precision);
+
+		std::vector<TopoDS_Wire> wireList = {};
+		for (TopExp_Explorer expl(theFace, TopAbs_WIRE); expl.More(); expl.Next())
+		{
+			TopoDS_Wire currentWire = TopoDS::Wire(expl.Current());
+			if (currentWire.IsEqual(outerWire)) { continue; }
+			
+			TopoDS_Wire cleanWire = replaceCurves(currentWire);
+			faceMaker.Add(cleanWire);
+
+		}
+		if (!faceMaker.IsDone())
+		{
+			return {};
+		}
+
+		TopoDS_Face tesselatedFace = faceMaker.Face();
+		helperFunctions::fixFace(&tesselatedFace);
+		return { tesselatedFace };
+	}
+
 	std::vector<TopoDS_Face> triangulatedFaces = TriangulateFace(theFace);
 	return mergeFaces(triangulatedFaces);
 }

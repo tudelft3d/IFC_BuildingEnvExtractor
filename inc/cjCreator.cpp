@@ -409,6 +409,7 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 	}
 
 	std::vector<TopoDS_Face> mergedfaceList = helperFunctions::mergeFaces(faceList);
+
 	for (const TopoDS_Face& currentCleanFace : mergedfaceList)
 	{
 		bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentCleanFace, 0.01);

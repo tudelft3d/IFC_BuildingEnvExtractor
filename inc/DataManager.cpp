@@ -956,7 +956,7 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 	bool simplefyGeo = settings.simplefyGeo();
 	bool makeLoD41 = settings.make41();
 	double gridRotation = settings.gridRotation();
-	const std::vector<std::string>& ignoreList = SettingsCollection::getInstance().getIgnoreSimplificationList();
+	const std::vector<std::string>& ignoreList = settings.getIgnoreSimplificationList();
 
 	for (IfcGeom::BRepElement* boundaryRepElem : shapeList)
 	{
@@ -998,7 +998,7 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		uniqueKeyMutex_.lock();
 		if (uniqueKeySet.find(productGuid) != uniqueKeySet.end()) 
 		{ 
-			indexMutex_.unlock();
+			uniqueKeyMutex_.unlock();
 			continue;
 		}
 		uniqueKeySet.emplace(productGuid);

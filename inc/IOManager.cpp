@@ -203,10 +203,6 @@ void IOManager::printSummary()
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.areaTolerance() << "\n";
 	std::cout << "- mesh linear deflection:\n";
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.meshLinearDeflection() << "\n";
-	std::cout << "- mesh angular deflection:\n";
-	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.meshAngularDeflection() << "\n";
-	std::cout << "- refine mesh parameters:\n";
-	std::cout << boolToString(settingsCollection.refineMesh()) << "\n";
 	std::cout << "- grid resolution:\n";
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.surfaceGridSize() << "\n\n";
 
@@ -418,7 +414,6 @@ nlohmann::json IOManager::settingsToJSON()
 	tolJSON[angularTolOName] = settingsCollection.angularTolerance();
 	tolJSON[areaTolOName] = settingsCollection.areaTolerance();
 	tolJSON[meshLinDefOName] = settingsCollection.meshLinearDeflection();
-	tolJSON[meshAngDefOName] = settingsCollection.meshAngularDeflection();
 	tolJSON[sufraceGridOName] = settingsCollection.surfaceGridSize();
 	settingsJSON[JsonObjectInEnum::getString(JsonObjectInID::tolerances)] = tolJSON;
 

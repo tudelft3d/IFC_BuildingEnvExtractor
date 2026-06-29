@@ -119,8 +119,6 @@ private:
     double areaTolerance_ = 1e-4;
     double windowBuffer_ = 0.001;
     double meshLinearDeflection_ = 0.01;
-    double meshAngularDeflection_ = 0.5;
-    double refineMesh_ = true;
 
     // unexposed settings
     bool addCustomWallAttributes_ = false;
@@ -436,13 +434,6 @@ public:
     double meshLinearDeflection() const { return meshLinearDeflection_; }
     void setMeshLinearDeflection(double value) { meshLinearDeflection_ = value; }
     void setMeshLinearDeflection(const nlohmann::json& json);
-
-    double meshAngularDeflection() const { return meshAngularDeflection_; }
-    void setMeshAngularDeflection(double value) { meshAngularDeflection_ = value; }
-    void setMeshAngularDeflection(const nlohmann::json& json);
-
-    double refineMesh() const { return refineMesh_; }
-    void setRefineMesh(bool value) { refineMesh_ = value; }
 
     double maxProxyPercentage() const { return maxProxyPercentage_; }
     void setMaxProxyPercentage(double value) { maxProxyPercentage_ = value; }

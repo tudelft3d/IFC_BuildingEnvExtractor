@@ -339,7 +339,6 @@ The configuration json has a very simple structure. An example can be found belo
       "Linear tolerance" : 1e-6,
       "Angular tolerance" : 1e-4,
       "Mesh linear deflection" : 0.01,
-      "Mesh angular deflection" : 0.5,
       "Grid resolution": 0.2
     },
     "Generate report": 1,
@@ -484,10 +483,6 @@ Optional:
 * Float/double
   * Sets the linear deflection that is used by the mesher (this will disable progressive revinement)
   * Default value = 0.01
-* :ballot_box_with_check: "Tolerances" "Mesh angular deflection" :ballot_box_with_check:
-  * Float/double
-  * Sets the angular deflection that is used by the mesher (this will disable progressive revinement)
-  * Default value = 0.5
 * :ballot_box_with_check: "Tolerances" "Grid resolution" :ballot_box_with_check:
   * Float/double
   * Sets the resolution of the surface grid that is used for ray-casting processes

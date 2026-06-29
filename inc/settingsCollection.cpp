@@ -232,7 +232,6 @@ void SettingsCollection::setTolerances(const nlohmann::json& json)
 		setAngularTolerance(tolerancesJson);
 		setAreaTolerance(tolerancesJson);
 		setMeshLinearDeflection(tolerancesJson);
-		setMeshAngularDeflection(tolerancesJson);
 		setSurfaceGridSize(tolerancesJson);
 	}
 	catch (const std::string& errorString)
@@ -1235,27 +1234,6 @@ void SettingsCollection::setMeshLinearDeflection(const nlohmann::json& json)
 			ErrorCollection::getInstance().addError(exceptionId, deflectionOName);
 			throw std::string(errorWarningStringEnum::getString(exceptionId) + deflectionOName);
 		}
-		setRefineMesh(false);
-	}
-	return;
-}
-
-void SettingsCollection::setMeshAngularDeflection(const nlohmann::json& json)
-{
-	std::string deflectionOName = JsonObjectInEnum::getString(JsonObjectInID::meshAngularDeflection);
-	if (json.contains(deflectionOName))
-	{
-		try
-		{
-			double toleranceValue = getJsonDouble(json[deflectionOName]);
-			setMeshAngularDeflection(toleranceValue);
-		}
-		catch (const ErrorID& exceptionId)
-		{
-			ErrorCollection::getInstance().addError(exceptionId, deflectionOName);
-			throw std::string(errorWarningStringEnum::getString(exceptionId) + deflectionOName);
-		}
-		setRefineMesh(false);
 	}
 	return;
 }

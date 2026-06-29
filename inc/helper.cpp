@@ -3778,7 +3778,6 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 	std::mutex* triangleMutex = settingsCollection.getTriangleMutex();
 
 	double setDeflection = settingsCollection.meshLinearDeflection();
-	double setAngDeflection = settingsCollection.meshAngularDeflection();
 	for (TopExp_Explorer faceExpl(shape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 	{
 		TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
@@ -3798,7 +3797,7 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 			BRepTools::Clean(currentFace);
 		}
 
-		std::vector<gp_Pnt> uniquePointList =  helperFunctions::getUniquePoints(currentFace);
+		std::vector<gp_Pnt> uniquePointList = helperFunctions::getUniquePoints(currentFace);
 
 		if (uniquePointList.size() < 3) { continue; }
 		if (uniquePointList.size() == 3)
@@ -3835,35 +3834,19 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 			builder.UpdateFace(currentFace, triangulation);
 			continue;
 		}
+		
 		double area = computeArea(currentFace);
+		double triangleCount = area / (0.5 * std::pow(setDeflection, 2) * std::sqrt(3.0));
+		if (std::isinf(triangleCount)) { continue; }
 
-		for (size_t i = 1; i <= 3; i++)
-		{
-			double refinement = 1 / i;
-			double deflection = setDeflection * refinement;
-			double triangleCount = area / (0.5 * deflection * deflection * std::sqrt(3.0));
-			if (std::isinf(triangleCount))
-			{
-				break;
-			}
+		BRepTools::Clean(currentFace);
 
-			BRepTools::Clean(currentFace);
+		triangleMutex->lock();
+		BRepMesh_IncrementalMesh(currentFace, setDeflection, Standard_False);
+		triangleMutex->unlock();
 
-			triangleMutex->lock();
-			BRepMesh_IncrementalMesh(currentFace, deflection, Standard_False, setAngDeflection * refinement, Standard_True);
-			triangleMutex->unlock();
-
-			TopLoc_Location locLocal;
-			Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(currentFace, loc);
-			if (!BRep_Tool::Triangulation(currentFace, locLocal).IsNull()) {
-				break;
-			}
-
-			if (!settingsCollection.refineMesh())
-			{
-				break;
-			}
-		}
+		TopLoc_Location locLocal;
+		Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(currentFace, loc);
 	}
 	return;
 }

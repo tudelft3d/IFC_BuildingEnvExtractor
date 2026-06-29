@@ -4350,6 +4350,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 		while (coreUse > shapeProductList.size()) { coreUse /= 2; }
 	}
 	coreUse -= 1;
+	coreUse = 1;
 
 	std::vector<int> scoreList;
 	int totalScore = 0;

@@ -428,6 +428,11 @@ struct helperFunctions{
 
 	/// checks if the face is flat
 	static bool isFlat(const TopoDS_Face& theFace);
+	/// checks if all the faces in the shape are flat
+	static bool isFlat(const TopoDS_Shape& theShape);
+
+	/// check if all the edges in a shape are straight
+	static bool isStraight(const TopoDS_Shape& theShape);
 
 	/// sorts the list of faces based on the sorting values
 	template <typename T>

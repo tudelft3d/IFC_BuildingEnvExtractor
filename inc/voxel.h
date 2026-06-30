@@ -154,6 +154,8 @@ public:
 	bg::model::box<BoostPoint3D> getVoxelGeo() const;
 	/// return the cornerpoints of a voxel based on the angle
 	std::vector<gp_Pnt> getCornerPoints() const;
+	/// return the cornerpoints of a voxel based on the angle
+	gp_Pnt getCornerPoint(int indx) const;
 	/// return the points represeinging the three intersection planes of a voxel based on the angle
 	std::vector<gp_Pnt> getPlanePoints() const;
 

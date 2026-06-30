@@ -6275,21 +6275,14 @@ void CJGeoCreator::populateVoxelIndex(
 	for (auto voxelIt = exteriorVoxels.begin(); voxelIt != exteriorVoxels.end(); ++ voxelIt)
 	{
 		voxel* currentBoxel = *voxelIt;
-		std::vector<Value> internalProducts = currentBoxel->getInternalProductList();
+		if (currentBoxel->getRoomNum() != 0) { continue; }
+
+		const std::vector<Value>& internalProducts = currentBoxel->getInternalProductList();
 
 		// voxels that have no internal products do not have an intersection and are stored as completely external voxels
-		if (internalProducts.size() == 0 && currentBoxel->getRoomNum() == 0)
+		if (internalProducts.size() == 0)
 		{
-			auto cornerPoints = currentBoxel->getCornerPoints();
-			gp_Pnt lllPoint = cornerPoints[0];
-			gp_Pnt urrPoint = cornerPoints[4];
-
-			BoostPoint3D boostlllPoint = BoostPoint3D(lllPoint.X(), lllPoint.Y(), lllPoint.Z());
-			BoostPoint3D boosturrPoint = BoostPoint3D(urrPoint.X(), urrPoint.Y(), urrPoint.Z());
-
-			bg::model::box <BoostPoint3D> box = bg::model::box < BoostPoint3D >(boostlllPoint, boosturrPoint);
-
-			voxelIndex->insert(std::make_pair(box, currentBoxel));
+			voxelIndex->insert(std::make_pair(currentBoxel->getVoxelGeo(), currentBoxel));
 		}
 	}
 	return;

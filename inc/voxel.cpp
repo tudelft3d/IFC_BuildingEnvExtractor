@@ -233,6 +233,38 @@ std::vector<gp_Pnt> voxel::getCornerPoints() const
 	return pointList;
 }
 
+gp_Pnt voxel::getCornerPoint(int indx) const
+{
+	double offsetXY = sizeXY_ / 2;
+	double offsetZ = sizeZ_ / 2;
+
+	double xCenCoord = bg::get<0>(center_);
+	double yCenCoord = bg::get<1>(center_);
+	double zCenCoord = bg::get<2>(center_);
+
+	switch (indx)
+	{
+	case 0:
+		return gp_Pnt(xCenCoord - offsetXY, yCenCoord - offsetXY, zCenCoord - offsetZ);
+	case 1:
+		return gp_Pnt(xCenCoord + offsetXY, yCenCoord - offsetXY, zCenCoord - offsetZ);
+	case 2:
+		return gp_Pnt(xCenCoord + offsetXY, yCenCoord + offsetXY, zCenCoord - offsetZ);
+	case 3:
+		return gp_Pnt(xCenCoord - offsetXY, yCenCoord + offsetXY, zCenCoord - offsetZ);
+	case 4:
+		return gp_Pnt(xCenCoord + offsetXY, yCenCoord + offsetXY, zCenCoord + offsetZ);
+	case 5:
+		return gp_Pnt(xCenCoord + offsetXY, yCenCoord - offsetXY, zCenCoord + offsetZ);
+	case 6:
+		return gp_Pnt(xCenCoord - offsetXY, yCenCoord - offsetXY, zCenCoord + offsetZ);
+	case 7:
+		return gp_Pnt(xCenCoord - offsetXY, yCenCoord + offsetXY, zCenCoord + offsetZ);
+	default:
+		return gp_Pnt();
+	}
+}
+
 std::vector<gp_Pnt> voxel::getPlanePoints() const
 {
 	auto boxelGeo = getVoxelGeo();

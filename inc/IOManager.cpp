@@ -1093,7 +1093,7 @@ bool IOManager::write(bool reportOnly)
 	report["Errors"] = ErrorCollection::getInstance().toJson();
 
 	std::ofstream reportFile(settingsCollection.getOutputReportPath());
-	reportFile << report;
+	reportFile << report.dump(4);
 	reportFile.close();
 	return true;
 }

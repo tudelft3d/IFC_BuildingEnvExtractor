@@ -26,7 +26,7 @@
     "Generate report": 1,
     "Output format": {
         "STEP file": 0,
-        "OBJ file": 0
+        "OBJ file": 1
     },
     "LoD output": [
         0.2

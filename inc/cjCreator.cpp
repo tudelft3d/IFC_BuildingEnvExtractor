@@ -6272,18 +6272,13 @@ void CJGeoCreator::populateVoxelIndex(
 	const std::vector<voxel*> exteriorVoxels
 )
 {
-	for (auto voxelIt = exteriorVoxels.begin(); voxelIt != exteriorVoxels.end(); ++ voxelIt)
+	for (auto voxelIt = exteriorVoxels.begin(); voxelIt != exteriorVoxels.end(); ++ voxelIt) //TODO: make this smarter by only storing the required external voxels
 	{
+		// voxels that have no internal products do not have an intersection and are stored as completely external voxels
 		voxel* currentBoxel = *voxelIt;
 		if (currentBoxel->getRoomNum() != 0) { continue; }
-
-		const std::vector<Value>& internalProducts = currentBoxel->getInternalProductList();
-
-		// voxels that have no internal products do not have an intersection and are stored as completely external voxels
-		if (internalProducts.size() == 0)
-		{
-			voxelIndex->insert(std::make_pair(currentBoxel->getVoxelGeo(), currentBoxel));
-		}
+		if (currentBoxel->getIsIntersecting()) { continue; }
+		voxelIndex->insert(std::make_pair(currentBoxel->getVoxelGeo(), currentBoxel));
 	}
 	return;
 }

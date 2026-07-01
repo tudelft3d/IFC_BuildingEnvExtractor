@@ -1,5 +1,5 @@
 {
-    "Alias" : "BAG pre-set",
+    "Alias" : "3D Stadsmodel pre-set",
     "Tolerances": {
         "Spatial tolerance": 1e-06,
         "Angular tolerance": 0.0001,
@@ -21,7 +21,8 @@
         "Generate exterior": 1,
         "Generate interior": 0,
         "Generate footprint": 0,
-        "Generate roof outline": 1
+        "Generate roof outline": 1,
+        "Footprint based": 0
     },
     "Generate report": 1,
     "Output format": {
@@ -29,6 +30,6 @@
         "OBJ file": 1
     },
     "LoD output": [
-        0.2
+        "e.1"
     ]
 }

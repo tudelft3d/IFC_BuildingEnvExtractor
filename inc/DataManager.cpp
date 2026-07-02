@@ -17,10 +17,23 @@
 #include <shared_mutex> 
 #include <mutex> 
 
+template nlohmann::json DataManager::getBuildingInformation<IfcSchema::IfcBuilding>();
+template nlohmann::json DataManager::getBuildingInformation<IfcSchema::IfcBridge>();
+template nlohmann::json DataManager::getBuildingInformation<IfcSchema::IfcRoad>();
+template nlohmann::json DataManager::getBuildingInformation<IfcSchema::IfcRailway>();
+template nlohmann::json DataManager::getBuildingInformation<IfcSchema::IfcMarineFacility>();
+
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcBuilding>(const std::string& objectTypeName, bool isLong);
+template std::string DataManager::getIfcObjectName<IfcSchema::IfcBridge>(const std::string& objectTypeName, bool isLong);
+template std::string DataManager::getIfcObjectName<IfcSchema::IfcRoad>(const std::string& objectTypeName, bool isLong);
+template std::string DataManager::getIfcObjectName<IfcSchema::IfcRailway>(const std::string& objectTypeName, bool isLong);
+template std::string DataManager::getIfcObjectName<IfcSchema::IfcMarineFacility>(const std::string& objectTypeName, bool isLong);
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcSite>(const std::string& objectTypeName, bool isLong);
 
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcBuilding>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
+template std::string DataManager::getIfcObjectName<IfcSchema::IfcBridge>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
+template std::string DataManager::getIfcObjectName<IfcSchema::IfcRoad>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
+template std::string DataManager::getIfcObjectName<IfcSchema::IfcRailway>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcSite>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
 
 IfcProductSpatialData::IfcProductSpatialData(IfcSchema::IfcProduct* productPtr, const TopoDS_Shape& productShape)
@@ -1398,6 +1411,7 @@ void DataManager::getProjectionData(CJT::ObjectTransformation* transformation, C
 	return;
 }
 
+template <typename T>
 nlohmann::json DataManager::getBuildingInformation()
 {
 	nlohmann::json dictionary;
@@ -1406,10 +1420,10 @@ nlohmann::json DataManager::getBuildingInformation()
 	{
 		IfcParse::IfcFile* fileObject = datacollection_[i]->getFilePtr();
 
-		IfcSchema::IfcBuilding::list::ptr buildingList = fileObject->instances_by_type<IfcSchema::IfcBuilding>();
+		T::list::ptr buildingList = fileObject->instances_by_type<T>();
 
 		for (auto it = buildingList->begin(); it != buildingList->end(); ++it) {
-			IfcSchema::IfcBuilding* building = *it;
+			T* building = *it;
 
 			if (building->Description().has_value()) { dictionary[CJObjectEnum::getString(CJObjectID::ifcDescription)] = building->Description().get(); }
 			if (building->ObjectType().has_value()) { dictionary[CJObjectEnum::getString(CJObjectID::ifcObjectType)] = building->ObjectType().get(); }

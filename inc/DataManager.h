@@ -262,6 +262,7 @@ public:
 	/// gets the projectiodata if present
 	void getProjectionData(CJT::ObjectTransformation* transformation, CJT::metaDataObject* metaData);
 	/// gets the generic building information
+	template <typename T>
 	nlohmann::json getBuildingInformation();
 	/// gets the object list name or long name
 	template <typename T>

@@ -300,6 +300,7 @@ void IOManager::printSummary()
 
 void IOManager::printErrors()
 {
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	ErrorCollection& errorCol = ErrorCollection::getInstance();
 
 	std::cout << "[INFO] Warnings/Errors:\n";
@@ -314,6 +315,16 @@ void IOManager::printErrors()
 		ErrorObject currentError = error.second;
 		std::cout << "\tCode " << currentError.errorCode_ << " : " << currentError.errorDescript_ << "\n";
 	}
+
+	if (!settingsCollection.writeReport())
+	{
+		std::cout << "\n[INFO] Rerun with generate report for more info\n";
+	}
+	else
+	{
+		std::cout << "\n\t[INFO] See report file for more info:\n" << settingsCollection.getOutputReportPath() << "\n";
+	}
+
 	return;
 }
 
@@ -557,23 +568,77 @@ void IOManager::setMetaData(std::shared_ptr<CJT::CityCollection> collection)
 
 void IOManager::setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::CityObject& cityComplexObject, CJT::CityObject& cityOuterShellObject, CJT::CityObject& cityInnerShellObject)
 {
+
+	std::string buildingName = "";
+	nlohmann::json buildingAttributes;
+	CJT::Building_Type rootType = CJT::Building_Type::Building;
+	CJT::Building_Type childType = CJT::Building_Type::BuildingPart;
+
+	//TODO: when updating to newer IfcOpenShell version remove
+	buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
+	buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBuilding>();
+
+	//TODO: when updating to newer IfcOpenShell version uncommend
+
+//	if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcBuilding>()->size() > 0) // is building
+//	{
+//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
+//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBuilding>();
+//	} 
+//
+//#if defined(USE_IFC4x2) || defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
+//	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcBridge>()->size() > 0) // is brdige
+//	{
+//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBridge>("IfcBridge", false);
+//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBridge>();
+//		rootType = CJT::Building_Type::Bridge;
+//		childType = CJT::Building_Type::BridgePart;
+//	}
+//#endif // USE_IFC4x3
+//
+//#if defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
+//	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcRoad>()->size() > 0) // is road
+//	{
+//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcRoad>("IfcRoad", false);
+//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcRoad>();
+//		rootType = CJT::Building_Type::Road;
+//		childType = CJT::Building_Type::Road;
+//	
+//	}
+//	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcRailway>()->size() > 0) // is railway
+//	{
+//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcRailway>("IfcRailway", false);
+//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcRailway>();
+//		rootType = CJT::Building_Type::Road;
+//		childType = CJT::Building_Type::Road;
+//
+//	}
+//	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcMarineFacility>()->size() > 0) // is marinefacilty
+//	{
+//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcMarineFacility>("IfcMarineFacility", false);
+//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcMarineFacility>();
+//	}
+//#endif
+//	else
+//	{
+//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
+//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBuilding>();
+//	}
+
 	// Set up objects and their relationships
-	std::string BuildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
-	if (BuildingName == "") { BuildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcSite>("IfcSite", false); }
-	nlohmann::json buildingAttributes = internalDataManager_.get()->getBuildingInformation();
+	if (buildingName == "") { buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcSite>("IfcSite", false); }
 	cityBuildingObject.addAttributes(buildingAttributes);
 
-	cityBuildingObject.setName(BuildingName);
-	cityBuildingObject.setType(CJT::Building_Type::Building);
-
+	cityBuildingObject.setName(buildingName);
 	cityComplexObject.setName("Complex");
-	cityComplexObject.setType(CJT::Building_Type::BuildingPart);
 
 	cityOuterShellObject.setName(CJObjectEnum::getString(CJObjectID::outerShell));
-	cityOuterShellObject.setType(CJT::Building_Type::BuildingPart);
-
 	cityInnerShellObject.setName(CJObjectEnum::getString(CJObjectID::innerShell));
-	cityInnerShellObject.setType(CJT::Building_Type::BuildingPart);
+
+	cityBuildingObject.setType(rootType);
+	cityComplexObject.setType(childType);
+	cityOuterShellObject.setType(childType);
+	cityInnerShellObject.setType(childType);
 
 	cityBuildingObject.addChild(&cityOuterShellObject);
 

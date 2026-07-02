@@ -384,7 +384,7 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
 		return coms; }
 	case ErrorID::warningIfcMissingGeoreference: {
-		const std::string coms = "Data required to georeferencing is missing";
+		const std::string coms = "Data required for georeferencing is missing";
 		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
 		return coms; }
 	case ErrorID::warningIfcMissingIsExternal: {

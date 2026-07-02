@@ -1370,7 +1370,10 @@ gp_Trsf DataManager::getProjectionTransformation()
 	trsf.SetTranslationPart(gp_Vec(Eastings, Northings, OrthogonalHeight));
 #else
 	IfcSchema::IfcMapConversion::list::ptr mapList = fileObject->instances_by_type<IfcSchema::IfcMapConversion>();
-	if (mapList->size() == 0) { return gp_Trsf(); }
+	if (mapList->size() == 0) { 
+		ErrorCollection::getInstance().addError(ErrorID::warningIfcMissingGeoreference);
+		return gp_Trsf();
+	}
 	if (mapList->size() > 1) {
 		ErrorCollection::getInstance().addError(ErrorID::warningIfcMultipleProjections);
 		std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMultipleProjections) << std::endl;

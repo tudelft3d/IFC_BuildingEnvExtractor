@@ -18,23 +18,36 @@
 #include <mutex> 
 
 template nlohmann::json DataManager::getBuildingInformation<IfcSchema::IfcBuilding>();
+#if defined(USE_IFC4x2) || defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
 template nlohmann::json DataManager::getBuildingInformation<IfcSchema::IfcBridge>();
+#endif
+#if defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
 template nlohmann::json DataManager::getBuildingInformation<IfcSchema::IfcRoad>();
 template nlohmann::json DataManager::getBuildingInformation<IfcSchema::IfcRailway>();
 template nlohmann::json DataManager::getBuildingInformation<IfcSchema::IfcMarineFacility>();
+#endif
 
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcBuilding>(const std::string& objectTypeName, bool isLong);
+template std::string DataManager::getIfcObjectName<IfcSchema::IfcSite>(const std::string& objectTypeName, bool isLong);
+#if defined(USE_IFC4x2) || defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcBridge>(const std::string& objectTypeName, bool isLong);
+#endif
+#if defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcRoad>(const std::string& objectTypeName, bool isLong);
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcRailway>(const std::string& objectTypeName, bool isLong);
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcMarineFacility>(const std::string& objectTypeName, bool isLong);
-template std::string DataManager::getIfcObjectName<IfcSchema::IfcSite>(const std::string& objectTypeName, bool isLong);
+#endif
 
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcBuilding>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
+template std::string DataManager::getIfcObjectName<IfcSchema::IfcSite>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
+#if defined(USE_IFC4x2) || defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcBridge>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
+#endif
+#if defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcRoad>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcRailway>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
-template std::string DataManager::getIfcObjectName<IfcSchema::IfcSite>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
+#endif
+
 
 IfcProductSpatialData::IfcProductSpatialData(IfcSchema::IfcProduct* productPtr, const TopoDS_Shape& productShape)
 {
@@ -1403,8 +1416,19 @@ void DataManager::getProjectionData(CJT::ObjectTransformation* transformation, C
 	// get and set the scale and projection
 	getScaleAndProjection(transformation, metaData);
 
-	// apply the georef + ifc translation
 	gp_XYZ invertedObjectTrsf = objectIfcTranslation_.TranslationPart();
+	if (metaData->getReferenceDate() == "EPSG:7415")
+	{
+		if (invertedObjectTrsf.X() < 646.361 || invertedObjectTrsf.X() > 284347.25 ||
+			invertedObjectTrsf.Y() < 308289.558 || invertedObjectTrsf.Y() > 637111.025)
+		{
+			ErrorCollection::getInstance().addError(ErrorID::warningIfcIncorrectGeoRefTranslation, metaData->getReferenceDate());
+			std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcIncorrectGeoRefTranslation) << std::endl;
+		}
+	}
+
+	// apply the georef + ifc translation
+	
 	transformation->setTranslation(
 		invertedObjectTrsf.X(),
 		invertedObjectTrsf.Y(),

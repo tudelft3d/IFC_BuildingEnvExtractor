@@ -391,6 +391,10 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		const std::string coms = "No objects found that were external, possibly attribute IsExternal is not correctly populated";
 		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
 		return coms; }
+	case ErrorID::warningIfcIncorrectGeoRefTranslation: {
+		const std::string coms = "Georeference projected coordinates lie out of bounds";
+		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
+		return coms; }
 
 
 	case ErrorID::warningIssueencountered: {

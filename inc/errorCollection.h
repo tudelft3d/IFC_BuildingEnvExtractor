@@ -63,6 +63,7 @@ enum class ErrorID {
 	warningIfcObjectDifferentName,
 	warningIfcMissingGeoreference,
 	warningIfcMissingIsExternal,
+	warningIfcIncorrectGeoRefTranslation,
 
 	warningIssueencountered,
 	warningNoSolid,

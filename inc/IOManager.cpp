@@ -322,7 +322,7 @@ void IOManager::printErrors()
 	}
 	else
 	{
-		std::cout << "\n\t[INFO] See report file for more info:\n" << settingsCollection.getOutputReportPath() << "\n";
+		std::cout << "\n[INFO] See report file for more info:\n\t" << settingsCollection.getOutputReportPath() << "\n";
 	}
 
 	return;

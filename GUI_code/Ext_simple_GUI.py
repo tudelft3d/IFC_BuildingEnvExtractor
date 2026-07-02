@@ -169,7 +169,13 @@ frame_file_browse.pack(fill=tkinter.X)
 entry_inputpath = tkinter.Entry(frame_file_browse, text= "Input path(s)", textvariable=settings.paths.input_path)
 entry_inputpath.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True, padx=4)
 button_browse = tkinter.Button(frame_file_browse, text="Browse", width=size_button_normal,
-                               command= lambda: IExtension.browse_(entry_inputpath, False, main_window, ""))
+                               command= lambda: IExtension.browse_(
+                                   entry_inputpath,
+                                   False,
+                                   main_window,
+                                   "",
+                                   preferences)
+                               )
 button_browse.pack(side=tkinter.LEFT, padx=4)
 
 separator = ttk.Separator(main_window, orient='horizontal')
@@ -183,7 +189,13 @@ frame_folder_browse.pack(fill=tkinter.X)
 entry_outputpath = tkinter.Entry(frame_folder_browse, text= "Output path", textvariable= settings.paths.output_path)
 entry_outputpath.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True, padx=4)
 button_browse2 = tkinter.Button(frame_folder_browse, text="Browse" , width=size_button_normal,
-                                command= lambda: IExtension.browse_(entry_outputpath, True, main_window, entry_inputpath.get()))
+                                command= lambda: IExtension.browse_(
+                                    entry_outputpath,
+                                    True,
+                                    main_window,
+                                    entry_inputpath.get(),
+                                    preferences)
+                                )
 button_browse2.pack(side=tkinter.LEFT, padx=4)
 
 separator = ttk.Separator(main_window, orient='horizontal')

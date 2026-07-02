@@ -96,6 +96,14 @@ def loadMem(preferences, is_flexible = True):
                                                  + " , please configure preferences")
 
             preferences.exe_path = os.path.abspath(copy.copy(appPath))
+        if "configOpenPath" in settings_json:
+            preferences.config_open_browse_path = settings_json["configOpenPath"]
+        if "configSavePath" in settings_json:
+            preferences.config_save_browse_path = settings_json["configSavePath"]
+        if "fileOpenPath" in settings_json:
+            preferences.file_open_browse_path = settings_json["fileOpenPath"]
+        if "fileSavePath" in settings_json:
+            preferences.file_save_browse_path = settings_json["fileSavePath"]
     return
 
 def toggleEnableDiv(toggleDict, settings):
@@ -209,14 +217,15 @@ def checkActiveToggles(toggleDict, settings):
     updateDivMessage(toggleDict, settings)
     return
 
-def browse_(box, is_folder, window, initial_file):
+def browse_(box, is_folder, window, initial_file, preferences):
     folder_path = ""
 
     if (not is_folder):
         folder_path =  filedialog.askopenfilenames(
             title= "Input file",
             filetypes=[("IFC file", ".ifc")],
-            defaultextension=".ifc"
+            defaultextension=".ifc",
+            initialdir=preferences.file_open_browse_path
         )
     else:
         # get the inital filename
@@ -225,11 +234,17 @@ def browse_(box, is_folder, window, initial_file):
             title="Output file",
             filetypes=[("JSON file", ".json"), ("CityJSON file", ".city.json")],
             defaultextension="city.json",
-            initialfile=Path(initial_file_name).stem + ".json"
+            initialfile=Path(initial_file_name).stem + ".json",
+            initialdir = preferences.file_save_browse_path
         )]
 
     if len(folder_path) == 0:
         return
+
+    if (not is_folder):
+        preferences.file_open_browse_path = os.path.dirname(folder_path[0])
+    else:
+        preferences.file_save_browse_path = os.path.dirname(folder_path[0])
 
     box.delete(0, tkinter.END)
     box.insert(0, "; ".join(folder_path))
@@ -314,10 +329,11 @@ def isConfigJSON(json_file):
             return False
     return True
 
-def load_custom_config(toggleDict, settings, main_window):
+def load_custom_config(toggleDict, settings, main_window, preferences):
     json_filepath = filedialog.askopenfilenames(
         filetypes=[("ConfigJSON", ".json")],
-        defaultextension=".json")
+        defaultextension=".json",
+        initialdir=preferences.config_open_browse_path)
 
     if len(json_filepath) == 0:
         return
@@ -326,6 +342,8 @@ def load_custom_config(toggleDict, settings, main_window):
         tkinter.messagebox.showerror("Processing Error",
                                      "Error: cannot find submitted config file")
         return
+
+    preferences.config_open_browse_path = os.path.dirname(json_filepath[0])
 
     load_config(json_filepath[0], toggleDict, settings, main_window)
     return
@@ -386,7 +404,9 @@ def populateConfigJson(load_config_menu, toggleDict, settings, config_folder, ma
     return
 
 def pre_browse(text_field, text_var):
-    new_entry = filedialog.askdirectory()
+    new_entry = filedialog.askdirectory(
+        initialdir= text_field.get()
+    )
     if len(new_entry) == 0:
         return;
 
@@ -402,12 +422,18 @@ def update_pref(preferences, loc_app, loc_pre_set):
     if not os.path.isdir("./config/"):
         os.mkdir("./config")
 
-    preferences.preSet_path = loc_pre_set.get().strip()
-    preferences.exe_path = loc_app.get().strip()
+    if loc_app != "":
+        preferences.preSet_path = loc_pre_set.get().strip()
+    if loc_pre_set != "":
+        preferences.exe_path = loc_app.get().strip()
 
     default_settings = {
         "defaultConfigPath" :  preferences.preSet_path,
-        "extractorLoc" :  preferences.exe_path
+        "extractorLoc" :  preferences.exe_path,
+        "configOpenPath": preferences.config_open_browse_path,
+        "configSavePath": preferences.config_save_browse_path,
+        "fileOpenPath": preferences.file_open_browse_path,
+        "fileSavePath": preferences.file_save_browse_path
     }
 
     json_str = json.dumps(default_settings)

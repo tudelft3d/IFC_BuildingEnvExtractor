@@ -92,6 +92,7 @@ def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}
     return
 
 def runExe(code_path, json_path):
+
     try:
         stop_event = threading.Event()
         stop_event.clear()
@@ -117,7 +118,8 @@ def runExe(code_path, json_path):
                 if env_extractor_process.returncode == 0:
                     tkinter.messagebox.showinfo("Success", "Success: Process completed successfully")
                 else:
-                    tkinter.messagebox.showerror("Processing Error", "Error: Error during process")
+                    tkinter.messagebox.showerror("Processing Error", "Error: Error during process\n "
+                                                                     "See report file for more info")
 
             run_button.config(text="Run", command=lambda: runCode(preferences, settings, message_div_objects,  False))
             close_button.config(state="normal")

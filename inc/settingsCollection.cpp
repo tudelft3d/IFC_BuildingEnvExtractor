@@ -485,6 +485,22 @@ void SettingsCollection::setMakeSite(const nlohmann::json& json)
 
 void SettingsCollection::setMakeOutlines(const nlohmann::json& json)
 {
+	if (!makeRoofPrint() && 
+		!make03() && 
+		!make04() && 
+		!make12() &&
+		!make13() &&
+		!make22() &&
+		!makeb0() &&
+		!makec1() &&
+		!makec2() &&
+		!maked1() &&
+		!maked2()
+		)
+	{
+		return;
+	}
+
 	if (!makeExterior() && !make02() && !make03() ||
 		!make02() &&
 		!make03() &&
@@ -539,6 +555,7 @@ void SettingsCollection::setMakeRoofPrint(const nlohmann::json& json)
 	if (!make00() && !make02())
 	{
 		setMakeRoofPrint(false);
+
 		return;
 	}
 

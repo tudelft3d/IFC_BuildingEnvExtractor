@@ -938,6 +938,7 @@ void CJGeoCreator::makeFootprint(DataManager* h)
 	}
 
 	//check if incapsulated
+	bool hasRoofOutlines = !buildingSurfaceDataList_.empty();
 	for (const TopoDS_Face& currentFootprint : cleanedFootprintList) //TODO: multithread
 	{
 		bool isEncapsulated = false;
@@ -952,20 +953,28 @@ void CJGeoCreator::makeFootprint(DataManager* h)
 		}
 		if (isEncapsulated) { continue; }
 
-
-		for (BuildingSurfaceCollection& buildingSurfaceData : buildingSurfaceDataList_)
+		if (!hasRoofOutlines)
 		{
-			TopoDS_Face currentCleanFootprint = eleminateInnerVoids(currentFootprint);
-
-			BRepExtrema_DistShapeShape distanceFootRoof(buildingSurfaceData.getRoofOutline(), currentCleanFootprint);
-			double verticalDistatance = abs(distanceFootRoof.PointOnShape1(1).Z() - distanceFootRoof.PointOnShape2(1).Z());
-			if (abs(verticalDistatance - distanceFootRoof.Value()) > settingsCollection.linearTolerance())
-			{
-				continue;
-			}
-			buildingSurfaceData.addFootPrint(currentCleanFootprint);
-			break;
+			BuildingSurfaceCollection buildingCol;
+			buildingCol.addFootPrint(currentFootprint);
+			buildingSurfaceDataList_.emplace_back(buildingCol);
 		}
+		else
+		{
+			for (BuildingSurfaceCollection& buildingSurfaceData : buildingSurfaceDataList_)
+			{
+				BRepExtrema_DistShapeShape distanceFootRoof(buildingSurfaceData.getRoofOutline(), currentFootprint);
+				double verticalDistatance = abs(distanceFootRoof.PointOnShape1(1).Z() - distanceFootRoof.PointOnShape2(1).Z());
+				if (abs(verticalDistatance - distanceFootRoof.Value()) > settingsCollection.linearTolerance())
+				{
+					continue;
+				}
+				buildingSurfaceData.addFootPrint(currentFootprint);
+				break;
+			}
+		}
+
+		
 	}
 
 	hasFootprints_ = true;

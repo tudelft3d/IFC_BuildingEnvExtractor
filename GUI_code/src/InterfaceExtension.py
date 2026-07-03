@@ -50,9 +50,30 @@ def populateSettings():
     if not os.path.isdir("./config/"):
         os.mkdir("./config")
 
+    default_exe_loc = "."
+
+    if os.path.exists("./binary"):
+        default_exe_loc = "./binary/"
+    else:
+        folder_name = "IfcEE_for_Windows"
+        if os.name != "nt":
+            folder_name = "IfcEE_for_Linux"
+        found = False
+
+        for name in os.listdir("."):
+            if name.startswith(folder_name) and os.path.isdir("./" + name):
+                default_exe_loc = "./" + name
+                found = True
+                break
+        if not found:
+            for name in os.listdir(".."):
+                if name.startswith(folder_name) and os.path.isdir(". ./" + name):
+                    default_exe_loc = "../" + name
+                    break
+
     default_settings = {
         "defaultConfigPath" : "./default_data/",
-        "extractorLoc" : "./binary/"
+        "extractorLoc" : default_exe_loc
     }
 
     json_str = json.dumps(default_settings)
@@ -76,7 +97,7 @@ def loadMem(preferences, is_flexible = True):
             if not os.path.isdir(appPath):
                 tkinter.messagebox.showerror("Init Error",
                                              "Error: unable to find app executables at "+ os.path.abspath(appPath) +
-                                             " , please configure preferences")
+                                             + "\nplease set location in preferences")
             else:
                 exe_found = False
                 for exe_key, exe_name in preferences.exe_names.items():
@@ -93,7 +114,7 @@ def loadMem(preferences, is_flexible = True):
                 if not exe_found:
                     tkinter.messagebox.showerror("Init Error",
                                                  "Error: unable to find app executables at " + os.path.abspath( appPath)
-                                                 + " , please configure preferences")
+                                                 + "\nplease set location in preferences")
 
             preferences.exe_path = os.path.abspath(copy.copy(appPath))
         if "configOpenPath" in settings_json:

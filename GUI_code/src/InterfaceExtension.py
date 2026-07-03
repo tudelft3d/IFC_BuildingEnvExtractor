@@ -354,8 +354,13 @@ def load_config(path, toggleDict, settings, main_window):
                                      "Error: cannot find default config files")
         return
 
-    with open(path, 'r') as file:
-        json_data = json.load(file)
+    try:
+        with open(path, 'r') as file:
+            json_data = json.load(file)
+    except:
+        tkinter.messagebox.showerror("Config File Error",
+                                     "ConfigJSON file could not be read.\n"
+                                     "Possibly invalid JSON syntax")
 
     if not isConfigJSON(json_data):
         tkinter.messagebox.showerror("Config File Error",
@@ -375,6 +380,8 @@ def load_config(path, toggleDict, settings, main_window):
 
 def populateConfigJson(load_config_menu, toggleDict, settings, config_folder, main_window):
     if os.path.isdir(config_folder):
+
+        faulty_name_list = [] #list of filenames that cannot be parsed
         for file in os.scandir(config_folder):
 
             max_files = 10
@@ -383,8 +390,12 @@ def populateConfigJson(load_config_menu, toggleDict, settings, config_folder, ma
             if file.is_file() and file.name.lower().endswith(".json"):
                 pathstring = config_folder + "/" + file.name
 
-                with open(pathstring, 'r') as json_file:
-                    json_data = json.load(json_file)
+                try:
+                    with open(pathstring, 'r') as json_file:
+                        json_data = json.load(json_file)
+                except:
+                    faulty_name_list.append(file.name)
+                    continue
 
                 if not isConfigJSON(json_data):
                     continue
@@ -401,6 +412,16 @@ def populateConfigJson(load_config_menu, toggleDict, settings, config_folder, ma
                 current_file_count += 1
                 if current_file_count >= max_files:
                     break
+
+        if len(faulty_name_list) > 0:
+            faulty_summary_string = "\n"
+            for faulty_name in faulty_name_list:
+                faulty_summary_string += "\n- '" + faulty_name + "'"
+
+            tkinter.messagebox.showerror("Config File Error",
+                                         "Not all default pre-set ConfigJSON files could be read.\n"
+                                         "Possibly invalid JSON syntax:" + faulty_summary_string)
+
     return
 
 def pre_browse(text_field, text_var):

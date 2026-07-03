@@ -37,11 +37,14 @@ def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}
         config_path = filedialog.asksaveasfilename(
             filetypes=[("JSON file", ".json")],
             defaultextension=".json",
-            initialfile=Path(input_path_list[0]).stem + json_path_end
+            initialfile=Path(input_path_list[0]).stem + json_path_end,
+            initialdir= preferences.config_save_browse_path
         )
 
         if (len(config_path) == 0):
             return
+
+        preferences.config_save_browse_path = os.path.dirname(config_path)
 
     else:
         config_path = "~temp" + json_path_end
@@ -139,6 +142,9 @@ def runExe(code_path, json_path):
                                      "Error: Was unable to process the file")
     return
 
+def on_closing():
+    IExtension.update_pref(preferences, "", "")
+    main_window.destroy()
 
 # main variables
 size_entry_small = 13
@@ -154,7 +160,7 @@ else:
     main_window.geometry('500x590')
 main_window.resizable(1,0)
 main_window.title(main_window_name_base + "Untitled")
-
+main_window.protocol("WM_DELETE_WINDOW", on_closing)
 # create settings classes
 settings = Settings.GuiSettings()
 preferences = Settings.Preferences()
@@ -473,7 +479,10 @@ run_button.pack(side=tkinter.LEFT, padx=(5,0))
 text_toolTip = tkinter.Label(frame_other, text="hover over settings for tooltip")
 text_toolTip.pack(side=tkinter.LEFT, padx=(15,0))
 
-close_button = tkinter.Button(frame_other, text="Close", width=size_button_normal, command= lambda : main_window.destroy())
+close_button = tkinter.Button(frame_other, text="Close", width=size_button_normal,
+                              command= lambda : [IExtension.update_pref(preferences, "", ""),
+                                                 main_window.destroy()])
+
 close_button.pack(side=tkinter.RIGHT, padx=(0,5))
 
 #tooltips
@@ -547,7 +556,7 @@ load_config_menu = tkinter.Menu(File_menu, tearoff=False)
 IExtension.populateConfigJson(load_config_menu, toggle_dictionary, settings, preferences.preSet_path, main_window)
 load_config_menu.add_separator()
 load_config_menu.add_command(label="Custom pre-set",
-                             command= lambda:IExtension.load_custom_config(toggle_dictionary, settings, main_window))
+                             command= lambda:IExtension.load_custom_config(toggle_dictionary, settings, main_window, preferences))
 
 File_menu.add_cascade(label="Load config", menu=load_config_menu)
 if not is_simple:

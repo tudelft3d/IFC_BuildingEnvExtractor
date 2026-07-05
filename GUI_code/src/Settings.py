@@ -78,7 +78,7 @@ class LoDSettings(SettingsBase):
 
 class VoxelSettings(SettingsBase):
     settings = {
-        "voxel_size": (tkinter.DoubleVar, 1.0),
+        "voxel_size": (tkinter.DoubleVar, 0.5),
         "voxel_unit": (tkinter.StringVar, "m"),
         "voxel_filter": (tkinter.IntVar, 1)
     }

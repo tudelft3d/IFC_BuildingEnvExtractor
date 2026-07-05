@@ -6,7 +6,6 @@
         "Area tolerance": 0.0001
     },
     "Voxel": {
-        "Size": 0.5,
         "Coarse filter": 1
     },
     "IFC": {

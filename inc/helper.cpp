@@ -3466,92 +3466,105 @@ nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcProduct* ifcPr
 			if (optionalPsetName.get() != PsetName) { continue; }
 		}
 
-		IfcSchema::IfcProperty::list::ptr propertyList = pset->HasProperties();
+		nlohmann::json attributesListLocal = getAttributes(*pset);
+		if (attributesListLocal.empty()) { continue; }
 
-		for (auto propertyIt = propertyList->begin(); propertyIt != propertyList->end(); propertyIt++)
+		for (auto& [key, value] : attributesListLocal.items())
 		{
-			if (*propertyIt == nullptr) { continue; }
+			attributesList.emplace(key, value);
+		}
+	}
+	return attributesList;
+}
 
-			if ((*propertyIt)->data().type()->name() != "IfcPropertySingleValue") //TODO: implement IfcPropertyEnumeratedValue
-			{
-				continue;
-			}
+nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcPropertySet& pset)
+{
+	nlohmann::json attributesList;
+	IfcSchema::IfcProperty::list::ptr propertyList = pset.HasProperties();
 
-			IfcSchema::IfcPropertySingleValue* propertyItem = (*propertyIt)->as<IfcSchema::IfcPropertySingleValue>();
-			IfcSchema::IfcValue* ifcValue = ifcValue = propertyItem->NominalValue();
-			if (ifcValue == nullptr) { continue; }
+	for (auto propertyIt = propertyList->begin(); propertyIt != propertyList->end(); propertyIt++)
+	{
+		if (*propertyIt == nullptr) { continue; }
 
-			std::string propertyIdName = ifcValue->data().type()->name();
+		if ((*propertyIt)->data().type()->name() != "IfcPropertySingleValue") //TODO: implement IfcPropertyEnumeratedValue
+		{
+			continue;
+		}
 
-			if (propertyIdName == "IfcIdentifier")
-			{
-				IfcSchema::IfcIdentifier* propertyValueContainer = ifcValue->as<IfcSchema::IfcIdentifier>();
-				attributesList[propertyItem->Name()] = propertyValueContainer->operator std::string();
-			}
-			else if (propertyIdName == "IfcText")
-			{
-				IfcSchema::IfcText* propertyValueContainer = ifcValue->as<IfcSchema::IfcText>();
-				attributesList[propertyItem->Name()] = propertyValueContainer->operator std::string();
-			}
-			else if (propertyIdName == "IfcLabel")
-			{
-				IfcSchema::IfcLabel* propertyValueContainer = ifcValue->as<IfcSchema::IfcLabel>();
-				attributesList[propertyItem->Name()] = propertyValueContainer->operator std::string();
-			}
-			else if (propertyIdName == "IfcLengthMeasure")
-			{
-				IfcSchema::IfcLengthMeasure* propertyValueContainer = ifcValue->as<IfcSchema::IfcLengthMeasure>();
-				attributesList[propertyItem->Name()] = {
-					{CJObjectEnum::getString(CJObjectID::jsonValue), propertyValueContainer->operator double() },
-					{CJObjectEnum::getString(CJObjectID::jsonUom) , UnitStringEnum::getString(UnitStringID::meter) } //TODO: update to unit?
-				};
-			}
-			else if (propertyIdName == "IfcAreaMeasure")
-			{
-				IfcSchema::IfcAreaMeasure* propertyValueContainer = ifcValue->as<IfcSchema::IfcAreaMeasure>();
-				attributesList[propertyItem->Name()] = {
-					{CJObjectEnum::getString(CJObjectID::jsonValue), propertyValueContainer->operator double() },
-					{CJObjectEnum::getString(CJObjectID::jsonUom) , UnitStringEnum::getString(UnitStringID::sqrMeter) } //TODO: update to set unit?
-				};
-			}
-			else if (propertyIdName == "IfcReal")
-			{
-				IfcSchema::IfcReal* propertyValueContainer = ifcValue->as<IfcSchema::IfcReal>();
-				attributesList[propertyItem->Name()] = propertyValueContainer->operator double();
-			}
-			else if (propertyIdName == "IfcInteger")
-			{
-				IfcSchema::IfcInteger* propertyValueContainer = ifcValue->as<IfcSchema::IfcInteger>();
-				attributesList[propertyItem->Name()] = propertyValueContainer->operator int();
-			}
-			else if (propertyIdName == "IfcPowerMeasure")
-			{
-				IfcSchema::IfcPowerMeasure* propertyValueContainer = ifcValue->as<IfcSchema::IfcPowerMeasure>();
-				attributesList[propertyItem->Name()] = propertyValueContainer->operator double();
-			}
-			else if (propertyIdName == "IfcThermalTransmittanceMeasure")
-			{
-				IfcSchema::IfcThermalTransmittanceMeasure* propertyValueContainer = ifcValue->as<IfcSchema::IfcThermalTransmittanceMeasure>();
-				attributesList[propertyItem->Name()] = propertyValueContainer->operator double();
-			}
-			else if (propertyIdName == "IfcBoolean")
-			{
-				IfcSchema::IfcBoolean* propertyValueContainer = ifcValue->as<IfcSchema::IfcBoolean>();
-				attributesList[propertyItem->Name()] = propertyValueContainer->operator bool();
-			}
-			else if (propertyIdName == "IfcLogical")
-			{
-				IfcSchema::IfcLogical* propertyValueContainer = ifcValue->as<IfcSchema::IfcLogical>();
-				boost::logic::tribool tribool = propertyValueContainer->operator boost::logic::tribool();
+		IfcSchema::IfcPropertySingleValue* propertyItem = (*propertyIt)->as<IfcSchema::IfcPropertySingleValue>();
+		IfcSchema::IfcValue* ifcValue = ifcValue = propertyItem->NominalValue();
+		if (ifcValue == nullptr) { continue; }
 
-				if (tribool.value == tribool.false_value) { attributesList[propertyItem->Name()] = "FALSE"; }
-				else if (tribool.value == tribool.true_value) { attributesList[propertyItem->Name()] = "TRUE"; }
-				else { attributesList[propertyItem->Name()] = "UNKNOWN"; }
-			}
-			else
-			{
-				ErrorCollection::getInstance().addError(ErrorID::propertyNotImplemented, propertyIdName);
-			}
+		std::string propertyIdName = ifcValue->data().type()->name();
+
+		if (propertyIdName == "IfcIdentifier")
+		{
+			IfcSchema::IfcIdentifier* propertyValueContainer = ifcValue->as<IfcSchema::IfcIdentifier>();
+			attributesList[propertyItem->Name()] = propertyValueContainer->operator std::string();
+		}
+		else if (propertyIdName == "IfcText")
+		{
+			IfcSchema::IfcText* propertyValueContainer = ifcValue->as<IfcSchema::IfcText>();
+			attributesList[propertyItem->Name()] = propertyValueContainer->operator std::string();
+		}
+		else if (propertyIdName == "IfcLabel")
+		{
+			IfcSchema::IfcLabel* propertyValueContainer = ifcValue->as<IfcSchema::IfcLabel>();
+			attributesList[propertyItem->Name()] = propertyValueContainer->operator std::string();
+		}
+		else if (propertyIdName == "IfcLengthMeasure")
+		{
+			IfcSchema::IfcLengthMeasure* propertyValueContainer = ifcValue->as<IfcSchema::IfcLengthMeasure>();
+			attributesList[propertyItem->Name()] = {
+				{CJObjectEnum::getString(CJObjectID::jsonValue), propertyValueContainer->operator double() },
+				{CJObjectEnum::getString(CJObjectID::jsonUom) , UnitStringEnum::getString(UnitStringID::meter) } //TODO: update to unit?
+			};
+		}
+		else if (propertyIdName == "IfcAreaMeasure")
+		{
+			IfcSchema::IfcAreaMeasure* propertyValueContainer = ifcValue->as<IfcSchema::IfcAreaMeasure>();
+			attributesList[propertyItem->Name()] = {
+				{CJObjectEnum::getString(CJObjectID::jsonValue), propertyValueContainer->operator double() },
+				{CJObjectEnum::getString(CJObjectID::jsonUom) , UnitStringEnum::getString(UnitStringID::sqrMeter) } //TODO: update to set unit?
+			};
+		}
+		else if (propertyIdName == "IfcReal")
+		{
+			IfcSchema::IfcReal* propertyValueContainer = ifcValue->as<IfcSchema::IfcReal>();
+			attributesList[propertyItem->Name()] = propertyValueContainer->operator double();
+		}
+		else if (propertyIdName == "IfcInteger")
+		{
+			IfcSchema::IfcInteger* propertyValueContainer = ifcValue->as<IfcSchema::IfcInteger>();
+			attributesList[propertyItem->Name()] = propertyValueContainer->operator int();
+		}
+		else if (propertyIdName == "IfcPowerMeasure")
+		{
+			IfcSchema::IfcPowerMeasure* propertyValueContainer = ifcValue->as<IfcSchema::IfcPowerMeasure>();
+			attributesList[propertyItem->Name()] = propertyValueContainer->operator double();
+		}
+		else if (propertyIdName == "IfcThermalTransmittanceMeasure")
+		{
+			IfcSchema::IfcThermalTransmittanceMeasure* propertyValueContainer = ifcValue->as<IfcSchema::IfcThermalTransmittanceMeasure>();
+			attributesList[propertyItem->Name()] = propertyValueContainer->operator double();
+		}
+		else if (propertyIdName == "IfcBoolean")
+		{
+			IfcSchema::IfcBoolean* propertyValueContainer = ifcValue->as<IfcSchema::IfcBoolean>();
+			attributesList[propertyItem->Name()] = propertyValueContainer->operator bool();
+		}
+		else if (propertyIdName == "IfcLogical")
+		{
+			IfcSchema::IfcLogical* propertyValueContainer = ifcValue->as<IfcSchema::IfcLogical>();
+			boost::logic::tribool tribool = propertyValueContainer->operator boost::logic::tribool();
+
+			if (tribool.value == tribool.false_value) { attributesList[propertyItem->Name()] = "FALSE"; }
+			else if (tribool.value == tribool.true_value) { attributesList[propertyItem->Name()] = "TRUE"; }
+			else { attributesList[propertyItem->Name()] = "UNKNOWN"; }
+		}
+		else
+		{
+			ErrorCollection::getInstance().addError(ErrorID::propertyNotImplemented, propertyIdName);
 		}
 	}
 	return attributesList;

@@ -190,6 +190,9 @@ private:
 	// update the lll and urr point
 	void updateBoudingData(const bg::model::box <BoostPoint3D>& box);
 
+	// fetch the ePSet_MapConversion data in an IFC2x3 file
+	nlohmann::json get2x3GeoData();
+
 	// check if the site contains all the required data for georeferencing according to IfcGRef (ifc2x3) only
 	bool validateProjectionData(const nlohmann::json& sitePropertySetData);
 

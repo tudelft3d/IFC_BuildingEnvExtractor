@@ -48,7 +48,6 @@ template std::string DataManager::getIfcObjectName<IfcSchema::IfcRoad>(const std
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcRailway>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
 #endif
 
-
 IfcProductSpatialData::IfcProductSpatialData(IfcSchema::IfcProduct* productPtr, const TopoDS_Shape& productShape)
 {
 	ErrorCollection& errorCollection = ErrorCollection::getInstance();
@@ -653,6 +652,60 @@ void DataManager::voidShapeAdjust(T productList)
 	}
 }
 
+nlohmann::json DataManager::get2x3GeoData()
+{
+	IfcParse::IfcFile* fileObject = datacollection_[0]->getFilePtr();
+	IfcSchema::IfcPropertySet::list::ptr psets = fileObject->instances_by_type<IfcSchema::IfcPropertySet>();
+
+	bool isSite = false;
+	bool isProject = false;
+
+	nlohmann::json grefData;
+
+	for (auto it = psets->begin(); it != psets->end(); ++it)
+	{
+		IfcSchema::IfcPropertySet* pset = *it;
+
+		if (!pset->Name() || pset->Name().get() != "ePSet_MapConversion") { continue; }
+#if defined(USE_IFC2x3)
+		auto rels = pset->PropertyDefinitionOf();
+
+		for (auto relIt = rels->begin(); relIt != rels->end(); ++relIt)
+		{
+			IfcSchema::IfcRelDefinesByProperties* rel = *relIt;
+
+			auto objects = rel->RelatedObjects();
+
+			for (auto objIt = objects->begin(); objIt != objects->end(); ++objIt)
+			{
+				if ((*objIt)->as<IfcSchema::IfcSite>() && !isSite)
+				{
+					isSite = true;
+					grefData = helperFunctions::getAttributes(*pset);
+					break;
+				}
+				else if ((*objIt)->as<IfcSchema::IfcProject>()&& !isProject)
+				{
+					isProject = true;
+					grefData = helperFunctions::getAttributes(*pset);
+					break;
+				}
+			}
+		}
+#endif
+	}
+
+	if (isSite)
+	{
+		//TODO: add error
+	}
+
+	if (isSite && isProject) {
+		//TODO: add error
+	}
+	return grefData;
+}
+
 std::vector<TopoDS_Shape> DataManager::computeEmptyVoids(IfcSchema::IfcRelVoidsElement::list::ptr voidElementList)
 {
 	// find if the voids are filled or not
@@ -853,7 +906,7 @@ bool DataManager::validateProjectionData(const nlohmann::json& sitePropertySetDa
 		missingObjects.emplace_back("XAxisOrdinate");
 	}
 
-	if (!missingObjects.empty())
+	if (missingObjects.empty())
 	{
 		return true;
 	}
@@ -863,37 +916,27 @@ bool DataManager::validateProjectionData(const nlohmann::json& sitePropertySetDa
 
 void DataManager::getScaleAndProjection(CJT::ObjectTransformation* transformation, CJT::metaDataObject* metaData)
 {
-	IfcParse::IfcFile* fileObject = datacollection_[0]->getFilePtr();
-
 #if defined(USE_IFC2x3)
-	IfcSchema::IfcSite::list::ptr ifcSiteList = fileObject->instances_by_type<IfcSchema::IfcSite>();
 
-	if (ifcSiteList->size() != 0) {
-		if (ifcSiteList->size() > 1) { std::cout << "[WARNING] multiple sites detected" << std::endl; }
+	nlohmann::json grefSetData = get2x3GeoData();
+	if (grefSetData.empty()) { return; }
 
-		IfcSchema::IfcSite* ifcSite = *ifcSiteList->begin();
-		IfcSchema::IfcRelDefines::list::ptr relDefinesList = ifcSite->IsDefinedBy();
-
-		nlohmann::json sitePropertySetData = helperFunctions::getAttributes(ifcSite, "ePSet_MapConversion");
-
-		if (sitePropertySetData.empty()) { return; }
-		if (sitePropertySetData.contains("TargetCRS"))
+	if (grefSetData.contains("TargetCRS"))
+	{
+		if (grefSetData["TargetCRS"].is_string())
 		{
-			if (sitePropertySetData["TargetCRS"].is_string())
-			{
-				metaData->setReferenceSystem(sitePropertySetData["TargetCRS"]);
-			}
-		}
-		if (sitePropertySetData.contains("Scale"))
-		{
-			if (sitePropertySetData["Scale"].is_number())
-			{
-				transformation->setScale(transformation->getScale()[0] * sitePropertySetData["Scale"].get<float>());
-			}
+			metaData->setReferenceSystem(grefSetData["TargetCRS"]);
 		}
 	}
-
+	if (grefSetData.contains("Scale"))
+	{
+		if (grefSetData["Scale"].is_number())
+		{
+			transformation->setScale(transformation->getScale()[0] * grefSetData["Scale"].get<float>());
+		}
+	}
 #else
+	IfcParse::IfcFile* fileObject = datacollection_[0]->getFilePtr();
 	IfcSchema::IfcMapConversion::list::ptr mapList = fileObject->instances_by_type<IfcSchema::IfcMapConversion>();
 	if (mapList->size() != 0) {
 		if (mapList->size() > 1) {
@@ -1356,23 +1399,15 @@ gp_Trsf DataManager::getProjectionTransformation()
 	IfcParse::IfcFile* fileObject = datacollection_[0]->getFilePtr();
 
 #if defined(USE_IFC2x3)
-	IfcSchema::IfcSite::list::ptr ifcSiteList = fileObject->instances_by_type<IfcSchema::IfcSite>();
 
-	if (ifcSiteList->size() == 0) { return gp_Trsf(); }
-	if (ifcSiteList->size() > 1) { std::cout << "[WARNING] multiple sites detected" << std::endl; }
+	nlohmann::json grefSetData = get2x3GeoData();
+	if (!validateProjectionData(grefSetData)) { return gp_Trsf(); }
 
-	IfcSchema::IfcSite* ifcSite = *ifcSiteList->begin();
-	IfcSchema::IfcRelDefines::list::ptr relDefinesList = ifcSite->IsDefinedBy();
-
-	nlohmann::json sitePropertySetData = helperFunctions::getAttributes(ifcSite, "ePSet_MapConversion");
-	if (sitePropertySetData.empty()) { return gp_Trsf(); }
-	if (validateProjectionData(sitePropertySetData)) { return gp_Trsf(); }
-
-	double Eastings = sitePropertySetData["Eastings"]["value"];
-	double Northings = sitePropertySetData["Northings"]["value"];
-	double OrthogonalHeight = sitePropertySetData["OrthogonalHeight"]["value"];
-	double XAA = sitePropertySetData["XAxisAbscissa"];
-	double XAO = sitePropertySetData["XAxisOrdinate"];
+	double Eastings = grefSetData["Eastings"]["value"];
+	double Northings = grefSetData["Northings"]["value"];
+	double OrthogonalHeight = grefSetData["OrthogonalHeight"]["value"];
+	double XAA = grefSetData["XAxisAbscissa"];
+	double XAO = grefSetData["XAxisOrdinate"];
 
 	gp_Trsf trsf;
 	trsf.SetValues(

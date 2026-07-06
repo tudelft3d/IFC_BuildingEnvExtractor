@@ -1,4 +1,4 @@
-#define USE_IFC4
+#define USE_IFC2x3
 #define iterationVersion "0.4.1"
 
 #ifdef USE_IFC2x3
@@ -366,6 +366,8 @@ struct helperFunctions{
 	static bool isExternal(const IfcSchema::IfcProduct* ifcProduct);
 	/// returns all the attributes in json format
 	static nlohmann::json getAttributes(const IfcSchema::IfcProduct* ifcProduct, const std::string& PsetName = "");
+	/// returns all the attributes in json format
+	static nlohmann::json getAttributes(const IfcSchema::IfcPropertySet& pset);
 
 	/// write to file code
 

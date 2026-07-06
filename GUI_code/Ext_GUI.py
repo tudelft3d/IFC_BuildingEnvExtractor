@@ -120,10 +120,13 @@ def runExe(code_path, json_path):
             else:
                 if env_extractor_process.returncode == 0:
                     tkinter.messagebox.showinfo("Success", "Success: Process completed successfully")
-                else:
+                elif env_extractor_process.returncode == 1:
                     tkinter.messagebox.showerror("Processing Error", "Error: Error during process\n "
                                                                      "See report file for more info")
-
+                else:
+                    tkinter.messagebox.showerror("Processing Error",
+                                                 "Error: application encountered an unexpected error")
+                    
             run_button.config(text="Run", command=lambda: runCode(preferences, settings, message_div_objects,  False))
             close_button.config(state="normal")
         def stop_process():
@@ -139,7 +142,7 @@ def runExe(code_path, json_path):
 
     except subprocess.CalledProcessError as e:
         tkinter.messagebox.showerror("Processing Error",
-                                     "Error: Was unable to process the file")
+                                     "Error: application encountered an unexpected error")
     return
 
 def on_closing():

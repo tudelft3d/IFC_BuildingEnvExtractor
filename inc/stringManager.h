@@ -15,6 +15,7 @@ enum class CommunicationStringImportanceID
 	info,
 	warning,
 	error,
+	end,
 	seperator
 };
 

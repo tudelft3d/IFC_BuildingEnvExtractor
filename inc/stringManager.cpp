@@ -14,9 +14,11 @@ std::string CommunicationStringImportanceEnum::getString(CommunicationStringImpo
 	case CommunicationStringImportanceID::info:
 		return "[INFO] ";
 	case CommunicationStringImportanceID::warning: 
-		return "[WARNING] ";
+		return "\033[33m[WARNING] ";
 	case CommunicationStringImportanceID::error:
-		return "[Error] ";
+		return "\033[31m[Error] ";
+	case CommunicationStringImportanceID::end:
+		return "\033[0m";
 	case CommunicationStringImportanceID::seperator:
 		return "=============================================================";
 	default:
@@ -195,266 +197,336 @@ std::string CommunicationStringEnum::getString(CommunicationStringID id)
 
 std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 {
+	CommunicationStringImportanceID importance;
+	std::string coms = "";
+
 	switch (id) {
 	case ErrorID::errorNoValFilePaths: {
-		const std::string coms = "No valid filepath has been supplied";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "No valid filepath has been supplied";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorUnableToProcessFile: {
-		const std::string coms = "Unable to process file(s)";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "Unable to process file(s)"; 
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorNoUnits: {
-		const std::string coms = "No unit assignment has been found";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "No unit assignment has been found";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::warningMultipleUnits: {
-		const std::string coms = "Multiple unit assignments have been found";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Multiple unit assignments have been found";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::errorNoLengthUnit: {
-		const std::string coms = "SI unit for length cannot be found";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "SI unit for length cannot be found";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorNoAreaUnit: {
-		const std::string coms = "SI unit for area cannot be found";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "SI unit for area cannot be found";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 
 	case ErrorID::errorJsonInvalBool: {
-		const std::string coms = "JSON file does not contain a valid bool for entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file does not contain a valid bool for entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorJsonInvalInt: {
-		const std::string coms = "JSON file does not contain a valid int for entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file does not contain a valid int for entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorJsonInvalNegInt: {
-		const std::string coms = "JSON file contains an invalid negative int for entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file contains an invalid negative int for entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorJsonInvalZeroInt: {
-		const std::string coms = "JSON file contains an invalid zero int for entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file contains an invalid zero int for entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorJsonInvalNum: {
-		const std::string coms = "JSON file does not contain a valid numeric value for entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file does not contain a valid numeric value for entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorJsonInvalString: {
-		const std::string coms = "JSON file does not contain a valid string for entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file does not contain a valid for entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorJsonInvalPath: {
-		const std::string coms = "JSON file contains a path to a file with incorrect type for entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file contains a path to a file with incorrect type for entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorJsonNoRealPath: {
-		const std::string coms = "JSON file contains an invalid path for entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file contains an invalid path for entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorJsonInvalArray: {
-		const std::string coms = "JSON file does not contain a valid array for entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file does not contain a valid array for entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorJsonInvalEntry: {
-		const std::string coms = "JSON file does not contain a valid value for entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file does not contain a valid value for entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 
 	case ErrorID::errorJsonMissingEntry: {
-		const std::string coms = "JSON file does not contain required entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file does not contain required entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorJsonInvalidLogic: {
-		const std::string coms = "JSON file does not contain valid logic number (2 or 3) entry";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file does not contain valid logic number (2 or 3) entry";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 
 	case ErrorID::errorJsonInvalidLod: {
-		const std::string coms = "JSON file contains unsupported required LoD";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms + ": "; }
-		return coms; }
+		coms = "JSON file contains unsupported required LoD";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 
 	case ErrorID::errorJsonMissingLoD: {
-		const std::string coms = "No desired LoD output can be found";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "No desired LoD output can be found";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorJsonNoDivObjects: {
-		const std::string coms = "No div objects are selected";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "No div objects are selected";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorNoPoints: {
-		const std::string coms = "No points could be extracted from the IFC file";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "No points could be extracted from the IFC file";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorFootprintFailed: {
-		const std::string coms = "Footprint extraction failed";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "Footprint extraction failed";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorStoreyFailed: {
-		const std::string coms = "storey extraction failed";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "storey extraction failed";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorLoD02StoreyFailed: {
-		const std::string coms = "LoD0.2 Storey shape extraction failed";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "LoD0.2 Storey shape extraction failed";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 
 	case ErrorID::errorNoGroundFLoorFound: {
-		const std::string coms = "No valid ground floor could be found, make sure ground floor name(s) start with '0' or '00'";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "No valid ground floor could be found, make sure ground floor name(s) start with '0' or '00'. Make sure to disable automatic footprint elevation detection and set the height manually if the input does not comply with the BIM BASIC IDS.";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorInconsistentGroundFLoorNumbers: {
-		const std::string coms = "Ground floor could not be found in all input files";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "Ground floor could not be found in all input files";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 	case ErrorID::errorInconsistentGroundFloorElevations: {
-		const std::string coms = "Ground floor elevations are inconsisten across input files";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::error) + coms; }
-		return coms; }
+		coms = "Ground floor elevations are inconsisten across input files";
+		importance = CommunicationStringImportanceID::error;
+		break;
+	}
 
 
 	case ErrorID::warningIfcUnableToParse: {
-		const std::string coms = "Unable to parse .ifc file";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms + ": "; }
-		return coms; }
+		coms = "Unable to parse .ifc file";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcNotValid: {
-		const std::string coms = "No valid ifc scheme found in file";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms + ": "; }
-		return coms; }
+		coms = "No valid ifc scheme found in file";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcNoSchema: {
-		const std::string coms = "No scheme found in file";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms + ": "; }
-		return coms; }
+		coms = "No scheme found in file";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcIncomp: {
-		const std::string coms = "Incompatible scheme found";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms + ": "; }
-		return coms; }
+		coms = "Incompatible scheme found";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcNoSlab: {
-		const std::string coms = "During model orientation object class IfcSlab can not be found, alternative class is searched for";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "During model orientation object class IfcSlab can not be found, alternative class is searched for";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIFCMissingType: {
-		const std::string coms = "During model orientation object class could not be found: ";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "During model orientation object class could not be found: ";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIFCNoRotationClass: {
-		const std::string coms = "During model orientation no suitable object class could be found, no rotation is applied";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "During model orientation no suitable object class could be found, no rotation is applied";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcMultipleProjections: {
-		const std::string coms = "Multiple map projections detected";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Multiple map projections detected";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcNoVolumeUnit: {
-		const std::string coms = "SI unit for volume cannot be found";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "SI unit for volume cannot be found";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcDubSites: {
-		const std::string coms = "More than one Site Element found, site export terminated";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "More than one Site Element found, site export terminated";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcNoSites: {
-		const std::string coms = "No Geographic or Site Element was found";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "No Geographic or Site Element was found";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcSiteReconstructionFailed: {
-		const std::string coms = "No site could be reconstructed";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "No site could be reconstructed";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcNoRoomObjects: {
-		const std::string coms = "No room objects present in model, generic semantic data is created";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "No room objects present in model, generic semantic data is created";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcMultipleUniqueObjects: {
-		const std::string coms = "Multiple assumed unique objects in file";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Multiple assumed unique objects in file";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcNoObjectName: {
-		const std::string coms = "Object name could not be found in file";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Object name could not be found in file";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcNoObjectNameLong: {
-		const std::string coms = "Long Object name could not be found in file";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }	
+		coms = "Long Object name could not be found in file";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcObjectDifferentName: {
-		const std::string coms = "Objects have different names in different files, name of first object is taken";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Objects have different names in different files, name of first object is taken";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcMissingGeoreference: {
-		const std::string coms = "Data required for georeferencing is missing";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Data required for georeferencing is missing";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcMissingIsExternal: {
-		const std::string coms = "No objects found that were external, possibly attribute IsExternal is not correctly populated";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "No objects found that were external, possibly attribute IsExternal is not correctly populated";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningIfcIncorrectGeoRefTranslation: {
-		const std::string coms = "Georeference projected coordinates lie out of bounds";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Georeference projected coordinates lie out of bounds";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 
 
 	case ErrorID::warningIssueencountered: {
-		const std::string coms = "Encountered an issue";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Encountered an issue";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningNoSolid: {
-		const std::string coms = "Not all shapes could be converted to solids, output might be incorrect or inaccurate";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Not all shapes could be converted to solids, output might be incorrect or inaccurate";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningUnableToMesh: {
-		const std::string coms = "Not all shapes could be completely meshed, some surfaces are ignored";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Not all shapes could be completely meshed, some surfaces are ignored";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningUnableToSimplefy: {
-		const std::string coms = "Not all shapes could be simplefied, unsimplefied shape is stored";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }	
+		coms = "Not all shapes could be simplefied, unsimplefied shape is stored";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningUnableToExtrude: {
-		const std::string coms = "Not all surfaces can be extruded into a prism, most likely caused by non straight edges in the input model";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }	
+		coms = "Not all surfaces can be extruded into a prism, most likely caused by non straight edges in the input model";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningNoRoofOutline: {
-		const std::string coms = "No roofoutline surface has been found";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }	
+		coms = "No roofoutline surface has been found";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningNoFootprint: {
-		const std::string coms = "No footprint surface has been found";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "No footprint surface has been found";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningNonLinearEdges: {
-		const std::string coms = "Face partially bound by non-linear edge/wire";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Face partially bound by non-linear edge/wire";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningSimplefication: {
-		const std::string coms = "Simple geometry is used, this can cause issues with windows and door detection";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Simple geometry is used, this can cause issues with windows and door detection";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningInputIncFootprintElev: {
-		const std::string coms = "Footprint elevation falls outside of the bounds of the model, lower bounds z value is used";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Footprint elevation falls outside of the bounds of the model, lower bounds z value is used";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	
 
 	case ErrorID::warningFailedObjectSimplefication: {
-		const std::string coms = "Simplefication of complex object has failed";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Simplefication of complex object has failed";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningFailedObjectConversion: {
-		const std::string coms = "Unable to convert object shape";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Unable to convert object shape";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::errorNoObjects: {
-		const std::string coms = "Unable to find selected div object class geometery";
-		if (withImportance) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::warning) + coms; }
-		return coms; }
+		coms = "Unable to find selected div object class geometery";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 
 	default:
 		return "Output string not found";
 	}
+
+	if (withImportance)
+	{
+		return CommunicationStringImportanceEnum::getString(importance) + coms + CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::end);
+	}
+	return coms;
 }
 
 

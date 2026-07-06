@@ -20,7 +20,28 @@
 #include <vld.h>
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
+
+void enableVirtualTerminal()
+{
+	HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+	if (hOut == INVALID_HANDLE_VALUE)
+		return;
+
+	DWORD mode = 0;
+	if (!GetConsoleMode(hOut, &mode))
+		return;
+
+	SetConsoleMode(hOut, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+}
+#else
+void enableVirtualTerminal() {}
+#endif
+
 int main(int argc, char** argv) {
+	enableVirtualTerminal();
+
 	std::cout << " " << std::endl;
 	auto startTime = std::chrono::high_resolution_clock::now();
 	std::string issueEncounterString = errorWarningStringEnum::getString(ErrorID::warningIssueencountered);

@@ -374,7 +374,7 @@ class GuiSettings:
         return False
 
 
-    def set_filePaths_from_json(self, json_data, old_settings):
+    def set_filePaths_from_json(self, json_data):
         if "Filepaths" in json_data:
             json_data_filepaths = json_data["Filepaths"]
 
@@ -400,8 +400,6 @@ class GuiSettings:
 
                 if len(input_path) != 0:
                     self.paths.input_path.set(input_path)
-                else:
-                    self.paths.input_path.set(old_settings.paths.input_path.get())
 
             if "Output" in json_data_filepaths:
                 output_path = json_data_filepaths["Output"]
@@ -412,17 +410,9 @@ class GuiSettings:
                 if len(output_path) != 0:
                     self.paths.output_path.set(output_path)
             return True
-
-        # path data can be fetched from the old settings
-        self.paths.input_path.set(old_settings.paths.input_path.get())
-        self.paths.output_path.set(old_settings.paths.output_path.get())
         return True
 
-    def set_voxel_from_json(self, json_data, old_settings):
-
-        self.voxel.voxel_size.set(old_settings.voxel.voxel_size.get())
-        self.voxel.voxel_unit.set(old_settings.voxel.voxel_unit.get())
-        self.voxel.voxel_filter.set(old_settings.voxel.voxel_filter.get())
+    def set_voxel_from_json(self, json_data):
 
         if "Voxel" in json_data:
             json_data_voxel = json_data["Voxel"]
@@ -447,21 +437,9 @@ class GuiSettings:
                 if not self.is_bool(filter_setting):
                     self.throw_error_window("Voxel filter")
                     return False
-
-                self.voxel.voxel_filter.set(json_data["filter"])
         return True
 
-    def set_IFC_from_json(self, json_data, old_settings):
-
-        ## set old settigns
-        self.div.use_default.set(old_settings.div.use_default.get())
-        self.div.custom_enabled.set(old_settings.div.custom_enabled.get())
-        self.div.ignore_proxy.set(old_settings.div.ignore_proxy.get())
-        self.div.div_objects.set(old_settings.div.div_objects.get())
-        self.div.simple_geo.set(old_settings.div.simple_geo.get())
-        self.footprint.find_footprint_elev.set(old_settings.footprint.find_footprint_elev.get())
-        self.other.ignoreIsExternal.set(old_settings.other.ignoreIsExternal.get())
-
+    def set_IFC_from_json(self, json_data):
         if "IFC" in json_data:
             json_data_ifc = json_data["IFC"]
             if (type(json_data_ifc) != dict):
@@ -536,16 +514,7 @@ class GuiSettings:
                     self.other.ignoreIsExternal.set(False)
         return True
 
-    def set_json_from_json(self, json_data, old_settings):
-
-        self.footprint.footprint_elevation.set(old_settings.footprint.footprint_elevation.get())
-        self.footprint.footprint_unit.set(old_settings.footprint.footprint_unit.get())
-        self.other.make_exterior.set(old_settings.other.make_exterior.get())
-        self.other.make_interior.set(old_settings.other.make_interior.get())
-        self.footprint.make_footprint.set(old_settings.footprint.make_footprint.get())
-        self.footprint.make_roofprint.set(old_settings.footprint.make_roofprint.get())
-        self.footprint.footprint_based.set(old_settings.footprint.footprint_based.get())
-
+    def set_json_from_json(self, json_data):
         if "JSON" in json_data:
             json_data_json = json_data["JSON"]
 
@@ -623,11 +592,7 @@ class GuiSettings:
                     self.footprint.footprint_based.set(False)
         return True
 
-    def set_otherSettings_from_json(self, json_data, old_settings):
-
-        self.other.make_report.set(old_settings.other.make_report.get())
-        self.other.make_step.set(old_settings.other.make_step.get())
-        self.other.make_obj.set(old_settings.other.make_obj.get())
+    def set_otherSettings_from_json(self, json_data):
 
         if "Generate report" in json_data:
             gen_report_val = json_data["Generate report"]
@@ -669,9 +634,7 @@ class GuiSettings:
                     self.other.make_obj.set(True)
         return True
 
-    def set_lod_from_json(self, json_data, old_settings):
-
-        self.lod.copy_from(old_settings.lod)
+    def set_lod_from_json(self, json_data):
 
         if "LoD output" in json_data:
             self.lod.clearLoD()
@@ -719,15 +682,14 @@ class GuiSettings:
             return
 
         old_settings = self.clone();
-        self.reset()
-        self.json = json_data
-
-        if not self.set_filePaths_from_json(json_data, old_settings) or \
-                not self.set_voxel_from_json(json_data, old_settings) or \
-                not self.set_IFC_from_json(json_data, old_settings) or \
-                not self.set_json_from_json(json_data, old_settings) or \
-                not self.set_otherSettings_from_json(json_data, old_settings) or\
-                not self.set_lod_from_json(json_data, old_settings) :
+        if not self.set_filePaths_from_json(json_data) or \
+                not self.set_voxel_from_json(json_data) or \
+                not self.set_IFC_from_json(json_data) or \
+                not self.set_json_from_json(json_data) or \
+                not self.set_otherSettings_from_json(json_data) or\
+                not self.set_lod_from_json(json_data) :
             self.reset()
             self = old_settings.clone()
+
+        self.json = json_data
         return

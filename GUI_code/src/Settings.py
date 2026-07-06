@@ -76,6 +76,10 @@ class LoDSettings(SettingsBase):
         for var in self.__dict__.values():
             var.set(int(0))
 
+    def copy_from(self, other: "LoDSettings"):
+        for name in self.settings:
+            getattr(self, name).set(getattr(other, name).get())
+
 class VoxelSettings(SettingsBase):
     settings = {
         "voxel_size": (tkinter.DoubleVar, 0.5),
@@ -414,7 +418,12 @@ class GuiSettings:
         self.paths.output_path.set(old_settings.paths.output_path.get())
         return True
 
-    def set_voxel_from_json(self, json_data):
+    def set_voxel_from_json(self, json_data, old_settings):
+
+        self.voxel.voxel_size.set(old_settings.voxel.voxel_size.get())
+        self.voxel.voxel_unit.set(old_settings.voxel.voxel_unit.get())
+        self.voxel.voxel_filter.set(old_settings.voxel.voxel_filter.get())
+
         if "Voxel" in json_data:
             json_data_voxel = json_data["Voxel"]
 
@@ -431,6 +440,7 @@ class GuiSettings:
 
                 self.voxel.voxel_size.set(voxel_size)
                 self.voxel.voxel_unit.set("m")
+
             if "Coarse" in json_data_voxel:
                 filter_setting = json_data["filter"]
 
@@ -441,7 +451,17 @@ class GuiSettings:
                 self.voxel.voxel_filter.set(json_data["filter"])
         return True
 
-    def set_IFC_from_json(self, json_data):
+    def set_IFC_from_json(self, json_data, old_settings):
+
+        ## set old settigns
+        self.div.use_default.set(old_settings.div.use_default.get())
+        self.div.custom_enabled.set(old_settings.div.custom_enabled.get())
+        self.div.ignore_proxy.set(old_settings.div.ignore_proxy.get())
+        self.div.div_objects.set(old_settings.div.div_objects.get())
+        self.div.simple_geo.set(old_settings.div.simple_geo.get())
+        self.footprint.find_footprint_elev.set(old_settings.footprint.find_footprint_elev.get())
+        self.other.ignoreIsExternal.set(old_settings.other.ignoreIsExternal.get())
+
         if "IFC" in json_data:
             json_data_ifc = json_data["IFC"]
             if (type(json_data_ifc) != dict):
@@ -516,7 +536,16 @@ class GuiSettings:
                     self.other.ignoreIsExternal.set(False)
         return True
 
-    def set_json_from_json(self, json_data):
+    def set_json_from_json(self, json_data, old_settings):
+
+        self.footprint.footprint_elevation.set(old_settings.footprint.footprint_elevation.get())
+        self.footprint.footprint_unit.set(old_settings.footprint.footprint_unit.get())
+        self.other.make_exterior.set(old_settings.other.make_exterior.get())
+        self.other.make_interior.set(old_settings.other.make_interior.get())
+        self.footprint.make_footprint.set(old_settings.footprint.make_footprint.get())
+        self.footprint.make_roofprint.set(old_settings.footprint.make_roofprint.get())
+        self.footprint.footprint_based.set(old_settings.footprint.footprint_based.get())
+
         if "JSON" in json_data:
             json_data_json = json_data["JSON"]
 
@@ -594,7 +623,12 @@ class GuiSettings:
                     self.footprint.footprint_based.set(False)
         return True
 
-    def set_otherSettings_from_json(self, json_data):
+    def set_otherSettings_from_json(self, json_data, old_settings):
+
+        self.other.make_report.set(old_settings.other.make_report.get())
+        self.other.make_step.set(old_settings.other.make_step.get())
+        self.other.make_obj.set(old_settings.other.make_obj.get())
+
         if "Generate report" in json_data:
             gen_report_val = json_data["Generate report"]
 
@@ -635,7 +669,10 @@ class GuiSettings:
                     self.other.make_obj.set(True)
         return True
 
-    def set_lod_from_json(self, json_data):
+    def set_lod_from_json(self, json_data, old_settings):
+
+        self.lod.copy_from(old_settings.lod)
+
         if "LoD output" in json_data:
             self.lod.clearLoD()
             json_data_lod = json_data["LoD output"]
@@ -686,11 +723,11 @@ class GuiSettings:
         self.json = json_data
 
         if not self.set_filePaths_from_json(json_data, old_settings) or \
-                not self.set_voxel_from_json(json_data) or \
-                not self.set_IFC_from_json(json_data) or \
-                not self.set_json_from_json(json_data) or \
-                not self.set_otherSettings_from_json(json_data) or\
-                not self.set_lod_from_json(json_data) :
+                not self.set_voxel_from_json(json_data, old_settings) or \
+                not self.set_IFC_from_json(json_data, old_settings) or \
+                not self.set_json_from_json(json_data, old_settings) or \
+                not self.set_otherSettings_from_json(json_data, old_settings) or\
+                not self.set_lod_from_json(json_data, old_settings) :
             self.reset()
             self = old_settings.clone()
         return

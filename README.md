@@ -522,7 +522,7 @@ The errors section shows the issues that the tool encountered during processing.
 
 ### Georeferencing
 
-The CityJSON output can be properly georeferenced if the input IFC file has a proper georeferencing. For IFC4 the method described [here](https://www.buildingsmart.org/wp-content/uploads/2020/02/User-Guide-for-Geo-referencing-in-IFC-v2.0.pdf) is adhered to. For IFC2x3 a custom method is apply that is used by the [ifcgref](https://github.com/tudelft3d/ifcgref) tool. If these methods are not followed the output JSON is either not georeferenced or incorrectly georeferenced.
+The CityJSON output can be properly georeferenced if the input IFC file has a proper georeferencing. For IFC4 the method described [here](https://www.buildingsmart.org/wp-content/uploads/2020/02/User-Guide-for-Geo-referencing-in-IFC-v2.0.pdf) is adhered to. For IFC2x3 the custom logic followed by the [IfcGref](https://github.com/tudelft3d/ifcgref) and the [IFC Georeferencer](https://geo.buildingsmart.nl/) tool are both implemented. If these methods are not followed the output JSON is either not georeferenced or incorrectly georeferenced.
 
 ### Voxel summary values
 

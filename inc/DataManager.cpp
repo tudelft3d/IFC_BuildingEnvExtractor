@@ -1244,14 +1244,6 @@ void DataManager::internalizeGeo()
 		throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects));
 	}
 
-	try
-	{
-		computeBoundingData(&lllPoint_, &urrPoint_);
-	}
-	catch (const std::string& exceptionString)
-	{
-		throw exceptionString;
-	}
 	std::cout << 
 		CommunicationStringEnum::getString(CommunicationStringID::indentSuccesFinished) <<
 		std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() << 

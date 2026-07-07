@@ -337,12 +337,12 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		break;
 	}
 	case ErrorID::errorInconsistentGroundFLoorNumbers: {
-		coms = "Ground floor could not be found in all input files";
+		coms = "Ground floor could not be found in all input files. Make sure to disable automatic footprint elevation detection and set the height manually if the input does not comply with the BIM BASIC IDS.";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 	case ErrorID::errorInconsistentGroundFloorElevations: {
-		coms = "Ground floor elevations are inconsisten across input files";
+		coms = "Ground floor elevations are inconsisten across input files. Make sure to disable automatic footprint elevation detection and set the height manually if the input does not comply with the BIM BASIC IDS.";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}

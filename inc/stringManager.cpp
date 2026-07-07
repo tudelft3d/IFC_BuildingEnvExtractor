@@ -233,63 +233,63 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 	}
 
 	case ErrorID::errorJsonInvalBool: {
-		coms = "JSON file does not contain a valid bool for entry";
+		coms = "JSON file does not contain a valid bool for entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 	case ErrorID::errorJsonInvalInt: {
-		coms = "JSON file does not contain a valid int for entry";
+		coms = "JSON file does not contain a valid int for entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 	case ErrorID::errorJsonInvalNegInt: {
-		coms = "JSON file contains an invalid negative int for entry";
+		coms = "JSON file contains an invalid negative int for entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 	case ErrorID::errorJsonInvalZeroInt: {
-		coms = "JSON file contains an invalid zero int for entry";
+		coms = "JSON file contains an invalid zero int for entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 	case ErrorID::errorJsonInvalNum: {
-		coms = "JSON file does not contain a valid numeric value for entry";
+		coms = "JSON file does not contain a valid numeric value for entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 	case ErrorID::errorJsonInvalString: {
-		coms = "JSON file does not contain a valid for entry";
+		coms = "JSON file does not contain a valid for entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 	case ErrorID::errorJsonInvalPath: {
-		coms = "JSON file contains a path to a file with incorrect type for entry";
+		coms = "JSON file contains a path to a file with incorrect type for entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 	case ErrorID::errorJsonNoRealPath: {
-		coms = "JSON file contains an invalid path for entry";
+		coms = "JSON file contains an invalid path for entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 	case ErrorID::errorJsonInvalArray: {
-		coms = "JSON file does not contain a valid array for entry";
+		coms = "JSON file does not contain a valid array for entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 	case ErrorID::errorJsonInvalEntry: {
-		coms = "JSON file does not contain a valid value for entry";
+		coms = "JSON file does not contain a valid value for entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 
 	case ErrorID::errorJsonMissingEntry: {
-		coms = "JSON file does not contain required entry";
+		coms = "JSON file does not contain required entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}
 	case ErrorID::errorJsonInvalidLogic: {
-		coms = "JSON file does not contain valid logic number (2 or 3) entry";
+		coms = "JSON file does not contain valid logic number (2 or 3) entry ";
 		importance = CommunicationStringImportanceID::error;
 		break;
 	}

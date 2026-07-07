@@ -4321,3 +4321,39 @@ bool helperFunctions::face2Plane(const TopoDS_Face& theFace, gp_Pln* thePlane)
 	*thePlane = plane;
 	return true;
 }
+
+void helperFunctions::updateCounter(
+	const std::string& prefixText,
+	int totalObjects,
+	int& processedObject,
+	std::mutex& listmutex,
+	bool endLine
+)
+{
+	bool running = true;
+	while (running)
+	{
+		std::unique_lock<std::mutex> listlock(listmutex);
+		int currentObjectCount = processedObject;
+		listlock.unlock();
+
+		std::cout
+			<< "\t" << prefixText << " - " << currentObjectCount << " of " << totalObjects << "      \r";
+
+		if (currentObjectCount == totalObjects)
+		{
+			break;
+		}
+
+		if (running)
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
+	}
+	if (endLine)
+	{
+		std::cout << "\n";
+	}
+	
+	return;
+}

@@ -272,14 +272,6 @@ private:
 		const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx,
 		const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIndex);
 
-	/// monitor the progress of the getouterraysurfaces code
-	void updateCounter(
-		const std::string& prefixText,
-		int totalObjects,
-		int& processedObject,
-		std::mutex& listmutex
-	);
-
 	/// trims the surfaces that are left from the outer ray detection for lod32
 	void splitOuterSurfaces(
 		std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& splittedFacesOut,

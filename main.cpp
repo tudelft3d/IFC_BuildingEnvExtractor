@@ -26,12 +26,10 @@
 void enableVirtualTerminal()
 {
 	HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-	if (hOut == INVALID_HANDLE_VALUE)
-		return;
+	if (hOut == INVALID_HANDLE_VALUE) { return; }
 
 	DWORD mode = 0;
-	if (!GetConsoleMode(hOut, &mode))
-		return;
+	if (!GetConsoleMode(hOut, &mode)) { return; }
 
 	SetConsoleMode(hOut, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 }

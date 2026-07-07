@@ -202,7 +202,7 @@ private:
 	// populate a map that has all the guid related propertysets 
 	void populateAttributeLookup();
 
-	void AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::unordered_set<std::string>& uniqueKeySet, bool isRoom = false);
+	void AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::unordered_set<std::string>& uniqueKeySet, int& counter, std::mutex& counterMutex, bool isRoom = false);
 
 public:
 	/*

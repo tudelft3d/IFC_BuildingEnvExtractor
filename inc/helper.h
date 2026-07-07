@@ -1,4 +1,4 @@
-#define USE_IFC4x3add2
+#define USE_IFC2x3
 #define iterationVersion "0.4.1"
 
 #ifdef USE_IFC2x3
@@ -448,6 +448,15 @@ struct helperFunctions{
 
 	/// creates a planar face based on the input face
 	static bool face2Plane(const TopoDS_Face& theFace, gp_Pln* thePlane);
+
+	/// monitor the progress of multithreaded code
+	static void updateCounter(
+		const std::string& prefixText,
+		int totalObjects,
+		int& processedObject,
+		std::mutex& listmutex,
+		bool endLine = true
+	);
 
 };
 #endif // HELPER_HELPER_H

@@ -413,7 +413,8 @@ gp_Vec DataManager::computeObjectTranslation(const std::string& objectType)
 void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::unordered_set<std::string>& uniqueKeySet, bool addToRoomIndx)
 {
 	auto startTime = std::chrono::high_resolution_clock::now();
-	std::cout << "\t" + typeName + " objects ";
+	std::string preFixString = typeName + " objects ";
+
 	SettingsCollection& settings = SettingsCollection::getInstance();
 
 	bool isSimple = true;
@@ -426,8 +427,11 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 	std::vector<IfcGeom::filter_t> filterFuncs;
 	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { typeName }));
 
+	int fileNum = 0;
 	for (const std::unique_ptr<fileKernelCollection>& collectionItem : datacollection_)
 	{
+		fileNum++;
+
 		IfcGeom::Iterator it(
 			settings.iteratorSettings(isSimple),
 			collectionItem->getFilePtr(),
@@ -440,31 +444,53 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 
 		std::vector<IfcGeom::BRepElement*> shapeList;
 		shapeList.reserve(collectionItem->getFilePtr()->instances_by_type(typeName)->size()); //TODO: optimize this
-		do { shapeList.emplace_back((it.get_native())); } while (it.next());
 
-		int coreUse = settings.threadcount();
+		int currentItemNum = 0;
+		do { 
+			shapeList.emplace_back((it.get_native()));
+
+			if (currentItemNum % 100 == 0)
+			{
+				std::cout << "\t" << preFixString << "- Parsing file: " << fileNum << "; Object - " << currentItemNum << "\r";
+			}
+			currentItemNum++;
+		} 
+		while (it.next());
+		std::cout << "\t" << preFixString << "- Parsing file: " << fileNum << "; Object - " << currentItemNum << "\r";
+
+
+		int coreUse = settings.threadcount() - 1;
 		if (shapeList.empty()) { continue; }
 		if (shapeList.size() < coreUse) { coreUse = shapeList.size(); }
 		int splitListSize = static_cast<int>(std::floor(shapeList.size() / coreUse));
 
 		std::vector<std::thread> threadList;
+		int processedItemCount = 0;
+		std::mutex counterMutex;
+
 		for (size_t i = 0; i < coreUse; i++)
 		{
 			auto startIdx = shapeList.begin() + i * splitListSize;
 			auto endIdx = (i == coreUse - 1) ? shapeList.end() : startIdx + splitListSize;
 			std::vector<IfcGeom::BRepElement*> sublist(startIdx, endIdx);
-			threadList.emplace_back([=, &uniqueKeySet]() { AddBRepElementToIndex(sublist, uniqueKeySet, addToRoomIndx); });
+			threadList.emplace_back([=, &uniqueKeySet, &processedItemCount, &counterMutex]() { AddBRepElementToIndex(sublist, uniqueKeySet, processedItemCount, counterMutex, addToRoomIndx); });
 		}
+
+		std::cout << "                                                                                          \r";
+		std::string currentIndication = preFixString + "- Indexing file: " + std::to_string(fileNum) + "; Object";
+
+		threadList.emplace_back([&] {helperFunctions::updateCounter(currentIndication, shapeList.size(), processedItemCount, counterMutex, false);  });
 
 		for (auto& thread : threadList) {
 			if (thread.joinable()) {
 				thread.join();
 			}
 		}
+		std::cout << "                                                                                          \r";
 	}
-	std::cout << "finished in: " <<
+	std::cout << "\t" << preFixString << "finished in: " <<
 		std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<
-		UnitStringEnum::getString(UnitStringID::seconds) << std::endl;
+		UnitStringEnum::getString(UnitStringID::seconds) << "                                                " << std::endl;
 }
 
 IfcGeom::Kernel* DataManager::getKernelObject(const std::string& productGuid)
@@ -1018,7 +1044,7 @@ void DataManager::populateAttributeLookup()
 	return;
 }
 
-void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::unordered_set<std::string>& uniqueKeySet, bool isRoom)
+void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::unordered_set<std::string>& uniqueKeySet, int& counter, std::mutex& counterMutex, bool isRoom)
 {
 	SettingsCollection& settings = SettingsCollection::getInstance();
 	bool ignoreIsExternal = settings.ignoreIsExternal();
@@ -1029,9 +1055,17 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 
 	for (IfcGeom::BRepElement* boundaryRepElem : shapeList)
 	{
-		if (!boundaryRepElem) { continue; }
+		counterMutex.lock();
+		counter++;
+		counterMutex.unlock();
+
+		if (!boundaryRepElem)
+		{ 
+			continue;
+		}
 		
 		TopoDS_Shape shape = boundaryRepElem->geometry().as_compound();
+
 		gp_Trsf ifcPlacement = boundaryRepElem->transformation().data();
 		shape = shape.Moved(ifcPlacement);
 		shape.Move(objectTranslation_);
@@ -1596,6 +1630,8 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 	// get the object from memory if available
 	const TopoDS_Shape& potentialShape = getObjectShapeFromMem(product, isSimple);
 	if (!potentialShape.IsNull()) { return potentialShape; }
+
+
 
 	IfcSchema::IfcRepresentation* ifc_representation = getProductRepPtr(product);
 

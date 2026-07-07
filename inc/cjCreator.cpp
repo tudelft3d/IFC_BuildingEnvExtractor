@@ -2091,7 +2091,7 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 		threadList.emplace_back([this, sublist, &processMutex, &listMutex, &shapeIdx, &shapeList, &counter]() {reduceSurface(sublist, processMutex, listMutex, shapeIdx, shapeList, counter); });
 	}
 
-	threadList.emplace_back([&] {updateCounter("Process objects", inputShapes.size(), counter, listMutex); });
+	threadList.emplace_back([&] {helperFunctions::updateCounter("Process objects", inputShapes.size(), counter, listMutex); });
 
 	for (auto& thread : threadList) {
 		if (thread.joinable()) {
@@ -4384,7 +4384,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 		threadList.emplace_back([&, i] {productToGeoObject(h, kernel, sublists[i], localRotationTrsf, true, listMutex, countMutex, counter, geoObjectList, collectionShape, i); });
 	}
 
-	threadList.emplace_back([&] {updateCounter("processing IFC objects", shapeProductList.size(), counter, countMutex); });
+	threadList.emplace_back([&] {helperFunctions::updateCounter("processing IFC objects", shapeProductList.size(), counter, countMutex); });
 
 	for (auto& thread : threadList) {
 		if (thread.joinable()) {
@@ -4467,7 +4467,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 		threadList.emplace_back([&, i] {productToGeoObject(h, kernel, sublists[i], localRotationTrsf, false, listMutex, countMutex, counter, geoObjectList, collectionShape, i); });
 	}
 
-	threadList.emplace_back([&] {updateCounter("processing IFC objects", shapeProductList.size(), counter, countMutex); });
+	threadList.emplace_back([&] {helperFunctions::updateCounter("processing IFC objects", shapeProductList.size(), counter, countMutex); });
 
 	for (auto& thread : threadList) {
 		if (thread.joinable()) {
@@ -5344,7 +5344,7 @@ void CJGeoCreator::getOuterRayObjects(std::vector<std::pair<T, IfcSchema::IfcPro
 		});
 	}
 
-	threadList.emplace_back([&] {updateCounter("Evaluating outer objects", totalValueObjectList.size(), processedObjects, listMutex);  });
+	threadList.emplace_back([&] {helperFunctions::updateCounter("Evaluating outer objects", totalValueObjectList.size(), processedObjects, listMutex);  });
 
 	for (auto& thread : threadList) {
 		if (thread.joinable()) {
@@ -5458,37 +5458,6 @@ void CJGeoCreator::getOuterRayObjects(
 	return;
 }
 
-
-void CJGeoCreator::updateCounter(
-	const std::string& prefixText,
-	int totalObjects,
-	int& processedObject,
-	std::mutex& listmutex
-)
-{
-	bool running = true;
-	while (running)
-	{
-		std::unique_lock<std::mutex> listlock(listmutex);
-		int currentObjectCount = processedObject;
-		listlock.unlock();
-
-		std::cout
-			<< "\t" << prefixText << " - " << currentObjectCount << " of " << totalObjects << "      \r";		
-
-		if (currentObjectCount == totalObjects)
-		{
-			break;
-		}
-
-		if (running)
-		{
-			std::this_thread::sleep_for(std::chrono::seconds(1));
-		}
-	}
-	std::cout << "\n";
-	return;
-}
 
 void CJGeoCreator::extractOuterVoxelSummary(CJT::CityObject* shellObject, DataManager* h, double footprintHeight, double geoRot)
 {
@@ -6155,7 +6124,7 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, s
 		int currentBin = 0;
 		std::mutex countMutex;
 		std::mutex listMutex;
-		counterThreadList.emplace_back([&] {updateCounter(communicationString, shapeList.size(), counter, countMutex); });
+		counterThreadList.emplace_back([&] {helperFunctions::updateCounter(communicationString, shapeList.size(), counter, countMutex); });
 
 		for (size_t i = 0; i < maxBinNr; i++)
 		{
@@ -6430,7 +6399,7 @@ void CJGeoCreator::splitOuterSurfaces(
 	}
 
 
-	threadList.emplace_back([&] {updateCounter("Splitting outer surfaces", outerSurfacePairList.size(), processedCount, processedCountMutex);  });
+	threadList.emplace_back([&] {helperFunctions::updateCounter("Splitting outer surfaces", outerSurfacePairList.size(), processedCount, processedCountMutex);  });
 
 
 	for (auto& thread : threadList) {

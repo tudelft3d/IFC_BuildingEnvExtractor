@@ -2903,7 +2903,7 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 		halfEdgeList.emplace_back(halfEdge2);
 	}
 
-	// grow exterior loop
+	// grow loop
 	HalfEdge* startEdge = &halfEdgeList[0];
 	std::vector<HalfEdge> loopEdgeList;
 	std::vector<HalfEdgeLoop> loopList;
@@ -2935,7 +2935,17 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 			}
 		}
 
-		if (bestEdge == nullptr) { break; }
+		if (bestEdge == nullptr) 
+		{
+			for (HalfEdge& currentHalfedge : halfEdgeList)
+			{
+				if (currentHalfedge.isUsed_) { continue; }
+				startEdge = &currentHalfedge;
+				break;
+			}
+			continue; 
+		}
+
 		if (bestEdge->isUsed_)
 		{
 			std::vector<HalfEdge> cleanedLoopEdgeList = cleanHalfEdgeList(loopEdgeList);

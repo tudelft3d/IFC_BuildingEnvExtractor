@@ -687,9 +687,9 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<T>& shape
 				}
 			}
 			if (isOutside) { continue; }
+
 			std::optional<gp_Pnt> optionalPoint = helperFunctions::getPointOnFace(face);
 			if (optionalPoint == std::nullopt) { continue; }
-			DebugUtils::printPoint(*optionalPoint);
 			if (!helperFunctions::pointInShape(currentShape, *optionalPoint)) { continue; }
 			spltFaceCollection.emplace_back(face);
 		}
@@ -1005,14 +1005,8 @@ void CJGeoCreator::makeFloorSection(std::vector<TopoDS_Face>& facesOut, DataMana
 		return;
 	}
 
-	std::vector<TopoDS_Face> cleanedFaceList = helperFunctions::removeDubFaces(splitFaceList, true);
+	facesOut = helperFunctions::planarFaces2Outline(splitFaceList);
 
-	if (!cleanedFaceList.size())
-	{
-		//TODO: add error
-		return;
-	}
-	facesOut = helperFunctions::planarFaces2Outline(cleanedFaceList);
 	return;
 }
 

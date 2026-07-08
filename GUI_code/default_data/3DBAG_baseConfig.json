@@ -13,7 +13,6 @@
         "Ignore proxy": 1,
         "Div objects": [],
         "Ignore voids": 0,
-        "Fetch footprint elevation": 1,
         "Ignore IsExternal": 1
     },
     "JSON": {

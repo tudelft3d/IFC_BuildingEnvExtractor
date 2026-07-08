@@ -347,7 +347,6 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		break;
 	}
 
-
 	case ErrorID::warningIfcUnableToParse: {
 		coms = "Unable to parse .ifc file";
 		importance = CommunicationStringImportanceID::warning;

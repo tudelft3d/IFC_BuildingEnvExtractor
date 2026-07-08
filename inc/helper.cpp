@@ -802,29 +802,34 @@ std::optional<gp_Pnt> helperFunctions::getPointOnFace(const TopoDS_Face& theFace
 	Handle(Poly_Triangulation) mesh = BRep_Tool::Triangulation(theFace, loc);
 
 	if (mesh.IsNull()) { return std::nullopt; }
+	if (mesh.get()->NbTriangles() == 1) { return std::nullopt; }
 
+	double bestArea = -1.0;
+	gp_Pnt bestPoint;
 	for (int i = 1; i <= mesh.get()->NbTriangles(); i++) 
 	{
-		const Poly_Triangle& theTriangle = mesh->Triangles().Value(i);
-		gp_Pnt point = getTriangleCenter(mesh, theTriangle, loc);
+		const Poly_Triangle& tri = mesh->Triangles().Value(i);
 
-		bool isEdge = false;
-		for (TopExp_Explorer expl(theFace, TopAbs_WIRE); expl.More(); expl.Next())
+		Standard_Integer n1, n2, n3;
+		tri.Get(n1, n2, n3);
+
+		gp_Pnt p1 = mesh->Node(n1).Transformed(loc.Transformation());
+		gp_Pnt p2 = mesh->Node(n2).Transformed(loc.Transformation());
+		gp_Pnt p3 = mesh->Node(n3).Transformed(loc.Transformation());
+
+		gp_Vec v1(p1, p2);
+		gp_Vec v2(p1, p3);
+
+		double area = v1.Crossed(v2).Magnitude();
+
+		if (area > bestArea)
 		{
-			TopoDS_Wire currentWire = TopoDS::Wire(expl.Current());
-
-			if (helperFunctions::pointOnWire(currentWire, point))
-			{
-				isEdge = true;
-				break;
-			}
+			bestArea = area;
+			bestPoint.SetXYZ((p1.XYZ() + p2.XYZ() + p3.XYZ()) / 3.0);
 		}
-
-		if (isEdge) { continue; }
-		return point;
 	}
 
-	return std::nullopt;
+	return bestPoint;
 }
 
 std::vector<gp_Pnt> helperFunctions::getPointListOnFace(const TopoDS_Face& theFace)

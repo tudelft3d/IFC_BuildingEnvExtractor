@@ -613,10 +613,9 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<Value>& p
 template <typename T>
 std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<T>& shapes, double cutlvl)
 {
-	double buffer = SettingsCollection::getInstance().horizontalSectionBuffer();
-
 	std::vector<TopoDS_Face> spltFaceCollection;
 	double precision = SettingsCollection::getInstance().linearTolerance();
+	double buffer = SettingsCollection::getInstance().horizontalSectionBuffer();
 
 	gp_Pnt lll;
 	gp_Pnt urr;
@@ -688,9 +687,10 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<T>& shape
 				}
 			}
 			if (isOutside) { continue; }
-
+			fullface.emplace_back(face);
 			std::optional<gp_Pnt> optionalPoint = helperFunctions::getPointOnFace(face);
 			if (optionalPoint == std::nullopt) { continue; }
+			DebugUtils::printPoint(*optionalPoint);
 			if (!helperFunctions::pointInShape(currentShape, *optionalPoint)) { continue; }
 			spltFaceCollection.emplace_back(face);
 		}

@@ -314,37 +314,6 @@ void DataManager::elementCountSummary()
 	return;
 }
 
-void DataManager::computeBoundingData(gp_Pnt* lllPoint, gp_Pnt* urrPoint)
-{
-	auto startTime = std::chrono::high_resolution_clock::now();
-	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
-
-	// get the slab pointlist to base the inital bbox on
-	std::vector<gp_Pnt> pointList = getObjectListPoints("IfcSlab", true);
-	if (!pointList.size()) { pointList = getObjectListPoints("IfcRoof", true); }
-	if (!pointList.size())
-	{
-		ErrorCollection::getInstance().addError(ErrorID::errorNoPoints);
-		std::cout << errorWarningStringEnum::getString(ErrorID::errorNoPoints) << std::endl; //TODO: make this more pretty
-		return;
-	}
-
-	// if custom roration is required use that for bbox creation
-	double rotation = settingsCollection.desiredRotation() - objectTranslation_.GetRotation().GetRotationAngle();
-	if (!settingsCollection.autoRotateGrid()) 
-	{
-		helperFunctions::bBoxDiagonal(pointList, lllPoint, urrPoint, 0, rotation, 0);
-		settingsCollection.setGridRotation(rotation);
-		return;
-	}
-	// compute the smallest orientated bbox
-	helperFunctions::bBoxDiagonal(pointList, lllPoint, urrPoint, 0); // compute initial values
-	helperFunctions::bBoxOrientated(pointList, lllPoint, urrPoint, &rotation, 0); // compute optimal values
-	//TODO: let rotation start on the georef rotation
-	settingsCollection.setGridRotation(rotation);
-	return;
-}
-
 gp_Vec DataManager::computeObjectTranslation()
 {
 	double precision = SettingsCollection::getInstance().linearTolerance();
@@ -1248,6 +1217,7 @@ void DataManager::internalizeGeo()
 		CommunicationStringEnum::getString(CommunicationStringID::indentSuccesFinished) <<
 		std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() << 
 		UnitStringEnum::getString(UnitStringID::seconds) << "\n" << std::endl;
+	return;
 }
 
 void DataManager::fetchGroundFloorElevation()

@@ -687,7 +687,6 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<T>& shape
 				}
 			}
 			if (isOutside) { continue; }
-			fullface.emplace_back(face);
 			std::optional<gp_Pnt> optionalPoint = helperFunctions::getPointOnFace(face);
 			if (optionalPoint == std::nullopt) { continue; }
 			DebugUtils::printPoint(*optionalPoint);

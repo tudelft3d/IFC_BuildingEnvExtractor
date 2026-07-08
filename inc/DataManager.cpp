@@ -1478,7 +1478,7 @@ nlohmann::json DataManager::getBuildingInformation()
 	{
 		IfcParse::IfcFile* fileObject = datacollection_[i]->getFilePtr();
 
-		T::list::ptr buildingList = fileObject->instances_by_type<T>();
+		auto buildingList = fileObject->instances_by_type<T>();
 
 		for (auto it = buildingList->begin(); it != buildingList->end(); ++it) {
 			T* building = *it;

@@ -2698,6 +2698,8 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 	if (planarFaces.empty()) { return {}; }
 	if (planarFaces.size() == 1) { return planarFaces; }
 
+	DebugUtils::printFaces(planarFaces);
+
 	gp_Trsf transform;
 	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTol = SettingsCollection::getInstance().angularTolerance();
@@ -2949,7 +2951,7 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 		if (bestEdge->isUsed_)
 		{
 			std::vector<HalfEdge> cleanedLoopEdgeList = cleanHalfEdgeList(loopEdgeList);
-			HalfEdgeLoop currentLoop = HalfEdgeLoop(cleanedLoopEdgeList);
+			HalfEdgeLoop currentLoop = HalfEdgeLoop(loopEdgeList);
 			loopList.emplace_back(currentLoop);
 			loopEdgeList.clear();
 			for (HalfEdge& currentHalfedge : halfEdgeList)
@@ -3022,7 +3024,7 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 				const TopoDS_Face& sourceFace = triangulatedSourceList[resultPair.second];
 
 				double otherZ = getAZ(sourceFace);
-				if (abs(otherZ - currentZ) > 1E-6) { continue; }
+				if (abs(otherZ - currentZ) > 1e-6) { continue; }
 
 				std::vector<gp_Pnt> trianglePoints = getPoints(sourceFace);
 

@@ -452,8 +452,6 @@ def pre_browse(text_field, text_var):
     if len(new_entry) == 0:
         return;
 
-    print(new_entry)
-
     text_var.set(new_entry)
     text_field.delete(0, tkinter.END)
     text_field.insert(0, new_entry)

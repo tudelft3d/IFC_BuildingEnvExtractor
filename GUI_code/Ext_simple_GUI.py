@@ -65,6 +65,7 @@ def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}
             main_window.title(main_window.title().split("|")[0] + "|    " + os.path.basename(config_path))
         return
 
+    code_path = ""
     scheme_found = False
     exe_folder_path = preferences.exe_path
     for path in input_path_list:
@@ -73,11 +74,11 @@ def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}
             for exe_key, exe_name in preferences.exe_names.items():
                 if "FILE_SCHEMA(('{}'))".format(exe_key.upper()) in line or "FILE_SCHEMA (('{}'))".format(exe_key.upper()) in line:
                     code_path = findValidPath(exe_folder_path + "\\" + exe_name, exe_key)
-                    if code_path == None:
+                    if code_path == "":
                         code_path = findValidPath(".\\" + exe_name, exe_key)
-                    if code_path != None:
-                        runExe(code_path, config_path)
+                    if code_path !=  "":
                         scheme_found = True
+                        break
                     else:
                         tkinter.messagebox.showerror("Exe Error",
                                                      "Error: Unable to find suitable executable (" + exe_key + ")")
@@ -91,6 +92,10 @@ def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}
                                              "Error: Was unable to find IFC schema in file")
                 return
             counter += 1
+
+
+    if scheme_found:
+        runExe(code_path, config_path)
     os.remove(config_path)
     return
 

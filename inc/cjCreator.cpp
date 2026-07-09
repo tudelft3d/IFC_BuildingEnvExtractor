@@ -2047,15 +2047,13 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<RColl
 	projectedFaceList = helperFunctions::sortShapes(projectedFaceList, areaList);
 	std::reverse(projectedFaceList.begin(), projectedFaceList.end());
 
-	std::vector<TopoDS_Face> cleanProjectedFaceList;
-	for (const TopoDS_Face currentFace : projectedFaceList)
-	{
-		if (helperFunctions::surfaceIsIncapsulated(currentFace, cleanProjectedFaceList)) { continue; }
-		cleanProjectedFaceList.emplace_back(currentFace);
-	}
-	std::vector<TopoDS_Face> mergedSurfaces = helperFunctions::planarFaces2Outline(cleanProjectedFaceList);
+	std::vector<TopoDS_Edge> edgeCluster = helperFunctions::planarFaces2EdgeCluster(projectedFaceList);
+	std::vector<HalfEdgeLoop> loopList = helperFunctions::planarEdgeCluster2Loops(edgeCluster);
+	std::vector<HalfEdgeLoop> outerLoopList = helperFunctions::loops2Outer(loopList, projectedFaceList);
+	std::vector<TopoDS_Face> clippedFaceList = helperFunctions::outerLoops2Faces(outerLoopList);
+
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
-	return mergedSurfaces;
+	return clippedFaceList;
 }
 
 

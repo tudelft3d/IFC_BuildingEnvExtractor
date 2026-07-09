@@ -50,7 +50,7 @@ def populateSettings():
     if not os.path.isdir("./config/"):
         os.mkdir("./config")
 
-    default_exe_loc = "."
+    default_exe_loc = "./"
 
     if os.path.exists("./binary"):
         default_exe_loc = "./binary/"
@@ -92,6 +92,8 @@ def loadMem(preferences, is_flexible = True):
         if "defaultConfigPath" in settings_json:
             dConfigPath = settings_json["defaultConfigPath"]
             preferences.preSet_path = os.path.abspath(dConfigPath)
+        else:
+            raise AttributeError("Default Config path cannot be found")
         if "extractorLoc" in settings_json:
             appPath = settings_json["extractorLoc"]
             if not os.path.isdir(appPath):
@@ -117,6 +119,8 @@ def loadMem(preferences, is_flexible = True):
                                                  + "\nplease set location in preferences")
 
             preferences.exe_path = os.path.abspath(copy.copy(appPath))
+        else:
+            raise AttributeError("ExtractorLoc path cannot be found")
         if "configOpenPath" in settings_json:
             preferences.config_open_browse_path = settings_json["configOpenPath"]
         if "configSavePath" in settings_json:

@@ -173,7 +173,14 @@ main_window.protocol("WM_DELETE_WINDOW", on_closing)
 settings = Settings.GuiSettings()
 preferences = Settings.Preferences()
 
-IExtension.loadMem(preferences)
+try:
+    IExtension.loadMem(preferences)
+except:
+    tkinter.messagebox.showerror("GUI Error",
+                                 "Error: Unable to load GUI config!\n"
+                                 "GUI memory will be reset")
+    IExtension.populateSettings()
+    IExtension.loadMem(preferences)
 
 # the entry functions for the main ifc file
 text_file_browse = tkinter.Label(main_window, text="Input IFC path(s):")

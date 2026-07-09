@@ -305,6 +305,7 @@ RCollection::RCollection(const std::vector<TopoDS_Face>& theFaceColletion)
 
 	std::vector<TopoDS_Face> flatFaceList = helperFunctions::planarFaces2Outline(projectedFaces);
 	if (flatFaceList.size() < 1) { return; }
+
 	theFlatFace_ = flatFaceList[0];
 	return;
 }

@@ -834,6 +834,10 @@ std::optional<gp_Pnt> helperFunctions::getPointOnFace(const TopoDS_Face& theFace
 
 std::vector<gp_Pnt> helperFunctions::getPointListOnFace(const TopoDS_Face& theFace)
 {
+	if (theFace.IsNull())
+	{
+		return {};
+	}
 	triangulateShape(theFace);
 	try
 	{
@@ -910,6 +914,7 @@ bool helperFunctions::pointOnShape(const TopoDS_Shape& shape, const gp_Pnt& theP
 
 bool helperFunctions::pointOnFace(const TopoDS_Face& theFace, const gp_Pnt& thePoint, double precision)
 {
+	if (theFace.IsNull()) { return false; }
 	if (precision == 0.0) { precision = SettingsCollection::getInstance().linearTolerance(); }
 	
 	TopLoc_Location loc;

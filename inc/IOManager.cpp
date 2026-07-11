@@ -640,18 +640,9 @@ void IOManager::setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::Cit
 	cityOuterShellObject.setType(childType);
 	cityInnerShellObject.setType(childType);
 
-	cityBuildingObject.addChild(&cityOuterShellObject);
-
-	if (SettingsCollection::getInstance().makeInterior())
-	{
-		cityBuildingObject.addChild(&cityInnerShellObject);
-	}
-
-	if (SettingsCollection::getInstance().makeComplex())
-	{
-		cityBuildingObject.addChild(&cityComplexObject);
-	}
-
+	if (SettingsCollection::getInstance().makeExterior()) { cityBuildingObject.addChild(&cityOuterShellObject); }
+	if (SettingsCollection::getInstance().makeInterior()) { cityBuildingObject.addChild(&cityInnerShellObject); }
+	if (SettingsCollection::getInstance().makeComplex()) { cityBuildingObject.addChild(&cityComplexObject); }
 	return;
 }
 

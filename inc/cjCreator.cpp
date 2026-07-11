@@ -2391,20 +2391,30 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeRoomObjects(Data
 				cjRoomObject->addAttribute(CJObjectEnum::getString(CJObjectID::ifcName), spaceObject->Name().get());
 			}
 
-			for (const std::shared_ptr<CJT::CityObject>& otherSpace : cityRoomObjects)
-			{
-				if (roomName != otherSpace->getName()) { continue; }
+			bool isFound = false;
+			std::string addition = "";
+			int additionInt = 0;
 
-				int addition = 0;
-				std::string adjustedRoomName = roomName;
-				while (true)
+			while (true)
+			{
+				for (const std::shared_ptr<CJT::CityObject>& otherSpace : cityRoomObjects)
 				{
-					adjustedRoomName = roomName + " (" + std::to_string(addition) + ")";
-					if (adjustedRoomName != otherSpace->getName()) { break; }
-					addition++;
+					if (roomName + addition != otherSpace->getName()) { continue; }
+					isFound = true;
+					break;
 				}
-				roomName = adjustedRoomName;
+
+				if (!isFound)
+				{
+					break;
+				}
+
+				addition = " (" + std::to_string(additionInt) + ")";
+				additionInt++;
+				isFound = false;
 			}
+	
+			roomName += addition;
 			cjRoomObject->setName(roomName);
 
 			if (spaceObject->LongName().has_value())

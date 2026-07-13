@@ -2742,6 +2742,7 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 	std::vector<TopoDS_Edge> edgeCluster = planarFaces2EdgeCluster(flattenedFaceList);
 	std::vector<HalfEdgeLoop> loopList = planarEdgeCluster2Loops(edgeCluster);
 	std::vector<HalfEdgeLoop> outerLoopList = loops2Outer(loopList, flattenedFaceList);
+
 	//TODO: remove not required vertex
 	std::vector<TopoDS_Face> clippedFaceList = outerLoops2Faces(outerLoopList);
 
@@ -2844,11 +2845,24 @@ std::vector<TopoDS_Edge> helperFunctions::planarFaces2EdgeCluster(const std::vec
 		edgeIndex.query(bgi::intersects(
 			currentPair.first), std::back_inserter(qResult));
 
+		if (qResult.empty()) { continue; }
+
+		gp_Pnt firstPoint = helperFunctions::getFirstPointShape(currentEdge);
+		gp_Pnt lastPoint = helperFunctions::getLastPointShape(currentEdge);
+
+		gp_Vec currentDir = gp_Vec(firstPoint, lastPoint);
+
 		for (const std::pair<BoostBox3D, TopoDS_Edge>& otherPair : qResult)
 		{
 			const TopoDS_Edge& otherEdge = otherPair.second;
 
 			if (currentEdge.IsSame(otherEdge)) { continue; }
+
+			gp_Pnt otherFirstPoint = helperFunctions::getFirstPointShape(otherEdge);
+			gp_Pnt otherLastPoint = helperFunctions::getLastPointShape(otherEdge);
+			gp_Vec otherDir = gp_Vec(otherFirstPoint, otherLastPoint);
+			if (currentDir.IsParallel(otherDir, 1e-6)) { continue; }
+
 			toolList.Append(otherEdge);
 		}
 

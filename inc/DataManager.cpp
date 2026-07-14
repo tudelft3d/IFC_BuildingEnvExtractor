@@ -457,6 +457,7 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 		}
 		std::cout << "                                                                                          \r";
 	}
+
 	std::cout << "\t" << preFixString << "finished in: " <<
 		std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<
 		UnitStringEnum::getString(UnitStringID::seconds) << "                                                " << std::endl;

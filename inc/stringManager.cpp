@@ -345,6 +345,11 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		coms = "Ground floor elevations are inconsisten across input files. Make sure to disable automatic footprint elevation detection and set the height manually if the input does not comply with the BIM BASIC IDS.";
 		importance = CommunicationStringImportanceID::error;
 		break;
+	}	
+	case ErrorID::errorVoxelCountOverflow: {
+		coms = "Max allowed voxel count of 2.147.483.647 is surpassed. This can be caused by a too small voxel size, a too large input model or broken IfcObject translation data.";
+		importance = CommunicationStringImportanceID::error;
+		break;
 	}
 
 	case ErrorID::warningIfcUnableToParse: {

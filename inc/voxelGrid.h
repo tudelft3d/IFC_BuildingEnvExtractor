@@ -35,6 +35,9 @@ private:
 	/// set the values required for voxelisation
 	void init(DataManager* h);
 
+	/// check if the amount of voxels does not overflow the int max
+	bool fitsMemoryBudget() const;
+
 	/// create the voxelgrid and find intersections of voxels
 	void populateVoxelGrid(DataManager* h);
 	/// counts the progress of the voxel population process

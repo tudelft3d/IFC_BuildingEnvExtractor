@@ -1057,8 +1057,20 @@ bool IOManager::run()
 	setMetaData(collection);
 
 	// make the geometrycreator and voxelgrid
+	CJGeoCreator geoCreator;
+
 	auto voxelTime = std::chrono::high_resolution_clock::now();
-	CJGeoCreator geoCreator(internalDataManager_.get(), settingsCollection.voxelSize());
+	try
+	{
+		geoCreator.init(internalDataManager_.get(), settingsCollection.voxelSize());
+	}
+	catch (const ErrorID& exceptionId)
+	{
+		std::cout << errorWarningStringEnum::getString(exceptionId) << std::endl;
+		ErrorCollection::getInstance().addError(exceptionId);
+		return false;
+	}
+
 	timeVoxel_ = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - voxelTime).count();
 
 	try

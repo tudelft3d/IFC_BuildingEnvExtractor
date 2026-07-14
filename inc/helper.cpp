@@ -2849,7 +2849,6 @@ std::vector<TopoDS_Edge> helperFunctions::planarFaces2EdgeCluster(const std::vec
 
 		gp_Pnt firstPoint = helperFunctions::getFirstPointShape(currentEdge);
 		gp_Pnt lastPoint = helperFunctions::getLastPointShape(currentEdge);
-
 		gp_Vec currentDir = gp_Vec(firstPoint, lastPoint);
 
 		for (const std::pair<BoostBox3D, TopoDS_Edge>& otherPair : qResult)

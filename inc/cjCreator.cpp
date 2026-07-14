@@ -6647,5 +6647,27 @@ std::vector<IfcSchema::IfcBuildingStorey*> CJGeoCreator::fetchStoreyObjects(Data
 CJGeoCreator::CJGeoCreator(DataManager* h, double vSize)
 {
 	// compute generic voxelfield data
-	voxelGrid_ = std::make_unique<VoxelGrid>(h);
+	try
+	{
+		init(h,vSize);
+	}
+	catch (const ErrorID& exceptionId)
+	{
+		throw exceptionId;
+	}
+	return;
+}
+
+void CJGeoCreator::init(DataManager* h, double vSize)
+{
+	// compute generic voxelfield data
+	try
+	{
+		voxelGrid_ = std::make_unique<VoxelGrid>(h);
+	}
+	catch (const ErrorID& exceptionId)
+	{
+		throw exceptionId;
+	}
+	return;
 }

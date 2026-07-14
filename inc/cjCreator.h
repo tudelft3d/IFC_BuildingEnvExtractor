@@ -385,7 +385,10 @@ private:
 	);
 
 public:
+	explicit CJGeoCreator() {};
 	explicit CJGeoCreator(DataManager* h, double vSize);
+
+	void init(DataManager* h, double vSize);
 
 	/// computes and internalizes the data that is required to do the basic city scale output
 	void initializeBasic(DataManager* h);

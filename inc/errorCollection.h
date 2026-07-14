@@ -44,6 +44,8 @@ enum class ErrorID {
 	errorInconsistentGroundFLoorNumbers,
 	errorInconsistentGroundFloorElevations,
 
+	errorVoxelCountOverflow,
+
 	warningIfcUnableToParse,
 	warningIfcNotValid,
 	warningIfcNoSchema,

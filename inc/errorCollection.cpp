@@ -82,6 +82,8 @@ ErrorCollection::ErrorCollection() {
 		{ErrorID::errorInconsistentGroundFLoorNumbers, ErrorObject("P2002", errorWarningStringEnum::getString(ErrorID::errorInconsistentGroundFLoorNumbers, false))},
 		{ErrorID::errorInconsistentGroundFloorElevations, ErrorObject("P2003", errorWarningStringEnum::getString(ErrorID::errorInconsistentGroundFloorElevations, false))},
 
+		{ErrorID::errorVoxelCountOverflow, ErrorObject("V2001", errorWarningStringEnum::getString(ErrorID::errorVoxelCountOverflow, false))},
+
 		{ErrorID::warningIfcUnableToParse, ErrorObject("I0001", errorWarningStringEnum::getString(ErrorID::warningIfcUnableToParse, false))},
 		{ErrorID::warningIfcNotValid, ErrorObject("I0002", errorWarningStringEnum::getString(ErrorID::warningIfcNotValid, false))},
 		{ErrorID::warningIfcNoSchema, ErrorObject("I0003", errorWarningStringEnum::getString(ErrorID::warningIfcNoSchema, false))},

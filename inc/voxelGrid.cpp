@@ -36,14 +36,34 @@ void VoxelGrid::init(DataManager* h)
 	yRelRange_ = static_cast<int>(ceil(yRange / voxelSize) + 1);
 	zRelRange_ = static_cast<int>((int)ceil(zRange / voxelSize) + 1);
 
-	totalVoxels_ = xRelRange_ * yRelRange_ * zRelRange_;
+	if (!fitsMemoryBudget())
+	{
+		throw ErrorID::errorVoxelCountOverflow;
+	}
+
 	planeRotation_ = settingsCollection.gridRotation();
+
+	totalVoxels_ = xRelRange_ * yRelRange_ * zRelRange_;
+	if (totalVoxels_ > VoxelLookup_.max_size())
+	{
+		//TODO: add error
+		return;
+	}
 
 	VoxelLookup_.resize(totalVoxels_);
 
 	return;
 }
 
+bool VoxelGrid::fitsMemoryBudget() const
+{
+	std::uint64_t voxelCount =
+		static_cast<std::uint64_t>(xRelRange_) *
+		yRelRange_ *
+		zRelRange_;
+
+	return voxelCount <= static_cast<std::uint64_t>(std::numeric_limits<int>::max());
+}
 
 void VoxelGrid::populateVoxelGrid(DataManager* h)
 {
@@ -53,6 +73,11 @@ void VoxelGrid::populateVoxelGrid(DataManager* h)
 	// compute column scores
 	std::vector<int> columScoreList = computeColumnScore(h);
 	int columSumScore = std::accumulate(columScoreList.begin(), columScoreList.end(), 0);
+
+	if (columSumScore == 0) {
+		//TODO: add error
+		return;
+	}
 
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount() - 1;
@@ -188,7 +213,7 @@ std::vector<int> VoxelGrid::computeColumnScore(DataManager* h)
 		BoostPoint3D lll = BoostPoint3D(
 			coneCenter.get<0>() - voxelSize / 2,
 			coneCenter.get<1>() - voxelSize / 2,
-			-100
+			h->getLllPoint().Z() - voxelSize
 		);
 
 		BoostPoint3D urr = BoostPoint3D(
@@ -674,8 +699,16 @@ VoxelGrid::VoxelGrid(DataManager* h)
 	} // no voxels needed for lod0.0 and 1.0 only
 	
 	// init the basic data
-	init(h);
-	populateVoxelGrid(h);
+	try
+	{
+		init(h);
+		populateVoxelGrid(h);
+	}
+	catch (const ErrorID& exceptionId)
+	{
+		throw exceptionId;
+	}
+
 
 	if (!settingsCollection.requireFullVoxels()) { 
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoNocompleteVoxelizationReq) << std::endl;

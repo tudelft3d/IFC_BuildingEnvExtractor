@@ -405,7 +405,7 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 		if (helperFunctions::computeArea(currentFace) <= precision) { continue; }
 
 		std::vector<TopoDS_Face> currentCleanFaceList = helperFunctions::TessellateFace(currentFace);
-		faceList.insert(faceList.end(), currentCleanFaceList.begin(), currentCleanFaceList.end());	
+		faceList.insert(faceList.end(), currentCleanFaceList.begin(), currentCleanFaceList.end());
 	}
 
 	std::vector<TopoDS_Face> mergedfaceList = helperFunctions::mergeFaces(faceList);

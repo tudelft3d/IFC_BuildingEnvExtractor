@@ -3142,25 +3142,29 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 		areaList.emplace_back(computeArea(currentFace));
 	}
 
+	// sort facelist in such a way that the outer faces that are the smallest are evaluated first to prevent innerwires being mismatched
+	faceList = helperFunctions::sortShapes(faceList, areaList);
+	std::reverse(faceList.begin(), faceList.end());
+
 	std::vector<TopoDS_Face> clippedFaceList;
+	std::vector<int> innerIsUsed(innerWires.size());
 	for (const TopoDS_Face& currentFace : faceList)
 	{
 		TopoDS_Face clippedFace = currentFace;
 
-		for (const TopoDS_Wire& currentWire : innerWires)
+		for (int i = 0; i < innerWires.size(); i++)
 		{
+			if (innerIsUsed[i] != 0) { continue; }
+			const TopoDS_Wire& currentWire = innerWires[i];
 			gp_Pnt wirePoint = getFirstPointShape(currentWire);
 
-			if (!pointOnFace(currentFace, wirePoint))
-			{
-				continue;
-			}
+			if (!pointOnFace(currentFace, wirePoint)) { continue; }
 			BRepBuilderAPI_MakeFace merger = BRepBuilderAPI_MakeFace(clippedFace, currentWire);
 			TopoDS_Face localClipperFace = merger.Face();
+			innerIsUsed[i] = 1;
 
 			BRepCheck_Analyzer check(currentFace);
-			if (!check.IsValid()) {
-			}
+			if (!check.IsValid()) { continue; }
 			if (currentFace.IsNull()) { continue; }
 			clippedFace = merger.Face();
 		}

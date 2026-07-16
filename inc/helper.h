@@ -1,4 +1,4 @@
-#define USE_IFC4x3add2
+#define USE_IFC2x3
 #define iterationVersion "0.4.2"
 
 #ifdef USE_IFC2x3
@@ -99,6 +99,12 @@ struct HalfEdge
 
 	HalfEdge(const gp_Pnt& p1, const gp_Pnt& p2) {
 		p1_ = p1; p2_ = p2;
+	}
+
+	bool operator== (const HalfEdge& other) {
+		if (!other.p1_.IsEqual(p1_, 1e-6)) { return false; }
+		if (!other.p2_.IsEqual(p2_, 1e-6)) { return false; }
+		return true;
 	}
 
 	gp_Vec getDir() const { return gp_Vec(p1_, p2_).Normalized(); }

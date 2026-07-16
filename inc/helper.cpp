@@ -2966,9 +2966,12 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 
 		if (bestEdge->isUsed_)
 		{
-			std::vector<HalfEdge> cleanedLoopEdgeList = cleanHalfEdgeList(loopEdgeList);
-			HalfEdgeLoop currentLoop = HalfEdgeLoop(cleanedLoopEdgeList);
-			loopList.emplace_back(currentLoop);
+			if (!loopEdgeList.empty() && *bestEdge == loopEdgeList[0])
+			{
+				std::vector<HalfEdge> cleanedLoopEdgeList = cleanHalfEdgeList(loopEdgeList);
+				HalfEdgeLoop currentLoop = HalfEdgeLoop(cleanedLoopEdgeList);
+				loopList.emplace_back(currentLoop);
+			}
 			loopEdgeList.clear();
 			for (HalfEdge& currentHalfedge : halfEdgeList)
 			{
@@ -2994,7 +2997,7 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 	std::vector<HalfEdgeLoop> loopLists;
 	SettingsCollection& settingCol = SettingsCollection::getInstance();
 	double precision = settingCol.linearTolerance();
-	double pointOffset = 1e-6 * 100; //I do not like this
+	double pointOffset = 1e-6 * 100; 
 
 	std::vector<TopoDS_Face> triangulatedSourceList = TriangulateFace(planarFaces);
  	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> triangulatedShapeIndx;
@@ -3140,6 +3143,7 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 		if (currentFace.IsNull()) { continue; }
 		faceList.emplace_back(currentFace);
 		areaList.emplace_back(computeArea(currentFace));
+		//DebugUtils::printFaces(currentFace);
 	}
 
 	// sort facelist in such a way that the outer faces that are the smallest are evaluated first to prevent innerwires being mismatched

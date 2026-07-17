@@ -460,7 +460,6 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 		}
 		if (toBeGroupdSurfaces.empty()) { continue; }
 		mergedRSurfaces.emplace_back(RCollection(toBeGroupdSurfaces));
-
 	}
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return mergedRSurfaces;

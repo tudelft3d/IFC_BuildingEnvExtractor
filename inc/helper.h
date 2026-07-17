@@ -303,8 +303,6 @@ struct helperFunctions{
 	static TopoDS_Wire mergeWireOrientated(const TopoDS_Wire& baseWire, const TopoDS_Wire& mergingWire);
 	/// merge faces that rest against eachother
 	static std::vector<TopoDS_Face> mergeFaces(const std::vector<TopoDS_Face>& theFaceList);
-	/// merge coplanar surfaces
-	static std::vector<TopoDS_Face> mergeCoFaces(const std::vector<TopoDS_Face>& theFaceList);
 	/// attempts to close an open wire
 	static TopoDS_Wire closeWireOrientated(const TopoDS_Wire& baseWire);
 

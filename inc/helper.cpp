@@ -1686,100 +1686,6 @@ std::vector<TopoDS_Face> helperFunctions::mergeFaces(const std::vector<TopoDS_Fa
 	return cleanedFaceCollection;
 }
 
-std::vector<TopoDS_Face> helperFunctions::mergeCoFaces(const std::vector<TopoDS_Face>& theFaceList)
-{
-	double precision = SettingsCollection::getInstance().linearTolerance();
-
-	if (!theFaceList.size()) { return theFaceList; }
-
-	TopTools_ListOfShape toolList;
-	for (const TopoDS_Face& currentFace : theFaceList)
-	{
-		toolList.Append(currentFace);
-	}
-
-	BRepAlgoAPI_Fuse fuser;
-	fuser.SetArguments(toolList);
-	fuser.SetTools(toolList);
-	fuser.SetFuzzyValue(precision);
-	fuser.Build();
-
-	TopoDS_Shape mergedShape = fuser.Shape();
-
-	Bnd_Box boundingBox;
-	BRepBndLib::Add(mergedShape, boundingBox);
-	Standard_Real xmin, ymin, zmin, xmax, ymax, zmax;
-
-	Handle(Geom_Surface) geomSurface = BRep_Tool::Surface(theFaceList[0]);
-	if (geomSurface.IsNull()) { return theFaceList; }
-	Handle(Geom_Plane) currentGeoPlane = Handle(Geom_Plane)::DownCast(geomSurface);
-	if (currentGeoPlane.IsNull()) { return theFaceList; }
-
-	TopoDS_Face largerFace = BRepBuilderAPI_MakeFace(currentGeoPlane, -1000, 1000, -1000, 1000, Precision::Confusion());
-	gp_Pnt basePoint = helperFunctions::getFirstPointShape(largerFace);
-
-	BRepAlgoAPI_Splitter splitter;
-	splitter.SetFuzzyValue(precision);
-	TopTools_ListOfShape splitterToolList;
-	TopTools_ListOfShape argumentList;
-
-	argumentList.Append(largerFace);
-	splitter.SetArguments(argumentList);
-
-	splitterToolList.Append(fuser.Shape());
-	splitter.SetTools(splitterToolList);
-	splitter.Build();
-
-	splitterToolList.Clear();
-	for (TopExp_Explorer faceExpl(splitter.Shape(), TopAbs_FACE); faceExpl.More(); faceExpl.Next())
-	{
-		TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
-
-		std::optional<gp_Pnt> optionalPoint = helperFunctions::getPointOnFace(currentFace);
-
-		if (optionalPoint == std::nullopt) { continue; }
-		gp_Pnt currentPoint = *optionalPoint;
-
-		bool isFound = false;
-		for (const TopoDS_Face originalFace : theFaceList)
-		{
-			if (pointOnShape(originalFace, currentPoint))
-			{
-				isFound = true;
-				break;
-			}
-		}
-		if (isFound) { continue; }
-
-		splitterToolList.Append(currentFace);
-	}
-
-	std::vector<TopoDS_Face> mergedFaces;
-	splitter.SetTools(splitterToolList);
-	splitter.Build();
-	for (TopExp_Explorer faceExpl(splitter.Shape(), TopAbs_FACE); faceExpl.More(); faceExpl.Next())
-	{
-		TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
-
-		std::optional<gp_Pnt> optionalPoint = helperFunctions::getPointOnFace(currentFace);
-		if (optionalPoint == std::nullopt) { continue; }
-		gp_Pnt currentPoint = *optionalPoint;
-
-		bool isFound = false;
-		for (const TopoDS_Face originalFace : theFaceList)
-		{
-			if (pointOnShape(originalFace, currentPoint))
-			{
-				isFound = true;
-				break;
-			}
-		}
-		if (!isFound) { continue; }
-		mergedFaces.emplace_back(currentFace);
-	}
-	return mergedFaces;
-}
-
 TopoDS_Wire helperFunctions::closeWireOrientated(const TopoDS_Wire& baseWire) {
 	gp_Pnt p1 = helperFunctions::getFirstPointShape(baseWire);
 	gp_Pnt p2 = helperFunctions::getLastPointShape(baseWire);
@@ -3143,7 +3049,6 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 		if (currentFace.IsNull()) { continue; }
 		faceList.emplace_back(currentFace);
 		areaList.emplace_back(computeArea(currentFace));
-		//DebugUtils::printFaces(currentFace);
 	}
 
 	// sort facelist in such a way that the outer faces that are the smallest are evaluated first to prevent innerwires being mismatched
@@ -3155,22 +3060,24 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 	for (const TopoDS_Face& currentFace : faceList)
 	{
 		TopoDS_Face clippedFace = currentFace;
-
 		for (int i = 0; i < innerWires.size(); i++)
 		{
 			if (innerIsUsed[i] != 0) { continue; }
 			const TopoDS_Wire& currentWire = innerWires[i];
 			gp_Pnt wirePoint = getFirstPointShape(currentWire);
-
 			if (!pointOnFace(currentFace, wirePoint)) { continue; }
-			BRepBuilderAPI_MakeFace merger = BRepBuilderAPI_MakeFace(clippedFace, currentWire);
-			TopoDS_Face localClipperFace = merger.Face();
-			innerIsUsed[i] = 1;
 
-			BRepCheck_Analyzer check(currentFace);
-			if (!check.IsValid()) { continue; }
-			if (currentFace.IsNull()) { continue; }
-			clippedFace = merger.Face();
+			BRepBuilderAPI_MakeFace merger = BRepBuilderAPI_MakeFace(clippedFace, currentWire);
+			if (!merger.IsDone()) { continue; }
+
+			TopoDS_Face localClipperFace = merger.Face();
+			if (localClipperFace.IsNull()) {continue; }
+
+			BRepCheck_Analyzer check(localClipperFace);
+			if (!check.IsValid()) { continue;  }
+
+			clippedFace = localClipperFace;
+			innerIsUsed[i] = 1;
 		}
 		clippedFaceList.emplace_back(clippedFace);
 	}

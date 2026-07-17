@@ -302,7 +302,7 @@ RCollection::RCollection(const std::vector<TopoDS_Face>& theFaceColletion)
 		if (flattenedFace.IsNull()) {continue; }
 		projectedFaces.emplace_back(flattenedFace);
 	}
-
+	//DebugUtils::printFaces(helperFunctions::TriangulateFace(projectedFaces));
 	std::vector<TopoDS_Face> flatFaceList = helperFunctions::planarFaces2Outline(projectedFaces);
 	if (flatFaceList.size() < 1) { return; }
 

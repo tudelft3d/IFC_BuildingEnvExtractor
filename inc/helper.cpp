@@ -1761,8 +1761,7 @@ TopoDS_Face helperFunctions::projectFaceFlat(const TopoDS_Face& theFace, double 
 	{
 		gp_Pnt p0 = getFirstPointShape(theFace);
 		p0.SetZ(height);
-		gp_Vec normal(0, 0, 1);
-		Handle(Geom_Plane) plane = new Geom_Plane(p0, normal);
+		Handle(Geom_Plane) plane = new Geom_Plane(p0, faceNormal);
 
 		TopoDS_Wire outerWire = BRepTools::OuterWire(theFace);
 		if (outerWire.IsNull()) { return TopoDS_Face(); }
@@ -1770,7 +1769,7 @@ TopoDS_Face helperFunctions::projectFaceFlat(const TopoDS_Face& theFace, double 
 
 		TopoDS_Wire flattenedWire = projectWireFlat(outerWire, height);
 		if (flattenedWire.IsNull()) { return TopoDS_Face(); }
-		flattenedWire.Orientation(TopAbs_FORWARD);
+		if (faceNormal.Dot(computeFaceNormal(flattenedWire)) < 0) { flattenedWire.Reverse(); }
 
 		BRepBuilderAPI_MakeFace faceMaker(plane, flattenedWire, precision);
 		for (TopExp_Explorer expl(theFace, TopAbs_WIRE); expl.More(); expl.Next())
@@ -1778,7 +1777,10 @@ TopoDS_Face helperFunctions::projectFaceFlat(const TopoDS_Face& theFace, double 
 			TopoDS_Wire currentWire = TopoDS::Wire(expl.Current());
 			if (currentWire.IsEqual(outerWire)) { continue; }
 			TopoDS_Wire currentFlatWire = projectWireFlat(currentWire, height);
-			currentFlatWire.Orientation(TopAbs_REVERSED);
+			if (currentFlatWire.IsNull()) { continue; }
+			if (!currentFlatWire.Closed()) { continue; }
+			if (faceNormal.Dot(computeFaceNormal(currentFlatWire)) > 0) { currentFlatWire.Reverse(); }
+
 			BRepBuilderAPI_MakeFace faceMaker2(currentFlatWire);
 			if (!faceMaker2.IsDone()) { continue; }
 			TopoDS_Face innerFace = faceMaker2.Face();
@@ -1787,13 +1789,13 @@ TopoDS_Face helperFunctions::projectFaceFlat(const TopoDS_Face& theFace, double 
 			faceMaker.Add(currentFlatWire);
 		}
 
-		if (!faceMaker.IsDone())
-		{
-			return TopoDS_Face();
-		}
+		if (!faceMaker.IsDone()) { return TopoDS_Face(); }
+
 		flatFace = faceMaker.Face();
 	}
 	fixFace(&flatFace);
+	gp_Vec resultNormal = computeFaceNormal(flatFace);
+	if (resultNormal.Dot(faceNormal) < 0) { flatFace.Reverse(); }
 	return flatFace;
 }
 
@@ -1900,9 +1902,18 @@ TopoDS_Wire helperFunctions::projectWireFlat(const TopoDS_Wire& theWire, double 
 
 	TopoDS_Wire flattenedWire = builder.Wire();
 
+
 	if (theWire.Closed() != flattenedWire.Closed())
 	{
 		return TopoDS_Wire();
+	}
+
+	gp_Vec inputNormal = computeFaceNormal(theWire);
+	gp_Vec outputNormal = computeFaceNormal(flattenedWire);
+
+	if (inputNormal.Dot(outputNormal) < 0)
+	{
+		flattenedWire = TopoDS::Wire(flattenedWire.Reversed());
 	}
 
 	return flattenedWire;

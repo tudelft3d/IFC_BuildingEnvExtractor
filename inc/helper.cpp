@@ -1781,11 +1781,7 @@ TopoDS_Face helperFunctions::projectFaceFlat(const TopoDS_Face& theFace, double 
 			if (!currentFlatWire.Closed()) { continue; }
 			if (faceNormal.Dot(computeFaceNormal(currentFlatWire)) > 0) { currentFlatWire.Reverse(); }
 
-			BRepBuilderAPI_MakeFace faceMaker2(currentFlatWire);
-			if (!faceMaker2.IsDone()) { continue; }
-			TopoDS_Face innerFace = faceMaker2.Face();
-			if (innerFace.IsNull()) { continue; }
-			if (computeArea(innerFace) < 0.001) { continue; }
+			if (computeArea(currentFlatWire) < 0.001) { continue; }
 			faceMaker.Add(currentFlatWire);
 		}
 
@@ -3742,6 +3738,51 @@ double helperFunctions::computeArea(const TopoDS_Face& theFace)
 	GProp_GProps gprops;
 	BRepGProp::SurfaceProperties(theFace, gprops);
 	return gprops.Mass();
+}
+
+double helperFunctions::computeArea(const TopoDS_Wire& wire)
+{
+	std::vector<gp_Pnt> points;
+	double precision = SettingsCollection::getInstance().linearTolerance();
+
+	double zVal = 0;
+	bool zValSet = false;
+
+	for (BRepTools_WireExplorer exp(wire); exp.More(); exp.Next())
+	{
+		TopoDS_Edge edge = TopoDS::Edge(exp.Current());
+		gp_Pnt currentPoint = getFirstPointShape(edge);
+
+		if (!zValSet)
+		{
+			zVal = currentPoint.Z();
+			zValSet = true;
+		}
+		else
+		{
+			if (std::abs(currentPoint.Z() - zVal) > precision)
+			{
+				throw std::string("surface is not flat");
+			}
+		}
+	}
+
+	if (points.size() < 3)
+	{
+		return 0.0;
+	}
+
+	double area = 0.0;
+
+	for (size_t i = 0; i < points.size(); i++)
+	{
+		const gp_Pnt& p0 = points[i];
+		const gp_Pnt& p1 = points[(i + 1) % points.size()];
+
+		area += p0.X() * p1.Y() - p1.X() * p0.Y();
+	}
+
+	return abs(area) * 0.5;
 }
 
 void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)

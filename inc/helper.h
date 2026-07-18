@@ -420,6 +420,9 @@ struct helperFunctions{
 	/// compute the area of a face
 	static double computeArea(const TopoDS_Face& theFace);
 
+	/// compute the area of a wire with a shoestring method.
+	static double computeArea(const TopoDS_Wire& theWire);
+
 	/// count the number of wires in a face
 	static int wireCount(const TopoDS_Face& theFace);
 

@@ -368,7 +368,7 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		break;
 	}
 	case ErrorID::warningIfcIncomp: {
-		coms = "Incompatible scheme found";
+		coms = "Incompatible scheme found ";
 		importance = CommunicationStringImportanceID::warning;
 		break;
 	}

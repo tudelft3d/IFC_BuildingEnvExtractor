@@ -1746,6 +1746,12 @@ TopoDS_Face helperFunctions::projectFaceFlat(const TopoDS_Face& theFace, double 
 	gp_Vec faceNormal = computeFaceNormal(theFace);
 	if (abs(faceNormal.Z()) < angularTolerance) { return TopoDS_Face(); }
 
+	gp_Vec flatFaceNormal(0,0,1);
+	if (faceNormal.Z() < 0)
+	{
+		flatFaceNormal.SetZ(-1);
+	}
+
 	TopoDS_Face flatFace;
 	if (abs(faceNormal.X()) < angularTolerance && abs(faceNormal.Y()) < angularTolerance)
 	{
@@ -1761,7 +1767,7 @@ TopoDS_Face helperFunctions::projectFaceFlat(const TopoDS_Face& theFace, double 
 	{
 		gp_Pnt p0 = getFirstPointShape(theFace);
 		p0.SetZ(height);
-		Handle(Geom_Plane) plane = new Geom_Plane(p0, faceNormal);
+		Handle(Geom_Plane) plane = new Geom_Plane(p0, flatFaceNormal);
 
 		TopoDS_Wire outerWire = BRepTools::OuterWire(theFace);
 		if (outerWire.IsNull()) { return TopoDS_Face(); }

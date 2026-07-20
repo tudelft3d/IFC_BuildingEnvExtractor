@@ -314,6 +314,40 @@ void DataManager::elementCountSummary()
 	return;
 }
 
+void DataManager::computeIfcModelRotation(gp_Pnt* lllPoint, gp_Pnt* urrPoint)
+{
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+	double rotation = settingsCollection.desiredRotation() - objectTranslation_.GetRotation().GetRotationAngle();
+	if (!settingsCollection.autoRotateGrid())
+	{
+		settingsCollection.setGridRotation(rotation);
+		return;
+	}
+
+	auto startTime = std::chrono::high_resolution_clock::now();
+
+
+	// get the slab pointlist to base the inital bbox on
+	std::vector<gp_Pnt> pointList = getObjectListPoints("IfcSlab", true);
+	if (!pointList.size())
+	{
+		pointList = getObjectListPoints("IfcRoof", true);
+	}
+	if (!pointList.size())
+	{
+		ErrorCollection::getInstance().addError(ErrorID::errorNoPoints);
+		throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoPoints));
+	}
+
+	// compute the smallest orientated bbox
+	helperFunctions::bBoxDiagonal(pointList, lllPoint, urrPoint, 0); // compute initial values
+	helperFunctions::bBoxOrientated(pointList, lllPoint, urrPoint, &rotation, 0); // compute optimal values
+	//TODO: let rotation start on the georef rotation
+	settingsCollection.setGridRotation(rotation);
+	return;
+}
+
+
 gp_Vec DataManager::computeObjectTranslation()
 {
 	double precision = SettingsCollection::getInstance().linearTolerance();
@@ -1209,6 +1243,15 @@ void DataManager::internalizeGeo()
 	}
 	objectIfcTranslation_.SetTranslationPart(-ifcTrsf + geoTrsf.TranslationPart());
 	elementCountSummary();
+
+	try
+	{
+		computeIfcModelRotation(&lllPoint_, &urrPoint_);
+	}
+	catch (const std::string& exceptionString)
+	{
+		throw exceptionString;
+	}
 
 	if (SettingsCollection::getInstance().objectCount() == 0)
 	{

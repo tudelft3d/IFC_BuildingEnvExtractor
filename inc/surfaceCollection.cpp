@@ -119,14 +119,14 @@ void SurfaceGridPair::populateGrid(double distance)
 	pointGrid_.reserve(wireGridList.size());
 	for (const gp_Pnt& wirePoint : wireGridList)
 	{
-		std::shared_ptr<EvaluationPoint> evalPoint = std::make_shared<EvaluationPoint>(wirePoint);
+		EvaluationPoint evalPoint(wirePoint);
 		pointGrid_.emplace_back(evalPoint);
 	}
 
 	std::vector<gp_Pnt> faceGridList = helperFunctions::getPointGridOnSurface(theFace_, distance);
 	for (const gp_Pnt& facePoint : faceGridList)
 	{
-		std::shared_ptr<EvaluationPoint> evalPoint = std::make_shared<EvaluationPoint>(facePoint);
+		EvaluationPoint evalPoint(facePoint);
 		pointGrid_.emplace_back(evalPoint);
 	}
 
@@ -152,11 +152,11 @@ bool SurfaceGridPair::testIsVisable(const std::vector<std::shared_ptr<SurfaceGri
 		shapeIdx.insert(std::make_pair(bbox, surfGridPair));
 	}
 
-	for (const std::shared_ptr<EvaluationPoint>& currentEvalPoint : pointGrid_)
+	for (EvaluationPoint& currentEvalPoint : pointGrid_)
 	{
-		if (!currentEvalPoint->isVisible()) { continue; }
+		if (!currentEvalPoint.isVisible()) { continue; }
 
-		gp_Pnt basePoint = currentEvalPoint->getPoint();
+		gp_Pnt basePoint = currentEvalPoint.getPoint();
 		gp_Pnt topPoint = basePoint;
 		topPoint.SetZ(basePoint.Z() + 1000);
 		basePoint.X();
@@ -174,15 +174,15 @@ bool SurfaceGridPair::testIsVisable(const std::vector<std::shared_ptr<SurfaceGri
 		{
 			if (helperFunctions::LineShapeIntersection(otherSurfacePair->getFace(), basePoint, topPoint, true))
 			{
-				currentEvalPoint->setInvisible();
+				currentEvalPoint.setInvisible();
 				break;
 			}
 		}
 	}
 
-	for (const std::shared_ptr<EvaluationPoint>& currentPoint : pointGrid_)
+	for (const EvaluationPoint& currentPoint : pointGrid_)
 	{
-		if (currentPoint->isVisible())
+		if (currentPoint.isVisible())
 		{
 			return true;
 		}
@@ -199,11 +199,11 @@ bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, std::
 	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	if (!pointGrid_.size()) { populateGrid(SettingsCollection::getInstance().surfaceGridSize()); }
-	for (const std::shared_ptr<EvaluationPoint>& currentEvalPoint : pointGrid_)
+	for (EvaluationPoint& currentEvalPoint : pointGrid_)
 	{
-		if (!currentEvalPoint->isVisible()) { continue; }
+		if (!currentEvalPoint.isVisible()) { continue; }
 
-		gp_Pnt basePoint = currentEvalPoint->getPoint();
+		gp_Pnt basePoint = currentEvalPoint.getPoint();
 		gp_Pnt topPoint = basePoint;
 		topPoint.SetZ(basePoint.Z() + 1000);
 
@@ -225,15 +225,15 @@ bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, std::
 			if (helperFunctions::pointOnFace(otherFace, basePoint)) { continue; }
 			if (helperFunctions::LineShapeIntersection(otherFace, basePoint, topPoint, true))
 			{
-				currentEvalPoint->setInvisible();
+				currentEvalPoint.setInvisible();
 				break;
 			}
 		}
 	}
 
-	for (const std::shared_ptr<EvaluationPoint>& currentPoint : pointGrid_)
+	for (const EvaluationPoint& currentPoint : pointGrid_)
 	{
-		if (currentPoint->isVisible())
+		if (currentPoint.isVisible())
 		{
 			return true;
 		}

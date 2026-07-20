@@ -2064,7 +2064,7 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount() - 1;
-	//coreUse = 1;
+	coreUse = 1;
 	if (coreUse > inputShapes.size()) { coreUse = inputShapes.size(); }
 	int splitListSize = static_cast<int>(floor(inputShapes.size() / coreUse));
 
@@ -2083,7 +2083,7 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 		threadList.emplace_back([this, sublist, &processMutex, &listMutex, &shapeIdx, &shapeList, &counter]() {reduceSurface(sublist, processMutex, listMutex, shapeIdx, shapeList, counter); });
 	}
 
-	threadList.emplace_back([&] {helperFunctions::updateCounter("Process objects", inputShapes.size(), counter, listMutex); });
+	//threadList.emplace_back([&] {helperFunctions::updateCounter("Process objects", inputShapes.size(), counter, listMutex); });
 
 	for (auto& thread : threadList) {
 		if (thread.joinable()) {
@@ -2099,7 +2099,9 @@ void CJGeoCreator::reduceSurface(const std::vector<TopoDS_Shape>& inputShapes, s
 {
 	for (size_t i = 0; i < inputShapes.size(); i++)
 	{
+		std::cout << "in" << std::endl;
 		std::vector<std::shared_ptr<SurfaceGridPair>> coarseFilteredTopSurfacePairList = getObjectTopSurfaces(inputShapes[i]);
+		std::cout << "out" << std::endl;
 		for (const auto& coarseFilteredTopSurfacePair : coarseFilteredTopSurfacePairList)
 		{
 			auto rtreePair = std::make_pair(helperFunctions::createBBox(coarseFilteredTopSurfacePair->getFace()), static_cast<int>(shapeList->size()));
@@ -2234,21 +2236,36 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::getObjectTopSurfaces
 			}
 		}
 
-		TopoDS_Face face1 = gridPairList[0]->getFace();
-		TopoDS_Face face2 = gridPairList[1]->getFace();
+		if (isFlat)
+		{
+			TopoDS_Face face1 = gridPairList[0]->getFace();
+			TopoDS_Face face2 = gridPairList[1]->getFace();
 
-		if (helperFunctions::getAverageZ(face1) > helperFunctions::getAverageZ(face2)) { return { gridPairList[0] }; }
-		else { return { gridPairList[1] }; }
+			if (helperFunctions::getAverageZ(face1) > helperFunctions::getAverageZ(face2)) { return { gridPairList[0] }; }
+			else { return { gridPairList[1] }; }
+		}
 	}
 
 	std::vector<std::shared_ptr<SurfaceGridPair>> visibleSurfaces;
+
+
+	bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>> shapeIdx;
+	for (const std::shared_ptr<SurfaceGridPair>& surfGridPair : gridPairList)
+	{
+		bg::model::box <BoostPoint3D> bbox = bg::model::box < BoostPoint3D >(
+			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair->getLLLPoint())),
+			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair->getURRPoint()))
+			);
+		shapeIdx.insert(std::make_pair(bbox, surfGridPair));
+	}
+
 	for (int i = 0; i < gridPairList.size(); i++)
 	{
 		std::shared_ptr<SurfaceGridPair> currentGroup = gridPairList[i];
 		if (!currentGroup->isVisible()) { continue; }
 
 		TopoDS_Face currentFace = currentGroup->getFace();
-		gp_Pnt currentCenter = centerpointHList[i];
+		const gp_Pnt& currentCenter = centerpointHList[i];
 
 		// ignore lowest if identical projected points
 		double height = currentGroup->getAvHeight();
@@ -2263,17 +2280,16 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::getObjectTopSurfaces
 		spatialIndex.query(bgi::intersects(
 			bbox), std::back_inserter(qResult));
 		// cull faces completely overlapped by one other face
-
 		for (size_t j = 0; j < qResult.size(); j++)
 		{
 			int otherIdx = qResult[j].second;
 			if (i == otherIdx) { continue; }
 
 			std::shared_ptr<SurfaceGridPair> otherGroup = gridPairList[otherIdx];
-			if (!otherGroup->isVisible()) { continue; }
-			double otherHeight = otherGroup->getAvHeight();
-			if (height > otherHeight) { continue; }
+			if (!otherGroup->isVisible()) { continue; }			
+			if (otherGroup->getVertCount() != vertCount) { continue; }
 			if (!currentCenter.IsEqual(centerpointHList[otherIdx], precision)) { continue; }
+			if (height > otherGroup->getAvHeight()) { continue; }
 
 			TopoDS_Face otherFace = otherGroup->getFace();
 			if (helperFunctions::faceFaceOverlapping(otherFace, currentFace)) {
@@ -2281,20 +2297,9 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::getObjectTopSurfaces
 				break;
 			}
 		}
+		if (!currentGroup->isVisible()) { continue; }
 
-		if (!currentGroup->isVisible()) { continue; }
-		// cull faces completely overlapped by other faces
-		std::vector<std::shared_ptr<SurfaceGridPair>> rayReceivingPairList;
-		for (size_t j = 0; j < qResult.size(); j++)
-		{
-			int otherIdx = qResult[j].second;
-			if (i == otherIdx) { continue; }
-			std::shared_ptr<SurfaceGridPair> otherGroup = gridPairList[otherIdx];
-			if (!otherGroup->isVisible()) { continue; }
-			rayReceivingPairList.emplace_back(otherGroup);
-		}
-		if (!currentGroup->isVisible()) { continue; }
-		if (currentGroup->testIsVisable(rayReceivingPairList, false))
+		if (currentGroup->testIsVisable(shapeIdx, false))
 		{
 			visibleSurfaces.emplace_back(currentGroup);
 		}

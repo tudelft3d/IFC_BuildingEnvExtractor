@@ -27,12 +27,12 @@ private:
 
 public:
 	EvaluationPoint(const gp_Pnt& p);
-	bool isVisible() { return isVisible_; }
+	bool isVisible() const { return isVisible_; }
 	void setInvisible() { isVisible_ = false; }
 
-	const gp_Pnt getPoint() { return thePoint_; }
-	const TopoDS_Edge& getEvalEdge() { return evalEdge_; }
-	const gp_Lin& getEvalLine() { return evalLin_; }
+	const gp_Pnt getPoint() const { return thePoint_; }
+	const TopoDS_Edge& getEvalEdge() const { return evalEdge_; }
+	const gp_Lin& getEvalLine() const { return evalLin_; }
 };
 
 
@@ -54,7 +54,7 @@ private:
 	bool visibility_ = true;
 	bool isSmall_ = false;
 
-	std::vector<std::shared_ptr<EvaluationPoint>> pointGrid_;
+	std::vector<EvaluationPoint> pointGrid_;
 	bool overlap(const SurfaceGridPair& other);
 
 	void Merge(const std::vector<SurfaceGridPair>& otherPairList, const TopoDS_Face& theCompleteFace);
@@ -64,15 +64,15 @@ public:
 
 	const TopoDS_Face getFace() const { return theFace_; }
 
-	const gp_Pnt getLLLPoint() { return lllPoint_; }
-	const gp_Pnt getURRPoint() { return urrPoint_; }
+	gp_Pnt getLLLPoint() const { return lllPoint_; }
+	gp_Pnt getURRPoint() const { return urrPoint_; }
 
-	double getAvHeight() { return avHeight_; }
-	double getTopHeight() { return topHeight_; }
+	double getAvHeight() const { return avHeight_; }
+	double getTopHeight() const { return topHeight_; }
 
 	int getVertCount() { return vertCount_; }
 
-	std::vector<std::shared_ptr<EvaluationPoint>> getPointGrid() { return pointGrid_; }
+	std::vector<EvaluationPoint>* getPointGridPtr() { return &pointGrid_; }
 
 	bool isVisible() const { return visibility_; }
 	void setIsHidden() { visibility_ = false; }

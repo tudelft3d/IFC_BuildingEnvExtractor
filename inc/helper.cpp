@@ -4231,6 +4231,22 @@ bool helperFunctions::isStraight(const TopoDS_Shape& theShape)
 	return true;
 }
 
+bool helperFunctions::containsSolid(const TopoDS_Shape& theShape)
+{
+	if (theShape.ShapeType() == TopAbs_SOLID) { return true; }
+
+	for (TopoDS_Iterator it(theShape); it.More(); it.Next())
+	{
+		const TopoDS_Shape& child = it.Value();
+		if (child.ShapeType() == TopAbs_SOLID) { return true; }
+
+
+		if (child.ShapeType() != TopAbs_COMPOUND) { continue; }
+		if (containsSolid(child)) { return true; }
+	}
+	return false;
+}
+
 
 template <typename T>
 std::vector<T> helperFunctions::sortShapes(const std::vector<T>& shapeList, const std::vector<double>& sortingValues)
@@ -4277,8 +4293,6 @@ void helperFunctions::devideFaces(const TopoDS_Shape& inputShape, std::vector<To
 
 TopoDS_Shape helperFunctions::addSolidSemantic(const TopoDS_Shape& assumedSolid)
 {
-	if (assumedSolid.ShapeType() == TopAbs_SOLID) { return assumedSolid; }
-
 	BRep_Builder builder;
 	TopoDS_Shell shell;
 	builder.MakeShell(shell);

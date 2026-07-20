@@ -1,4 +1,4 @@
-#define USE_IFC4x2
+#define USE_IFC2x3
 #define iterationVersion "0.4.2"
 
 #ifdef USE_IFC2x3
@@ -442,6 +442,8 @@ struct helperFunctions{
 
 	/// check if all the edges in a shape are straight
 	static bool isStraight(const TopoDS_Shape& theShape);
+	/// check if the shape or its children (recursive) are or contain a solid object
+	static bool containsSolid(const TopoDS_Shape& theShape);
 
 	/// sorts the list of faces based on the sorting values
 	template <typename T>

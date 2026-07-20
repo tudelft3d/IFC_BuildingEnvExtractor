@@ -1021,6 +1021,7 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 	bool simplefyGeo = settings.simplefyGeo();
 	bool makeLoD41 = settings.make41();
 	double gridRotation = settings.gridRotation();
+	bool forceSolid = settings.forceSolid();
 	const std::vector<std::string>& ignoreList = settings.getIgnoreSimplificationList();
 
 	for (IfcGeom::BRepElement* boundaryRepElem : shapeList)
@@ -1035,7 +1036,6 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		}
 		
 		TopoDS_Shape shape = boundaryRepElem->geometry().as_compound();
-
 		gp_Trsf ifcPlacement = boundaryRepElem->transformation().data();
 		shape = shape.Moved(ifcPlacement);
 		shape.Move(objectTranslation_);
@@ -1044,13 +1044,15 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), gridRotation);
 		shape.Move(trs);
 
-		if (shape.ShapeType() != TopAbs_SOLID)
+		if (forceSolid && shape.ShapeType() != TopAbs_SOLID)
 		{
-			solidSemanticMutex_.lock();
-			shape = helperFunctions::addSolidSemantic(shape);
-			solidSemanticMutex_.unlock();
+			if (!helperFunctions::containsSolid(shape))
+			{
+				solidSemanticMutex_.lock();
+				shape = helperFunctions::addSolidSemantic(shape);
+				solidSemanticMutex_.unlock();
+			}
 		}
-
 		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
 
 		if (product == nullptr) { continue; }
@@ -1585,6 +1587,7 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 	const std::unordered_set<std::string>& openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();
 
 	int simplefyGeoGrade = SettingsCollection::getInstance().ignoreVoidGrade();
+	bool forceSolid = SettingsCollection::getInstance().forceSolid();
 
 	if (simplefyGeoGrade == 0) { isSimple = false; }
 	else if (simplefyGeoGrade == 2) { isSimple = true; }
@@ -1593,8 +1596,6 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 	// get the object from memory if available
 	const TopoDS_Shape& potentialShape = getObjectShapeFromMem(product, isSimple);
 	if (!potentialShape.IsNull()) { return potentialShape; }
-
-
 
 	IfcSchema::IfcRepresentation* ifc_representation = getProductRepPtr(product);
 
@@ -1668,9 +1669,12 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 	{
 		TopoDS_Shape currentShape = (*it).Shape();
 		currentShape.Move((*it).Placement().Trsf());
-		if (currentShape.ShapeType() == TopAbs_COMPOUND)
+		if (forceSolid && currentShape.ShapeType() == TopAbs_COMPOUND)
 		{
-			currentShape = helperFunctions::addSolidSemantic(currentShape);
+			if (!helperFunctions::containsSolid(currentShape))
+			{
+				currentShape = helperFunctions::addSolidSemantic(currentShape);
+			}
 		}
 
 		helperFunctions::triangulateShape(currentShape);

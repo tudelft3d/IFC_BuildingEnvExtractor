@@ -70,6 +70,8 @@ private:
     bool createOBJ_ = false;
     bool mereOBJ_ = false;
 
+    bool forceSolid_ = false;
+
 	// variables set the deviding objects
 	bool useDefaultDiv_ = true;
 	bool useProxy_ = false;
@@ -339,6 +341,8 @@ public:
     bool createOBJ() const { return createOBJ_; }
     void setCreateOBJ(bool value) { createOBJ_ = value; }
     void setCreateOBJ(const nlohmann::json& json);
+
+    bool forceSolid() const { return forceSolid_; }
 
     bool storeCustomWallAttributes() const { return addCustomWallAttributes_; }
     void setStoreCustomWallAttributes(bool value) { addCustomWallAttributes_ = value; }

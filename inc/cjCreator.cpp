@@ -2243,14 +2243,15 @@ std::vector<SurfaceGridPair> CJGeoCreator::getObjectTopSurfaces(const TopoDS_Sha
 	}
 
 	std::vector<SurfaceGridPair> visibleSurfaces;
-	bgi::rtree<std::pair<BoostBox3D,const SurfaceGridPair*>, bgi::rstar<25>> shapeIdx;
-	for (const SurfaceGridPair& surfGridPair : gridPairList)
+	bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>> shapeIdx;
+	for (SurfaceGridPair& surfGridPair : gridPairList)
 	{
 		bg::model::box <BoostPoint3D> bbox = bg::model::box < BoostPoint3D >(
 			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getLLLPoint())),
 			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getURRPoint()))
 			);
 		shapeIdx.insert(std::make_pair(bbox, &surfGridPair));
+		surfGridPair.makeIndex();
 	}
 
 	for (int i = 0; i < gridPairList.size(); i++)

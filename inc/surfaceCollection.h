@@ -50,9 +50,12 @@ private:
 	double avHeight_;
 	int vertCount_ = 0;
 
+	bgi::rtree<std::pair<BoostBox3D, std::array<gp_Pnt, 3>>, bgi::rstar<25>> triangleIndex_;
+
 	// usability information
 	bool visibility_ = true;
 	bool isSmall_ = false;
+	bool hasIndex_ = false;
 
 	std::vector<EvaluationPoint> pointGrid_;
 	bool overlap(const SurfaceGridPair& other);
@@ -78,6 +81,12 @@ public:
 	void setIsHidden() { visibility_ = false; }
 
 	void populateGrid(double distance);
+
+	bool hasIndex() const { return hasIndex_; }
+	void makeIndex();
+
+	std::vector<std::pair<BoostBox3D, std::array<gp_Pnt, 3>>> queryMesh(BoostBox3D bbox);
+	std::vector<std::pair<BoostBox3D, std::array<gp_Pnt, 3>>> queryMesh(bg::model::segment<BoostPoint3D>  bbox);
 
 	bool testIsVisable(const bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>>& otherSurfacesIndx, bool preFilter);
 };

@@ -134,6 +134,54 @@ void SurfaceGridPair::populateGrid(double distance)
 	return;
 }
 
+void SurfaceGridPair::makeIndex()
+{
+	TopLoc_Location loc;
+	auto mesh = BRep_Tool::Triangulation(theFace_, loc);
+
+	if (mesh.IsNull())
+	{
+		helperFunctions::triangulateShape(theFace_);
+		mesh = BRep_Tool::Triangulation(theFace_, loc);
+	}
+	if (mesh.IsNull()) { return; }
+
+	for (int j = 1; j <= mesh.get()->NbTriangles(); j++) //TODO: if large num indx?
+	{
+		const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
+
+		gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
+		gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
+		gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
+
+		std::array<gp_Pnt, 3>triangle = { p1, p2, p3 };
+
+		BoostBox3D bbox = helperFunctions::createBBox(triangle);
+		triangleIndex_.insert(std::make_pair(bbox, triangle));
+	}
+	return;
+}
+
+std::vector<std::pair<BoostBox3D, std::array<gp_Pnt, 3>>> SurfaceGridPair::queryMesh(BoostBox3D bbox)
+{
+	std::vector<std::pair<BoostBox3D, std::array<gp_Pnt, 3>>> qResult;
+	qResult.clear();
+	triangleIndex_.query(bgi::intersects(
+		bbox), std::back_inserter(qResult));
+
+	return qResult;
+}
+
+std::vector<std::pair<BoostBox3D, std::array<gp_Pnt, 3>>> SurfaceGridPair::queryMesh(bg::model::segment<BoostPoint3D> qRay)
+{
+	std::vector<std::pair<BoostBox3D, std::array<gp_Pnt, 3>>> qResult;
+	qResult.clear();
+	triangleIndex_.query(bgi::intersects(
+		qRay), std::back_inserter(qResult));
+
+	return qResult;
+}
+
 bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>>& otherSurfacesIndx, bool preFilter)
 {
 	if (otherSurfacesIndx.empty()) { return visibility_; }
@@ -154,21 +202,44 @@ bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, const
 			{topPoint.X() ,topPoint.Y(), topPoint.Z() }
 		};
 
+		BoostBox3D quaryBox{
+		{basePoint.X() - 0.1 ,basePoint.Y() - 0.1, basePoint.Z() - 0.1},
+		{basePoint.X() + 0.1 ,basePoint.Y() + 0.1, basePoint.Z() + 0.1}
+		};
+
 		std::vector<std::pair<BoostBox3D, const SurfaceGridPair*>> qResult;
 		qResult.clear();
 		otherSurfacesIndx.query(bgi::intersects(
 			queryRay), std::back_inserter(qResult));
 
-		for (const auto& [otherbbox, otherSurfacePair] : qResult)
+		for (auto& [otherbbox, otherSurfacePair] : qResult)
 		{
 			const TopoDS_Face& otherFace = otherSurfacePair->getFace();
 
 			if (getFace().IsEqual(otherFace)) { continue; }
-			if (helperFunctions::pointOnFace(otherFace, basePoint)) { continue; }
-			if (helperFunctions::LineShapeIntersection(otherFace, basePoint, topPoint, true))
+
+			// check if point is on face
+			auto localBoxTrianglePair = queryMesh(quaryBox);
+			bool onFace = false;
+			for (const auto& [box, triangle] : localBoxTrianglePair)
 			{
-				currentEvalPoint.setInvisible();
-				break;
+				if (helperFunctions::pointOnTriangle(basePoint, triangle[0], triangle[1], triangle[2]))
+				{
+					onFace = true;
+					break;
+				}
+			}
+			if (onFace) { continue; }
+
+			// check if ray intersects
+			auto rayBoxTrianglePair = queryMesh(queryRay);
+			for (const auto& [box, triangle] : rayBoxTrianglePair)
+			{
+				if (helperFunctions::triangleIntersecting({ basePoint, topPoint }, triangle))
+				{
+					currentEvalPoint.setInvisible();
+					break;
+				}
 			}
 		}
 	}

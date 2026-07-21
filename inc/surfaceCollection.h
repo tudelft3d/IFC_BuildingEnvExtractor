@@ -70,7 +70,7 @@ public:
 	double getAvHeight() const { return avHeight_; }
 	double getTopHeight() const { return topHeight_; }
 
-	int getVertCount() { return vertCount_; }
+	int getVertCount() const { return vertCount_; }
 
 	std::vector<EvaluationPoint>* getPointGridPtr() { return &pointGrid_; }
 
@@ -79,8 +79,7 @@ public:
 
 	void populateGrid(double distance);
 
-	bool testIsVisable(const std::vector<std::shared_ptr<SurfaceGridPair>>& otherSurfaces, bool preFilter = false);
-	bool testIsVisable(const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>>& otherSurfacesIndx, bool preFilter = false);
+	bool testIsVisable(const bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>>& otherSurfacesIndx, bool preFilter);
 };
 
 

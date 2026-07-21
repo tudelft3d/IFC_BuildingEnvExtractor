@@ -121,7 +121,7 @@ private:
 	void reduceSurfaces(
 		const std::vector<TopoDS_Shape>& inputShapes,
 		bgi::rtree<Value, bgi::rstar<treeDepth_>>* shapeIdx,
-		std::vector<std::shared_ptr<SurfaceGridPair>>* shapeList
+		std::vector<SurfaceGridPair>& shapeList
 	);
 	/// @brief reduce the surfaces of an object for roof extraction by z-ray casting on itself (sublist)
 	void reduceSurface(
@@ -129,24 +129,24 @@ private:
 		std::mutex& processMutex,
 		std::mutex& listMutex,
 		bgi::rtree<Value, bgi::rstar<treeDepth_>>* shapeIdx,
-		std::vector<std::shared_ptr<SurfaceGridPair>>* shapeList,
+		std::vector<SurfaceGridPair>& shapeList,
 		int& counter
 	);
 	/// @brief reduce the surfaces in the facelist for roof extraction by z-ray casting on itself and others
-	std::vector<std::shared_ptr<SurfaceGridPair>> FinefilterSurfaces(const std::vector<std::shared_ptr<SurfaceGridPair>>& shapeList);
+	std::vector<SurfaceGridPair> FinefilterSurfaces(std::vector<SurfaceGridPair>& shapeList);
 
 	void FinefilterSurface(
-		const std::vector<std::shared_ptr<SurfaceGridPair>>& shapeList,
-		const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>>& shapeIdx,
+		const std::vector<SurfaceGridPair>& shapeList,
+		const bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>>& shapeIdx,
 		std::mutex& processMutex,
 		std::mutex& listMutex,
-		std::vector<std::shared_ptr<SurfaceGridPair>>* fineFilteredShapeList,
+		std::vector<SurfaceGridPair>& fineFilteredShapeList,
 		int& counter
 	);
 	/// @brief get the surfaces that are not covered by other surfaces within the objects 
-	std::vector<std::shared_ptr<SurfaceGridPair>> getObjectTopSurfaces(const TopoDS_Shape& shape);
+	std::vector<SurfaceGridPair> getObjectTopSurfaces(const TopoDS_Shape& shape);
 	// merges roof representations that are near eachother
-	std::vector<RCollection> mergeRoofSurfaces(std::vector<std::shared_ptr<SurfaceGridPair>>& Collection);
+	std::vector<RCollection> mergeRoofSurfaces(std::vector<SurfaceGridPair>& Collection);
 	/// returns visible surfaces from the top
 	std::vector<TopoDS_Face> getVisTopSurfaces(const std::vector<TopoDS_Face>& faceIdx, double lowestZ, const std::vector<TopoDS_Face>& bufferSurfaceList = {});
 	// trims the roof surfaces to the underlying footprint

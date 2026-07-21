@@ -134,65 +134,7 @@ void SurfaceGridPair::populateGrid(double distance)
 	return;
 }
 
-bool SurfaceGridPair::testIsVisable(const std::vector<std::shared_ptr<SurfaceGridPair>>& otherSurfaces, bool preFilter)
-{
-	if (otherSurfaces.empty()) { return visibility_; }
-
-	double precision = SettingsCollection::getInstance().linearTolerance();
-	
-	if (!pointGrid_.size()) { populateGrid(SettingsCollection::getInstance().surfaceGridSize()); }
-
-	bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>> shapeIdx;
-	for (const std::shared_ptr<SurfaceGridPair>& surfGridPair : otherSurfaces)
-	{
-		bg::model::box <BoostPoint3D> bbox = bg::model::box < BoostPoint3D >(
-			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair->getLLLPoint())),
-			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair->getURRPoint()))
-			);
-		shapeIdx.insert(std::make_pair(bbox, surfGridPair));
-	}
-
-	for (EvaluationPoint& currentEvalPoint : pointGrid_)
-	{
-		if (!currentEvalPoint.isVisible()) { continue; }
-
-		gp_Pnt basePoint = currentEvalPoint.getPoint();
-		gp_Pnt topPoint = basePoint;
-		topPoint.SetZ(basePoint.Z() + 1000);
-		basePoint.X();
-		bg::model::segment<BoostPoint3D> queryRay{
-			{basePoint.X() ,basePoint.Y(), basePoint.Z()},
-			{basePoint.X() ,basePoint.Y(), basePoint.Z() + 1000} 
-		};
-
-		std::vector<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>> qResult;
-		qResult.clear();
-		shapeIdx.query(bgi::intersects(
-			queryRay), std::back_inserter(qResult));
-
-		for (const auto& [otherbbox, otherSurfacePair] : qResult)
-		{
-			if (helperFunctions::LineShapeIntersection(otherSurfacePair->getFace(), basePoint, topPoint, true))
-			{
-				currentEvalPoint.setInvisible();
-				break;
-			}
-		}
-	}
-
-	for (const EvaluationPoint& currentPoint : pointGrid_)
-	{
-		if (currentPoint.isVisible())
-		{
-			return true;
-		}
-	}
-
-	visibility_ = false;
-	return false;
-}
-
-bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>>& otherSurfacesIndx, bool preFilter)
+bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>>& otherSurfacesIndx, bool preFilter)
 {
 	if (otherSurfacesIndx.empty()) { return visibility_; }
 
@@ -212,7 +154,7 @@ bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, std::
 			{topPoint.X() ,topPoint.Y(), topPoint.Z() }
 		};
 
-		std::vector<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>> qResult;
+		std::vector<std::pair<BoostBox3D, const SurfaceGridPair*>> qResult;
 		qResult.clear();
 		otherSurfacesIndx.query(bgi::intersects(
 			queryRay), std::back_inserter(qResult));

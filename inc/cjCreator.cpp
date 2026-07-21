@@ -390,7 +390,7 @@ std::vector<CJGeoCreator::BuildingSurfaceCollection> CJGeoCreator::sortRoofStruc
 	return buildingSurfaceCollectionList;
 }
 
-std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared_ptr<SurfaceGridPair>>& Collection)
+std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<SurfaceGridPair>& Collection)
 {
 	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
 	double precision = SettingsCollection::getInstance().linearTolerance();
@@ -401,7 +401,7 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<std::shared
 
 	for (size_t i = 0; i < Collection.size(); i++)
 	{
-		const TopoDS_Face& currentFace = Collection[i]->getFace();
+		const TopoDS_Face& currentFace = Collection[i].getFace();
 		if (helperFunctions::computeArea(currentFace) <= precision) { continue; }
 
 		std::vector<TopoDS_Face> currentCleanFaceList = helperFunctions::TessellateFace(currentFace);
@@ -571,11 +571,11 @@ void CJGeoCreator::initializeBasic(DataManager* cluster)
 
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoReduceSurfaces) << std::endl;
 	bgi::rtree<Value, bgi::rstar<treeDepth_>> shapeIdx;
-	std::vector<std::shared_ptr<SurfaceGridPair>> shapeList;
-	reduceSurfaces(filteredObjects, &shapeIdx, &shapeList);
+	std::vector<SurfaceGridPair> shapeList;
+	reduceSurfaces(filteredObjects, &shapeIdx, shapeList);
 
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoFineFiltering) << std::endl;
-	std::vector<std::shared_ptr<SurfaceGridPair>> fineFilteredShapeList = FinefilterSurfaces(shapeList);
+	std::vector<SurfaceGridPair> fineFilteredShapeList = FinefilterSurfaces(shapeList);
 	shapeIdx.clear();
 	shapeList.clear();
 	shapeList.shrink_to_fit();
@@ -2058,13 +2058,12 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<RColl
 }
 
 
-void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, bgi::rtree<Value, bgi::rstar<treeDepth_>>* shapeIdx, std::vector<std::shared_ptr<SurfaceGridPair>>* shapeList)
+void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, bgi::rtree<Value, bgi::rstar<treeDepth_>>* shapeIdx, std::vector<SurfaceGridPair>& shapeList)
 {
 	auto startTime = std::chrono::steady_clock::now();
 
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount() - 1;
-	coreUse = 1;
 	if (coreUse > inputShapes.size()) { coreUse = inputShapes.size(); }
 	int splitListSize = static_cast<int>(floor(inputShapes.size() / coreUse));
 
@@ -2083,7 +2082,7 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 		threadList.emplace_back([this, sublist, &processMutex, &listMutex, &shapeIdx, &shapeList, &counter]() {reduceSurface(sublist, processMutex, listMutex, shapeIdx, shapeList, counter); });
 	}
 
-	//threadList.emplace_back([&] {helperFunctions::updateCounter("Process objects", inputShapes.size(), counter, listMutex); });
+	threadList.emplace_back([&] {helperFunctions::updateCounter("Process objects", inputShapes.size(), counter, listMutex); });
 
 	for (auto& thread : threadList) {
 		if (thread.joinable()) {
@@ -2095,19 +2094,17 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 }
 
 
-void CJGeoCreator::reduceSurface(const std::vector<TopoDS_Shape>& inputShapes, std::mutex& processMutex, std::mutex& listMutex, bgi::rtree<Value, bgi::rstar<treeDepth_>>* shapeIdx, std::vector<std::shared_ptr<SurfaceGridPair>>* shapeList, int& counter)
+void CJGeoCreator::reduceSurface(const std::vector<TopoDS_Shape>& inputShapes, std::mutex& processMutex, std::mutex& listMutex, bgi::rtree<Value, bgi::rstar<treeDepth_>>* shapeIdx, std::vector<SurfaceGridPair>& shapeList, int& counter)
 {
 	for (size_t i = 0; i < inputShapes.size(); i++)
 	{
-		std::cout << "in" << std::endl;
-		std::vector<std::shared_ptr<SurfaceGridPair>> coarseFilteredTopSurfacePairList = getObjectTopSurfaces(inputShapes[i]);
-		std::cout << "out" << std::endl;
-		for (const auto& coarseFilteredTopSurfacePair : coarseFilteredTopSurfacePairList)
+		std::vector<SurfaceGridPair> coarseFilteredTopSurfacePairList = getObjectTopSurfaces(inputShapes[i]);
+		for (const SurfaceGridPair& coarseFilteredTopSurfacePair : coarseFilteredTopSurfacePairList)
 		{
-			auto rtreePair = std::make_pair(helperFunctions::createBBox(coarseFilteredTopSurfacePair->getFace()), static_cast<int>(shapeList->size()));
+			auto rtreePair = std::make_pair(helperFunctions::createBBox(coarseFilteredTopSurfacePair.getFace()), static_cast<int>(shapeList.size()));
 			std::unique_lock<std::mutex> rtreeLock(processMutex);
 			shapeIdx->insert(rtreePair);
-			shapeList->emplace_back(coarseFilteredTopSurfacePair);
+			shapeList.emplace_back(coarseFilteredTopSurfacePair);
 			rtreeLock.unlock();
 		}
 		listMutex.lock();
@@ -2117,26 +2114,26 @@ void CJGeoCreator::reduceSurface(const std::vector<TopoDS_Shape>& inputShapes, s
 	}
 }
 
-std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::FinefilterSurfaces(const std::vector<std::shared_ptr<SurfaceGridPair>>& shapeList)
+std::vector<SurfaceGridPair> CJGeoCreator::FinefilterSurfaces(std::vector<SurfaceGridPair>& shapeList)
 {
 	auto startTime = std::chrono::steady_clock::now();
 
 	// make spatial index of the shapes and compute a score
 	int totalScore = 0;
 	std::vector<int> scoreList;
-	bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>> shapeIdx;
+	bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>> shapeIdx;
 
 	double rayArea = pow(SettingsCollection::getInstance().surfaceGridSize(), 2);
 
-	for (const std::shared_ptr<SurfaceGridPair>& surfGridPair : shapeList)
+	for (const SurfaceGridPair& surfGridPair : shapeList)
 	{
 		bg::model::box <BoostPoint3D> bbox = bg::model::box < BoostPoint3D >(
-			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair->getLLLPoint())),
-			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair->getURRPoint()))
+			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getLLLPoint())),
+			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getURRPoint()))
 			);
-		shapeIdx.insert(std::make_pair(bbox, surfGridPair));
+		shapeIdx.insert(std::make_pair(bbox, &surfGridPair));
 
-		int score = static_cast<int>(floor(helperFunctions::computeArea(surfGridPair->getFace()) * rayArea));
+		int score = static_cast<int>(floor(helperFunctions::computeArea(surfGridPair.getFace()) * rayArea));
 		scoreList.emplace_back(score);
 		totalScore += score;
 	}
@@ -2150,20 +2147,20 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::FinefilterSurfaces(c
 
 	totalScore = totalScore / coreUse;
 
-	std::vector<std::vector<std::shared_ptr<SurfaceGridPair>>> sublists = subListScore(shapeList, scoreList, totalScore);
+	std::vector<std::vector<SurfaceGridPair>> sublists = subListScore(shapeList, scoreList, totalScore);
 	std::vector<std::thread> threadList;
 	std::mutex processMutex;
 	std::mutex listMutex;
 
-	std::vector<std::shared_ptr<SurfaceGridPair>> fineFilteredShapeList;
+	std::vector<SurfaceGridPair> fineFilteredShapeList;
 
 	int counter = 0;
 	int lastIdx = 0;
 	for (size_t i = 0; i < sublists.size(); i++)
 	{
-		std::vector<std::shared_ptr<SurfaceGridPair>> sublist = sublists[i];
+		std::vector<SurfaceGridPair> sublist = sublists[i];
 		threadList.emplace_back([this, sublist, &shapeIdx, &processMutex, &listMutex, &fineFilteredShapeList, &counter]() {
-			FinefilterSurface(sublist, shapeIdx, processMutex, listMutex, &fineFilteredShapeList, counter);
+			FinefilterSurface(sublist, shapeIdx, processMutex, listMutex, fineFilteredShapeList, counter);
 		});
 	}
 
@@ -2181,32 +2178,32 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::FinefilterSurfaces(c
 }
 
 void CJGeoCreator::FinefilterSurface(
-	const std::vector<std::shared_ptr<SurfaceGridPair>>& shapeList,
-	const bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>>& shapeIdx,
+	const std::vector<SurfaceGridPair>& shapeList,
+	const bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>>& shapeIdx,
 	std::mutex& processMutex,
 	std::mutex& listMutex,
-	std::vector<std::shared_ptr<SurfaceGridPair>>* fineFilteredShapeList,
+	std::vector<SurfaceGridPair>& fineFilteredShapeList,
 	int& counter
 )
 {
-	for (const std::shared_ptr<SurfaceGridPair>& currentSurfacePair : shapeList)
+	for (SurfaceGridPair currentSurfacePair : shapeList)
 	{
 		listMutex.lock();
 		counter++;
 		listMutex.unlock();
 
-		if (!currentSurfacePair->testIsVisable(shapeIdx)) { continue; }
+		if (!currentSurfacePair.testIsVisable(shapeIdx, true)) { continue; }
 
 		std::lock_guard<std::mutex> faceLock(processMutex);
-		fineFilteredShapeList->emplace_back(currentSurfacePair);
+		fineFilteredShapeList.emplace_back(currentSurfacePair);
 	}
 	return;
 }
 
-std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::getObjectTopSurfaces(const TopoDS_Shape& shape)
+std::vector<SurfaceGridPair> CJGeoCreator::getObjectTopSurfaces(const TopoDS_Shape& shape)
 {
 	// coarse pre processing of the surfaces
-	std::vector<std::shared_ptr<SurfaceGridPair>> gridPairList;
+	std::vector<SurfaceGridPair> gridPairList;
 	std::vector<gp_Pnt> centerpointHList;
 	bgi::rtree<Value, bgi::rstar<treeDepth_>> spatialIndex;
 
@@ -2220,7 +2217,7 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::getObjectTopSurfaces
 		bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(face);
 		spatialIndex.insert(std::make_pair(bbox, centerpointHList.size()));
 
-		gridPairList.emplace_back(std::make_shared<SurfaceGridPair>(face));
+		gridPairList.emplace_back(SurfaceGridPair(face));
 		centerpointHList.emplace_back(gp_Pnt(centerPoint.X(), centerPoint.Y(), 0));
 	}
 
@@ -2228,9 +2225,9 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::getObjectTopSurfaces
 	if (gridPairList.size() == 2)
 	{
 		gp_Vec horizontalNormal = gp_Vec(0, 0, 1);
-		for (std::shared_ptr<SurfaceGridPair> gridPair : gridPairList)
+		for (SurfaceGridPair gridPair : gridPairList)
 		{
-			if (!horizontalNormal.IsParallel(helperFunctions::computeFaceNormal(gridPair->getFace()), 1e-4))
+			if (!horizontalNormal.IsParallel(helperFunctions::computeFaceNormal(gridPair.getFace()), 1e-4))
 			{
 				isFlat = false;
 			}
@@ -2238,43 +2235,41 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::getObjectTopSurfaces
 
 		if (isFlat)
 		{
-			TopoDS_Face face1 = gridPairList[0]->getFace();
-			TopoDS_Face face2 = gridPairList[1]->getFace();
+			TopoDS_Face face1 = gridPairList[0].getFace();
+			TopoDS_Face face2 = gridPairList[1].getFace();
 
 			if (helperFunctions::getAverageZ(face1) > helperFunctions::getAverageZ(face2)) { return { gridPairList[0] }; }
 			else { return { gridPairList[1] }; }
 		}
 	}
 
-	std::vector<std::shared_ptr<SurfaceGridPair>> visibleSurfaces;
-
-
-	bgi::rtree<std::pair<BoostBox3D, std::shared_ptr<SurfaceGridPair>>, bgi::rstar<25>> shapeIdx;
-	for (const std::shared_ptr<SurfaceGridPair>& surfGridPair : gridPairList)
+	std::vector<SurfaceGridPair> visibleSurfaces;
+	bgi::rtree<std::pair<BoostBox3D,const SurfaceGridPair*>, bgi::rstar<25>> shapeIdx;
+	for (const SurfaceGridPair& surfGridPair : gridPairList)
 	{
 		bg::model::box <BoostPoint3D> bbox = bg::model::box < BoostPoint3D >(
-			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair->getLLLPoint())),
-			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair->getURRPoint()))
+			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getLLLPoint())),
+			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getURRPoint()))
 			);
-		shapeIdx.insert(std::make_pair(bbox, surfGridPair));
+		shapeIdx.insert(std::make_pair(bbox, &surfGridPair));
 	}
 
 	for (int i = 0; i < gridPairList.size(); i++)
 	{
-		std::shared_ptr<SurfaceGridPair> currentGroup = gridPairList[i];
-		if (!currentGroup->isVisible()) { continue; }
+		SurfaceGridPair& currentGroup = gridPairList[i];
+		if (!currentGroup.isVisible()) { continue; }
 
-		TopoDS_Face currentFace = currentGroup->getFace();
+		TopoDS_Face currentFace = currentGroup.getFace();
 		const gp_Pnt& currentCenter = centerpointHList[i];
 
 		// ignore lowest if identical projected points
-		double height = currentGroup->getAvHeight();
-		int vertCount = currentGroup->getVertCount();
+		double height = currentGroup.getAvHeight();
+		int vertCount = currentGroup.getVertCount();
 
 		// querry
-		gp_Pnt upperPoint = currentGroup->getURRPoint();
+		gp_Pnt upperPoint = currentGroup.getURRPoint();
 		upperPoint.Translate(gp_Vec(0, 0, 1000));
-		bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentGroup->getLLLPoint(), upperPoint);
+		bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentGroup.getLLLPoint(), upperPoint);
 		std::vector<Value> qResult;
 		qResult.clear();
 		spatialIndex.query(bgi::intersects(
@@ -2285,21 +2280,21 @@ std::vector<std::shared_ptr<SurfaceGridPair>> CJGeoCreator::getObjectTopSurfaces
 			int otherIdx = qResult[j].second;
 			if (i == otherIdx) { continue; }
 
-			std::shared_ptr<SurfaceGridPair> otherGroup = gridPairList[otherIdx];
-			if (!otherGroup->isVisible()) { continue; }			
-			if (otherGroup->getVertCount() != vertCount) { continue; }
+			const SurfaceGridPair& otherGroup = gridPairList[otherIdx];
+			if (!otherGroup.isVisible()) { continue; }			
+			if (otherGroup.getVertCount() != vertCount) { continue; }
 			if (!currentCenter.IsEqual(centerpointHList[otherIdx], precision)) { continue; }
-			if (height > otherGroup->getAvHeight()) { continue; }
+			if (height > otherGroup.getAvHeight()) { continue; }
 
-			TopoDS_Face otherFace = otherGroup->getFace();
+			TopoDS_Face otherFace = otherGroup.getFace();
 			if (helperFunctions::faceFaceOverlapping(otherFace, currentFace)) {
-				currentGroup->setIsHidden();
+				currentGroup.setIsHidden();
 				break;
 			}
 		}
-		if (!currentGroup->isVisible()) { continue; }
+		if (!currentGroup.isVisible()) { continue; }
 
-		if (currentGroup->testIsVisable(shapeIdx, false))
+		if (currentGroup.testIsVisable(shapeIdx, false))
 		{
 			visibleSurfaces.emplace_back(currentGroup);
 		}

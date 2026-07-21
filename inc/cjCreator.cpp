@@ -2064,19 +2064,28 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount() - 1;
 	if (coreUse > inputShapes.size()) { coreUse = inputShapes.size(); }
-	int splitListSize = static_cast<int>(floor(inputShapes.size() / coreUse));
+
+	int totalScore = 0;
+	std::vector<int> scoreList;
+
+	for (const TopoDS_Shape& currentShape : inputShapes)
+	{
+		int currentScore = helperFunctions::getFaceCount(currentShape);
+		totalScore += currentScore;
+		scoreList.emplace_back(currentScore);
+	}
+	totalScore = totalScore / coreUse;
+
+	std::vector<std::vector<TopoDS_Shape>> sublists = subListScore(inputShapes, scoreList, totalScore);
 
 	std::vector<std::thread> threadList;
 	std::mutex processMutex;
 	std::mutex listMutex;
 	int counter = 0;
 
-	for (size_t i = 0; i < coreUse; i++)
+	for (size_t i = 0; i < sublists.size(); i++)
 	{
-		auto startIdx = inputShapes.begin() + i * splitListSize;
-		auto endIdx = (i == coreUse - 1) ? inputShapes.end() : startIdx + splitListSize;
-
-		std::vector<TopoDS_Shape> sublist(startIdx, endIdx);
+		std::vector<TopoDS_Shape> sublist = sublists[i];
 
 		threadList.emplace_back([this, sublist, &processMutex, &listMutex, &shapeIdx, &shapeList, &counter]() {reduceSurface(sublist, processMutex, listMutex, shapeIdx, shapeList, counter); });
 	}
@@ -2163,7 +2172,7 @@ std::vector<SurfaceGridPair> CJGeoCreator::FinefilterSurfaces(std::vector<Surfac
 		});
 	}
 
-	//threadList.emplace_back([&] {updateCounter("Process surfaces", shapeList.size(), counter, listMutex); });
+	threadList.emplace_back([&] {helperFunctions::updateCounter("Process surfaces", shapeList.size(), counter, listMutex); });
 
 	for (auto& thread : threadList) {
 		if (thread.joinable()) {

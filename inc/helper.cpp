@@ -3688,6 +3688,13 @@ void helperFunctions::writeToOBJ(const std::vector<std::vector<T>>& theShapeList
 	return;
 }
 
+int helperFunctions::getFaceCount(const TopoDS_Shape& inputShape)
+{
+	TopTools_IndexedMapOfShape faces;
+	TopExp::MapShapes(inputShape, TopAbs_FACE, faces);
+	return faces.Extent();
+}
+
 bool helperFunctions::faceIsValid(const TopoDS_Face& theFace)
 {
 	if (theFace.IsNull())

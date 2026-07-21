@@ -411,6 +411,9 @@ struct helperFunctions{
 
 	/// other code
 
+	/// get the total amount of faces in the shape
+	static int getFaceCount(const TopoDS_Shape& inputShape);
+
 	// check if face is valid
 	static bool faceIsValid(const TopoDS_Face& theFace);
 

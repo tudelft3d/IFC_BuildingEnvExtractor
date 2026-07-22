@@ -2015,6 +2015,44 @@ std::vector<TopoDS_Shape> CJGeoCreator::getUniqueShapedObjects(const std::vector
 	return uniqueTopObjects;
 }
 
+void CJGeoCreator::constructTriangleIndx(const std::vector<SurfaceGridPair>& surfacePairList, bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& triangleIndx, std::vector<Triangle>& triangleList)
+{
+	for (const SurfaceGridPair& surfGridPair : surfacePairList)
+	{
+		TopLoc_Location loc;
+		auto mesh = BRep_Tool::Triangulation(surfGridPair.getFace(), loc);
+
+		if (mesh.IsNull())
+		{
+			helperFunctions::triangulateShape(surfGridPair.getFace());
+			mesh = BRep_Tool::Triangulation(surfGridPair.getFace(), loc);
+		}
+		if (mesh.IsNull()) { continue; }
+
+
+		int nbTriangles = mesh.get()->NbTriangles();
+		for (int j = 1; j <= nbTriangles; j++)
+		{
+			const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
+
+			gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
+			gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
+			gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
+
+			std::array<gp_Pnt, 3> triangleArray = { p1, p2, p3 };
+			BoostBox3D bbox = helperFunctions::createBBox(triangleArray);
+			triangleIndx.insert(std::make_pair(bbox, triangleList.size()));
+
+			Triangle triangle;
+			triangle.points_ = triangleArray;
+			triangle.normal_ = gp_Vec(triangleArray[0], triangleArray[1]).Crossed(gp_Vec(triangleArray[0], triangleArray[2])).Normalized();
+
+			triangleList.emplace_back(triangle);
+		}
+	}
+	return;
+}
+
 std::vector<TopoDS_Shape> CJGeoCreator::getTopObjects(DataManager* h)
 {
 	std::vector<TopoDS_Shape> topObjects = beamProjection(h);
@@ -2064,6 +2102,7 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount() - 1;
 	if (coreUse > inputShapes.size()) { coreUse = inputShapes.size(); }
+	coreUse = 1;
 
 	int totalScore = 0;
 	std::vector<int> scoreList;
@@ -2131,47 +2170,11 @@ std::vector<SurfaceGridPair> CJGeoCreator::FinefilterSurfaces(std::vector<Surfac
 	std::vector<int> scoreList;
 	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> triangleIndx;
 	std::vector<Triangle> triangleList;
+	constructTriangleIndx(shapeList, triangleIndx, triangleList);
 
 	double rayArea = pow(SettingsCollection::getInstance().surfaceGridSize(), 2);
-
 	for (const SurfaceGridPair& surfGridPair : shapeList)
 	{
-		bg::model::box <BoostPoint3D> bbox = bg::model::box < BoostPoint3D >(
-			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getLLLPoint())),
-			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getURRPoint()))
-			);
-		
-		TopLoc_Location loc;
-		auto mesh = BRep_Tool::Triangulation(surfGridPair.getFace(), loc);
-
-		if (mesh.IsNull())
-		{
-			helperFunctions::triangulateShape(surfGridPair.getFace());
-			mesh = BRep_Tool::Triangulation(surfGridPair.getFace(), loc);
-		}
-		if (mesh.IsNull()) { continue; }
-
-
-		int nbTriangles = mesh.get()->NbTriangles();
-		for (int j = 1; j <= nbTriangles; j++)
-		{
-			const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
-
-			gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
-			gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
-			gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
-
-			std::array<gp_Pnt, 3> triangleArray = { p1, p2, p3 };
-			BoostBox3D bbox = helperFunctions::createBBox(triangleArray);
-			triangleIndx.insert(std::make_pair(bbox, triangleList.size()));
-
-			Triangle triangle;
-			triangle.points_ = triangleArray;
-			triangle.normal_ = gp_Vec(triangleArray[0], triangleArray[1]).Crossed(gp_Vec(triangleArray[0], triangleArray[2])).Normalized();
-
-			triangleList.emplace_back(triangle);
-		}
-
 		int score = static_cast<int>(floor(helperFunctions::computeArea(surfGridPair.getFace()) * rayArea));
 		scoreList.emplace_back(score);
 		totalScore += score;
@@ -2260,7 +2263,6 @@ std::vector<SurfaceGridPair> CJGeoCreator::getObjectTopSurfaces(const TopoDS_Sha
 		gridPairList.emplace_back(SurfaceGridPair(face));
 		centerpointHList.emplace_back(gp_Pnt(centerPoint.X(), centerPoint.Y(), 0));
 	}
-
 	bool isFlat = true;
 	if (gridPairList.size() == 2)
 	{
@@ -2286,44 +2288,7 @@ std::vector<SurfaceGridPair> CJGeoCreator::getObjectTopSurfaces(const TopoDS_Sha
 	std::vector<SurfaceGridPair> visibleSurfaces;
 	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> shapeIdx;
 	std::vector<Triangle> triangleList;
-	for (SurfaceGridPair& surfGridPair : gridPairList)
-	{
-		bg::model::box <BoostPoint3D> bbox = bg::model::box < BoostPoint3D >(
-			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getLLLPoint())),
-			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getURRPoint()))
-			);
-
-		TopLoc_Location loc;
-		auto mesh = BRep_Tool::Triangulation(surfGridPair.getFace(), loc);
-
-		if (mesh.IsNull())
-		{
-			helperFunctions::triangulateShape(surfGridPair.getFace());
-			mesh = BRep_Tool::Triangulation(surfGridPair.getFace(), loc);
-		}
-		if (mesh.IsNull()) { continue; }
-
-
-		int nbTriangles = mesh.get()->NbTriangles();
-		for (int j = 1; j <= nbTriangles; j++)
-		{
-			const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
-
-			gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
-			gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
-			gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
-
-			std::array<gp_Pnt, 3> triangleArray = { p1, p2, p3 };
-			BoostBox3D bbox = helperFunctions::createBBox(triangleArray);
-			shapeIdx.insert(std::make_pair(bbox, triangleList.size()));
-
-			Triangle triangle;
-			triangle.points_ = triangleArray;
-			triangle.normal_ = gp_Vec(triangleArray[0], triangleArray[1]).Crossed(gp_Vec(triangleArray[0], triangleArray[2])).Normalized();
-
-			triangleList.emplace_back(triangle);
-		}
-	}
+	constructTriangleIndx(gridPairList, shapeIdx, triangleList);
 
 	for (int i = 0; i < gridPairList.size(); i++)
 	{

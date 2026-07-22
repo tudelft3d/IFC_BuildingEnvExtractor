@@ -134,83 +134,12 @@ void SurfaceGridPair::populateGrid(double distance)
 	return;
 }
 
-void SurfaceGridPair::makeIndex()
-{
-	TopLoc_Location loc;
-	auto mesh = BRep_Tool::Triangulation(theFace_, loc);
-
-	if (mesh.IsNull())
-	{
-		helperFunctions::triangulateShape(theFace_);
-		mesh = BRep_Tool::Triangulation(theFace_, loc);
-	}
-	if (mesh.IsNull()) { return; }
-
-	int nbTriangles = mesh.get()->NbTriangles();
-	triangleList_.reserve(nbTriangles);
-	for (int j = 1; j <= nbTriangles; j++)
-	{
-		const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
-
-		gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
-		gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
-		gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
-
-		std::array<gp_Pnt, 3> triangleArray = { p1, p2, p3 };
-		BoostBox3D bbox = helperFunctions::createBBox(triangleArray);
-		triangleIndex_.insert(std::make_pair(bbox, triangleList_.size()));
-
-		Triangle triangle;
-		triangle.points_ = triangleArray;
-		triangle.normal_ = gp_Vec(triangleArray[0], triangleArray[1]).Crossed(gp_Vec(triangleArray[0], triangleArray[2])).Normalized();
-
-		triangleList_.emplace_back(triangle);
-	}
-	return;
-}
-
-void SurfaceGridPair::queryMesh(BoostBox3D bbox, std::vector<int>& indxList) const
-{
-	indxList.clear();
-
-	std::vector<std::pair<BoostBox3D, int>> qResult;
-	qResult.clear();
-	triangleIndex_.query(bgi::intersects(
-		bbox), std::back_inserter(qResult));
-
-	indxList.reserve(qResult.size());
-	for (const auto& [bbox, indx] : qResult)
-	{
-		indxList.emplace_back(indx);
-	}
-
-	return;
-}
-
-void SurfaceGridPair::queryMesh(bg::model::segment<BoostPoint3D> qRay, std::vector<int>& indxList) const
-{
-	indxList.clear();
-
-	std::vector<std::pair<BoostBox3D, int>> qResult;
-	qResult.clear();
-	triangleIndex_.query(bgi::intersects(
-		qRay), std::back_inserter(qResult));
-
-	indxList.reserve(qResult.size());
-	for (const auto& [bbox, indx] : qResult)
-	{
-		indxList.emplace_back(indx);
-	}
-
-	return;
-}
 
 bool SurfaceGridPair::testIsVisable(const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& otherTriangleIndex, const std::vector<Triangle>& otherTriangleList, bool preFilter)
 {
 	if (otherTriangleIndex.empty() || otherTriangleList.empty()) {
 		return visibility_;
 	}
-
 	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	if (!pointGrid_.size()) { populateGrid(SettingsCollection::getInstance().surfaceGridSize()); }

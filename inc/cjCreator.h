@@ -111,6 +111,8 @@ private:
 
 	// roof surface detection and cleaning code
 
+	void constructTriangleIndx(const std::vector <SurfaceGridPair>& surfacePairList, bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& triangleIndx, std::vector<Triangle>& triangleList);
+
 	/// @brief get the top geometry objects of the model
 	std::vector<TopoDS_Shape> getTopObjects(DataManager* h);
 	/// get top objects by projecting the top voxel grid in beams downwards

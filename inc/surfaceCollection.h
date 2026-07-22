@@ -92,10 +92,6 @@ public:
 	void populateGrid(double distance);
 
 	bool hasIndex() const { return hasIndex_; }
-	void makeIndex();
-
-	// return the indx of the triangles the bbox intersects with
-	void queryMesh(BoostBox3D bbox, std::vector<int>& indxList) const;
 
 	// return the indx of the triangles the section intersects with
 	void queryMesh(bg::model::segment<BoostPoint3D>  bbox, std::vector<int>& indxList) const;

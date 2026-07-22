@@ -245,6 +245,8 @@ struct helperFunctions{
 	static bool pointOnMesh(const Handle(Poly_Triangulation)& theMesh, const TopLoc_Location& loc, const gp_Pnt& thePoint, double precision = 0.0);
 	/// check if point is on triangle p1p2p3
 	static bool pointOnTriangle(const gp_Pnt& thePoint, const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3);
+	/// check if point is on triangle p1p2p3
+	static bool pointOnTriangle(const gp_Pnt& thePoint, const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3, const gp_Vec& normal);
 	/// check if 2D point is on 2D triangle p1p2p3
 	static bool pointOnTriangle(const gp_Pnt2d& thePoint, const gp_Pnt2d& p1, const gp_Pnt2d& p2, const gp_Pnt2d& p3);
 	/// check if uv/2D point is on uv range of mesh
@@ -289,6 +291,8 @@ struct helperFunctions{
 
 	/// check if line intersects triangle
 	static bool triangleIntersecting(const std::array<gp_Pnt, 2>& line, const std::array<gp_Pnt, 3>& triangle);
+	/// check if line intersects triangle
+	static bool triangleIntersecting(const std::array<gp_Pnt, 2>& line, const std::array<gp_Pnt, 3>& triangle, const gp_Vec& triangleNormal);
 	/// test if point falls within the triangle
 	static bool baryCentricTest(const gp_Pnt& point, const std::array<gp_Pnt, 3>& triangle);
 

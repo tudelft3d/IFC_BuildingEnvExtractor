@@ -970,21 +970,29 @@ bool helperFunctions::pointOnMesh(const Handle(Poly_Triangulation)& theMesh, con
 bool helperFunctions::pointOnTriangle(const gp_Pnt& thePoint, const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3)
 {
 	double precision = SettingsCollection::getInstance().linearTolerance();
+
 	gp_Vec v12 = gp_Vec(p1, p2);
 	if (v12.Magnitude() < precision) { return false; }
 	gp_Vec v13 = gp_Vec(p1, p3);
 	if (v13.Magnitude() < precision) { return false; }
 
 	gp_Vec triangleNormal = v12.Crossed(v13);
-	double maxEdge = std::max(v12.Magnitude(), v13.Magnitude());
-	double area2 = triangleNormal.SquareMagnitude();
+	return pointOnTriangle(thePoint, p1, p2, p3, triangleNormal);
+	
+}
+
+bool helperFunctions::pointOnTriangle(const gp_Pnt& thePoint, const gp_Pnt& p1, const gp_Pnt& p2, const gp_Pnt& p3, const gp_Vec& normal)
+{
+	double precision = SettingsCollection::getInstance().linearTolerance();
+
+	double area2 = normal.SquareMagnitude();
 	if (area2 < precision * precision) { return false; }
 
-	double normalMag = triangleNormal.Magnitude();
-	double distancePlanePoint = triangleNormal.Dot(gp_Vec(p1, thePoint)) / normalMag;
+	double normalMag = normal.Magnitude();
+	double distancePlanePoint = normal.Dot(gp_Vec(p1, thePoint)) / normalMag;
 	if (std::abs(distancePlanePoint) > precision) { return false; }
 
-	gp_Vec unitNormal = triangleNormal / normalMag; // unit normal
+	gp_Vec unitNormal = normal / normalMag; // unit normal
 	gp_Pnt projected = thePoint.Translated(-unitNormal * distancePlanePoint);
 
 	if (baryCentricTest(projected, { p1, p2, p3 })) { return true; }
@@ -1432,16 +1440,22 @@ bool helperFunctions::surfaceIsIncapsulated(const TopoDS_Face& innerSurface, con
 	return true;
 }
 
+
 bool helperFunctions::triangleIntersecting(const std::array<gp_Pnt, 2>& line, const std::array<gp_Pnt, 3>& triangle)
 {
+	gp_Vec triangleNormal = gp_Vec(triangle[0], triangle[1]).Crossed(gp_Vec(triangle[0], triangle[2]));
+	triangleNormal.Normalize();
+	return triangleIntersecting(line, triangle, triangleNormal);
+}
+
+bool helperFunctions::triangleIntersecting(const std::array<gp_Pnt, 2>& line, const std::array<gp_Pnt, 3>& triangle, const gp_Vec& triangleNormal)
+{
 	double precision = SettingsCollection::getInstance().linearTolerance();
+	if (triangleNormal.Magnitude() < precision) { return false; }
+
 
 	const gp_Pnt& lineStart = line[0];
 	const gp_Pnt& lineEnd = line[1];
-
-	gp_Vec triangleNormal = gp_Vec(triangle[0], triangle[1]).Crossed(gp_Vec(triangle[0], triangle[2]));
-	if (triangleNormal.Magnitude() < precision) { return false; }
-	triangleNormal.Normalize();
 
 	double distancePlaneLineStart = triangleNormal.Dot(gp_Vec(triangle[0], lineStart));
 	double distancePlaneLineEnd = triangleNormal.Dot(gp_Vec(triangle[0], lineEnd));

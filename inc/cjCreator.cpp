@@ -2129,7 +2129,8 @@ std::vector<SurfaceGridPair> CJGeoCreator::FinefilterSurfaces(std::vector<Surfac
 	// make spatial index of the shapes and compute a score
 	int totalScore = 0;
 	std::vector<int> scoreList;
-	bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>> shapeIdx;
+	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> triangleIndx;
+	std::vector<Triangle> triangleList;
 
 	double rayArea = pow(SettingsCollection::getInstance().surfaceGridSize(), 2);
 
@@ -2139,7 +2140,37 @@ std::vector<SurfaceGridPair> CJGeoCreator::FinefilterSurfaces(std::vector<Surfac
 			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getLLLPoint())),
 			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getURRPoint()))
 			);
-		shapeIdx.insert(std::make_pair(bbox, &surfGridPair));
+		
+		TopLoc_Location loc;
+		auto mesh = BRep_Tool::Triangulation(surfGridPair.getFace(), loc);
+
+		if (mesh.IsNull())
+		{
+			helperFunctions::triangulateShape(surfGridPair.getFace());
+			mesh = BRep_Tool::Triangulation(surfGridPair.getFace(), loc);
+		}
+		if (mesh.IsNull()) { continue; }
+
+
+		int nbTriangles = mesh.get()->NbTriangles();
+		for (int j = 1; j <= nbTriangles; j++)
+		{
+			const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
+
+			gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
+			gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
+			gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
+
+			std::array<gp_Pnt, 3> triangleArray = { p1, p2, p3 };
+			BoostBox3D bbox = helperFunctions::createBBox(triangleArray);
+			triangleIndx.insert(std::make_pair(bbox, triangleList.size()));
+
+			Triangle triangle;
+			triangle.points_ = triangleArray;
+			triangle.normal_ = gp_Vec(triangleArray[0], triangleArray[1]).Crossed(gp_Vec(triangleArray[0], triangleArray[2])).Normalized();
+
+			triangleList.emplace_back(triangle);
+		}
 
 		int score = static_cast<int>(floor(helperFunctions::computeArea(surfGridPair.getFace()) * rayArea));
 		scoreList.emplace_back(score);
@@ -2167,8 +2198,8 @@ std::vector<SurfaceGridPair> CJGeoCreator::FinefilterSurfaces(std::vector<Surfac
 	for (size_t i = 0; i < sublists.size(); i++)
 	{
 		std::vector<SurfaceGridPair> sublist = sublists[i];
-		threadList.emplace_back([this, sublist, &shapeIdx, &processMutex, &listMutex, &fineFilteredShapeList, &counter]() {
-			FinefilterSurface(sublist, shapeIdx, processMutex, listMutex, fineFilteredShapeList, counter);
+		threadList.emplace_back([this, sublist, &triangleIndx, &triangleList, &processMutex, &listMutex, &fineFilteredShapeList, &counter]() {
+			FinefilterSurface(sublist, triangleIndx, triangleList, processMutex, listMutex, fineFilteredShapeList, counter);
 		});
 	}
 
@@ -2187,7 +2218,8 @@ std::vector<SurfaceGridPair> CJGeoCreator::FinefilterSurfaces(std::vector<Surfac
 
 void CJGeoCreator::FinefilterSurface(
 	const std::vector<SurfaceGridPair>& shapeList,
-	const bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>>& shapeIdx,
+	const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& triangleIndx,
+	const std::vector<Triangle>& triangleList,
 	std::mutex& processMutex,
 	std::mutex& listMutex,
 	std::vector<SurfaceGridPair>& fineFilteredShapeList,
@@ -2200,7 +2232,7 @@ void CJGeoCreator::FinefilterSurface(
 		counter++;
 		listMutex.unlock();
 
-		if (!currentSurfacePair.testIsVisable(shapeIdx, true)) { continue; }
+		if (!currentSurfacePair.testIsVisable(triangleIndx, triangleList, true)) { continue; }
 
 		std::lock_guard<std::mutex> faceLock(processMutex);
 		fineFilteredShapeList.emplace_back(currentSurfacePair);
@@ -2252,15 +2284,45 @@ std::vector<SurfaceGridPair> CJGeoCreator::getObjectTopSurfaces(const TopoDS_Sha
 	}
 
 	std::vector<SurfaceGridPair> visibleSurfaces;
-	bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>> shapeIdx;
+	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> shapeIdx;
+	std::vector<Triangle> triangleList;
 	for (SurfaceGridPair& surfGridPair : gridPairList)
 	{
 		bg::model::box <BoostPoint3D> bbox = bg::model::box < BoostPoint3D >(
 			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getLLLPoint())),
 			BoostPoint3D(helperFunctions::Point3DOTB(surfGridPair.getURRPoint()))
 			);
-		shapeIdx.insert(std::make_pair(bbox, &surfGridPair));
-		surfGridPair.makeIndex();
+
+		TopLoc_Location loc;
+		auto mesh = BRep_Tool::Triangulation(surfGridPair.getFace(), loc);
+
+		if (mesh.IsNull())
+		{
+			helperFunctions::triangulateShape(surfGridPair.getFace());
+			mesh = BRep_Tool::Triangulation(surfGridPair.getFace(), loc);
+		}
+		if (mesh.IsNull()) { continue; }
+
+
+		int nbTriangles = mesh.get()->NbTriangles();
+		for (int j = 1; j <= nbTriangles; j++)
+		{
+			const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
+
+			gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
+			gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
+			gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
+
+			std::array<gp_Pnt, 3> triangleArray = { p1, p2, p3 };
+			BoostBox3D bbox = helperFunctions::createBBox(triangleArray);
+			shapeIdx.insert(std::make_pair(bbox, triangleList.size()));
+
+			Triangle triangle;
+			triangle.points_ = triangleArray;
+			triangle.normal_ = gp_Vec(triangleArray[0], triangleArray[1]).Crossed(gp_Vec(triangleArray[0], triangleArray[2])).Normalized();
+
+			triangleList.emplace_back(triangle);
+		}
 	}
 
 	for (int i = 0; i < gridPairList.size(); i++)
@@ -2279,31 +2341,8 @@ std::vector<SurfaceGridPair> CJGeoCreator::getObjectTopSurfaces(const TopoDS_Sha
 		gp_Pnt upperPoint = currentGroup.getURRPoint();
 		upperPoint.Translate(gp_Vec(0, 0, 1000));
 		bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentGroup.getLLLPoint(), upperPoint);
-		std::vector<Value> qResult;
-		qResult.clear();
-		spatialIndex.query(bgi::intersects(
-			bbox), std::back_inserter(qResult));
-		// cull faces completely overlapped by one other face
-		for (size_t j = 0; j < qResult.size(); j++)
-		{
-			int otherIdx = qResult[j].second;
-			if (i == otherIdx) { continue; }
 
-			const SurfaceGridPair& otherGroup = gridPairList[otherIdx];
-			if (!otherGroup.isVisible()) { continue; }			
-			if (otherGroup.getVertCount() != vertCount) { continue; }
-			if (!currentCenter.IsEqual(centerpointHList[otherIdx], precision)) { continue; }
-			if (height > otherGroup.getAvHeight()) { continue; }
-
-			TopoDS_Face otherFace = otherGroup.getFace();
-			if (helperFunctions::faceFaceOverlapping(otherFace, currentFace)) {
-				currentGroup.setIsHidden();
-				break;
-			}
-		}
-		if (!currentGroup.isVisible()) { continue; }
-
-		if (currentGroup.testIsVisable(shapeIdx, false))
+		if (currentGroup.testIsVisable(shapeIdx, triangleList, false))
 		{
 			visibleSurfaces.emplace_back(currentGroup);
 		}

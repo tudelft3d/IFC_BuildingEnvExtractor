@@ -36,6 +36,12 @@ public:
 };
 
 
+struct Triangle
+{
+	std::array<gp_Pnt, 3> points_;
+	gp_Vec normal_;
+};
+
 // contains the data of a single TopoDS_Face with its matching grid
 class SurfaceGridPair {
 private: 
@@ -50,7 +56,8 @@ private:
 	double avHeight_;
 	int vertCount_ = 0;
 
-	bgi::rtree<std::pair<BoostBox3D, std::array<gp_Pnt, 3>>, bgi::rstar<25>> triangleIndex_;
+	std::vector<Triangle> triangleList_;
+	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> triangleIndex_;
 
 	// usability information
 	bool visibility_ = true;
@@ -75,6 +82,8 @@ public:
 
 	int getVertCount() const { return vertCount_; }
 
+	const Triangle& getTriangle(int idx) const { return triangleList_[idx]; }
+
 	std::vector<EvaluationPoint>* getPointGridPtr() { return &pointGrid_; }
 
 	bool isVisible() const { return visibility_; }
@@ -85,10 +94,13 @@ public:
 	bool hasIndex() const { return hasIndex_; }
 	void makeIndex();
 
-	std::vector<std::pair<BoostBox3D, std::array<gp_Pnt, 3>>> queryMesh(BoostBox3D bbox);
-	std::vector<std::pair<BoostBox3D, std::array<gp_Pnt, 3>>> queryMesh(bg::model::segment<BoostPoint3D>  bbox);
+	// return the indx of the triangles the bbox intersects with
+	void queryMesh(BoostBox3D bbox, std::vector<int>& indxList) const;
 
-	bool testIsVisable(const bgi::rtree<std::pair<BoostBox3D, const SurfaceGridPair*>, bgi::rstar<25>>& otherSurfacesIndx, bool preFilter);
+	// return the indx of the triangles the section intersects with
+	void queryMesh(bg::model::segment<BoostPoint3D>  bbox, std::vector<int>& indxList) const;
+
+	bool testIsVisable(const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& otherTriangleIndex,  const std::vector<Triangle>& otherTriangleList, bool preFilter);
 };
 
 

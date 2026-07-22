@@ -102,7 +102,7 @@ private:
 
 	double voxelSize_ = 0.5;
 	double surfaceGridSize_ = 0.2;
-    int minGridPointCount_ = 5;
+    int minGridPointCount_ = 1;
 
 	bool autoRotateGrid_ = true;
 	double desiredRotation_ = 0;

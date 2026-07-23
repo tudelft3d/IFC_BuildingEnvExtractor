@@ -394,9 +394,8 @@ class GuiSettings:
                     if type(path) != str:
                         self.throw_error_window("Filepaths Input")
                         return False
-                    if len(path) == 0:
-                        continue
-                    input_path += path + " "
+
+                input_path = "; ".join(json_input_path_list)
 
                 if len(input_path) != 0:
                     self.paths.input_path.set(input_path)

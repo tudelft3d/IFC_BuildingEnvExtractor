@@ -356,6 +356,7 @@ def isConfigJSON(json_file):
 
 def load_custom_config(toggleDict, settings, main_window, preferences):
     json_filepath = filedialog.askopenfilenames(
+        title="Open ConfigJSON",
         filetypes=[("ConfigJSON", ".json")],
         defaultextension=".json",
         initialdir=preferences.config_open_browse_path)

@@ -35,6 +35,7 @@ def runCode(preferences, settings, message_div_objects, is_gen, main_window = {}
     config_path = ""
     if is_gen:
         config_path = filedialog.asksaveasfilename(
+            title="Store ConfigJSON",
             filetypes=[("JSON file", ".json")],
             defaultextension=".json",
             initialfile=Path(input_path_list[0]).stem + json_path_end,

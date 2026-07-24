@@ -1631,7 +1631,7 @@ TopoDS_Wire helperFunctions::mergeWireOrientated(const TopoDS_Wire& baseWire, co
 	return TopoDS_Wire();
 }
 
-std::vector<TopoDS_Face> helperFunctions::mergeFaces(const std::vector<TopoDS_Face>& theFaceList)
+std::vector<TopoDS_Face> helperFunctions::mergeFaces(const std::vector<TopoDS_Face>& theFaceList, bool communicate)
 {
 	if (theFaceList.size() == 1) { return theFaceList; }
 	double precision = SettingsCollection::getInstance().linearTolerance();
@@ -1650,7 +1650,13 @@ std::vector<TopoDS_Face> helperFunctions::mergeFaces(const std::vector<TopoDS_Fa
 	std::vector<TopoDS_Face> cleanedFaceCollection;
 	bool hasMergedFaces = false;
 
-	for (size_t i = 0; i < faceNormalList.size(); i++) //TODO: indexing?
+	if (communicate)
+	{
+		std::cout << "\tProcess surfaces - 0 of " << theFaceList.size() << "\r";
+	}
+	int currentCount = 0;
+
+	for (size_t i = 0; i < faceNormalList.size(); i++)
 	{
 		if (evalList[i] == 1) { continue; }
 		std::vector<TopoDS_Face> mergingPairList;
@@ -1675,10 +1681,20 @@ std::vector<TopoDS_Face> helperFunctions::mergeFaces(const std::vector<TopoDS_Fa
 		if (mergingPairList.size() == 1)
 		{
 			cleanedFaceCollection.emplace_back(currentFace);
+			if (communicate)
+			{
+				currentCount++;
+				std::cout << "\tProcess surfaces - " << currentCount << " of " << theFaceList.size() << "\r";
+			}
 			continue;
 		}
 
 		std::vector<TopoDS_Face> mergedFaceList = planarFaces2Outline(mergingPairList);
+		if (communicate)
+		{
+			currentCount += mergingPairList.size();
+			std::cout << "\tProcess surfaces - " << currentCount << " of " << theFaceList.size() << "\r";
+		}
 
 		if (mergedFaceList.empty())
 		{
@@ -1696,6 +1712,10 @@ std::vector<TopoDS_Face> helperFunctions::mergeFaces(const std::vector<TopoDS_Fa
 				cleanedFaceCollection.emplace_back(mergedFace);
 			}
 		}
+	}
+	if (communicate)
+	{
+		std::cout << "\tProcess surfaces - " << currentCount << " of " << theFaceList.size() << "\n";
 	}
 	return cleanedFaceCollection;
 }
@@ -2740,43 +2760,124 @@ std::vector<TopoDS_Shape> helperFunctions::planarFaces2Cluster(const std::vector
 
 std::vector<TopoDS_Edge> helperFunctions::planarFaces2EdgeCluster(const std::vector<TopoDS_Face>& planarFaces)
 {
+	// remove triangle dubs and index
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Edge>, bgi::rstar<25>> edgeIndex;
+	bgi::rtree<std::pair<BoostBox3D, TopoDS_Edge>, bgi::rstar<25>> edgeIndexClean;
 	for (const TopoDS_Face currentFace : planarFaces)
 	{
-		for (TopExp_Explorer exp(currentFace, TopAbs_EDGE); exp.More(); exp.Next()) {
-			const TopoDS_Edge& currentEdge = TopoDS::Edge(exp.Current());
+		if (getPointCount(currentFace) != 3)
+		{
+			for (TopExp_Explorer edgeExpl(currentFace, TopAbs_EDGE); edgeExpl.More(); edgeExpl.Next()) {
+				TopoDS_Edge currentEdge = TopoDS::Edge(edgeExpl.Current());
 
-			// check if line is linear:
-			if (!isStraight(currentEdge))
-			{
-				TopoDS_Wire compoundWire = CurveToCompound(currentEdge);
+				if (!isStraight(currentEdge))
+				{
+					TopoDS_Wire compoundWire = CurveToCompound(currentEdge);
 
-				for (TopExp_Explorer exp(compoundWire, TopAbs_EDGE); exp.More(); exp.Next()) {
-					const TopoDS_Edge& compundEdge = TopoDS::Edge(exp.Current());
-					edgeIndex.insert(std::make_pair(createBBox(compundEdge), compundEdge));
+					for (TopExp_Explorer exp(compoundWire, TopAbs_EDGE); exp.More(); exp.Next()) {
+						const TopoDS_Edge& compundEdge = TopoDS::Edge(exp.Current());
+						edgeIndexClean.insert(std::make_pair(createBBox(compundEdge), compundEdge));
+					}
+					continue;
 				}
-				continue;
+				edgeIndexClean.insert(std::make_pair(createBBox(currentEdge), currentEdge));
 			}
-			edgeIndex.insert(std::make_pair(createBBox(currentEdge), currentEdge));
+			continue;
+		}
+		else
+		{
+			std::cout << "hit\n";
+		}
+
+		gp_Vec currentVec = computeFaceNormal(currentFace);
+		bool isForwards = currentVec.Z() > 0;
+
+		for (TopExp_Explorer wireExpl(currentFace, TopAbs_WIRE); wireExpl.More(); wireExpl.Next()) {
+			const TopoDS_Wire& currentWire = TopoDS::Wire(wireExpl.Current());
+
+			for (BRepTools_WireExplorer wireExpl(currentWire, currentFace); wireExpl.More(); wireExpl.Next()) {
+				TopoDS_Edge currentEdge = TopoDS::Edge(wireExpl.Current());
+				if ((currentEdge.Orientation() == TopAbs_REVERSED) ^ isForwards)
+				{
+					currentEdge.Reverse();
+				}
+
+				if (!isStraight(currentEdge))
+				{
+					TopoDS_Wire compoundWire = CurveToCompound(currentEdge);
+
+					for (TopExp_Explorer exp(compoundWire, TopAbs_EDGE); exp.More(); exp.Next()) {
+						const TopoDS_Edge& compundEdge = TopoDS::Edge(exp.Current());
+						edgeIndex.insert(std::make_pair(createBBox(compundEdge), compundEdge));
+					}
+					continue;
+				}
+				edgeIndex.insert(std::make_pair(createBBox(currentEdge), currentEdge));
+			}
 		}
 	}
 
-	// split all edges with eachother
-	bgi::rtree<std::pair<BoostBox3D, TopoDS_Edge>, bgi::rstar<25>> splitEdgeIndex;
-	std::vector<TopoDS_Edge> uniqueSplitEdges;
-	for (const std::pair<BoostBox3D, TopoDS_Edge>& currentPair : edgeIndex)
+
+	for (const std::pair<BoostBox3D, TopoDS_Edge> currentPair : edgeIndex)
 	{
-		const TopoDS_Edge& currentEdge = currentPair.second;
-
-		BRepAlgoAPI_Splitter splitter;
-		splitter.SetFuzzyValue(1e-6);
-		TopTools_ListOfShape toolList;
-		TopTools_ListOfShape argumentList;
-
 		std::vector<std::pair<BoostBox3D, TopoDS_Edge>> qResult;
 		qResult.clear();
 		edgeIndex.query(bgi::intersects(
 			currentPair.first), std::back_inserter(qResult));
+
+		const TopoDS_Edge& currentEdge = currentPair.second;
+		const gp_Pnt& currentP1 = helperFunctions::getFirstPointShape(currentEdge);
+		const gp_Pnt& currentP2 = helperFunctions::getLastPointShape(currentEdge);
+
+		bool isUnique = true;
+		for (const std::pair<BoostBox3D, TopoDS_Edge>& otherPair : qResult)
+		{
+			const TopoDS_Edge& otherEdge = otherPair.second;
+
+			const gp_Pnt& otherP1 = helperFunctions::getFirstPointShape(otherEdge);
+			const gp_Pnt& otherP2 = helperFunctions::getLastPointShape(otherEdge);
+
+			if (currentP1.IsEqual(otherP1, 1e-6) && currentP2.IsEqual(otherP2, 1e-6))
+			{
+				continue;
+			}
+
+			if (currentP1.IsEqual(otherP2, 1e-6) && currentP2.IsEqual(otherP1, 1e-6))
+			{
+				isUnique = false;
+				break;
+			}
+		}
+		if (!isUnique) { continue; }
+		edgeIndexClean.insert(currentPair);
+	}
+
+
+	// split all edges with eachother
+	bgi::rtree<std::pair<BoostBox3D, TopoDS_Edge>, bgi::rstar<25>> splitEdgeIndex;
+	std::vector<TopoDS_Edge> uniqueSplitEdges;
+
+	BRepAlgoAPI_Splitter splitter;
+	splitter.SetFuzzyValue(1e-6);
+	TopTools_ListOfShape toolList;
+	TopTools_ListOfShape argumentList;
+
+	for (const std::pair<BoostBox3D, TopoDS_Edge>& currentPair : edgeIndexClean)
+	{
+		const TopoDS_Edge& currentEdge = currentPair.second;
+		
+		splitter.ClearWarnings();
+		toolList.Clear();
+		argumentList.Clear();
+
+		std::vector<std::pair<BoostBox3D, TopoDS_Edge>> qResult;
+		qResult.clear();
+		edgeIndexClean.query(bgi::intersects(
+			currentPair.first), std::back_inserter(qResult));
+
+		const gp_Pnt& currentP1 = helperFunctions::getFirstPointShape(currentEdge);
+		const gp_Pnt& currentP2 = helperFunctions::getLastPointShape(currentEdge);
+		gp_Vec currentVec = gp_Vec(currentP1, currentP2);
 
 		if (qResult.empty()) { continue; }
 		for (const std::pair<BoostBox3D, TopoDS_Edge>& otherPair : qResult)
@@ -2784,15 +2885,39 @@ std::vector<TopoDS_Edge> helperFunctions::planarFaces2EdgeCluster(const std::vec
 			const TopoDS_Edge& otherEdge = otherPair.second;
 
 			if (currentEdge.IsSame(otherEdge)) { continue; }
+			const gp_Pnt& otherP1 = helperFunctions::getFirstPointShape(otherEdge);
+			const gp_Pnt& otherP2 = helperFunctions::getLastPointShape(otherEdge);
+
+			if (currentP1.IsEqual(otherP1, 1e-6) || currentP1.IsEqual(otherP2, 1e-6) ||
+				currentP2.IsEqual(otherP1, 1e-6) || currentP2.IsEqual(otherP2, 1e-6))
+			{
+				continue;
+			}
+
+			if (gp_Vec(otherP1, otherP2).IsParallel(currentVec, 1e-6))
+			{
+				continue;
+			}
+
 			toolList.Append(otherEdge);
 		}
 
-		argumentList.Append(currentEdge);
-		splitter.SetArguments(argumentList);
-		splitter.SetTools(toolList);
-		splitter.Build();
+		TopoDS_Shape splittedShape;
+		if (toolList.IsEmpty())
+		{
+			splittedShape = currentEdge;
+		}
+		else
+		{
+			argumentList.Append(currentEdge);
+			splitter.SetArguments(argumentList);
+			splitter.SetTools(toolList);
+			splitter.Build();
+			splittedShape = splitter.Shape();
+		}
 
-		for (TopExp_Explorer exp(splitter.Shape(), TopAbs_EDGE); exp.More(); exp.Next()) {
+		// check if unique
+		for (TopExp_Explorer exp(splittedShape, TopAbs_EDGE); exp.More(); exp.Next()) {
 			const TopoDS_Edge& splitEdge = TopoDS::Edge(exp.Current());
 
 			if (getFirstPointShape(splitEdge).IsEqual(getLastPointShape(splitEdge), 1e-6))

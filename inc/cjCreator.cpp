@@ -408,7 +408,7 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<SurfaceGrid
 		faceList.insert(faceList.end(), currentCleanFaceList.begin(), currentCleanFaceList.end());
 	}
 
-	std::vector<TopoDS_Face> mergedfaceList = helperFunctions::mergeFaces(faceList);
+	std::vector<TopoDS_Face> mergedfaceList = helperFunctions::mergeFaces(faceList, true);
 
 	for (const TopoDS_Face& currentCleanFace : mergedfaceList)
 	{
@@ -998,6 +998,7 @@ void CJGeoCreator::makeFloorSection(std::vector<TopoDS_Face>& facesOut, DataMana
 	bg::model::box <BoostPoint3D> searchBox = helperFunctions::createBBox(cuttingPlane, 0.15);
 	h->getIndexPointer()->query(bgi::intersects(searchBox), std::back_inserter(productLookupValues));
 	std::vector<TopoDS_Face> splitFaceList = section2Faces(productLookupValues, h, sectionHeight);
+
 
 	if (!splitFaceList.size())
 	{
@@ -2102,7 +2103,6 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount() - 1;
 	if (coreUse > inputShapes.size()) { coreUse = inputShapes.size(); }
-	coreUse = 1;
 
 	int totalScore = 0;
 	std::vector<int> scoreList;
@@ -2869,8 +2869,8 @@ void CJGeoCreator::make2DStoreys(
 	std::vector<TopoDS_Shape> copyGeoList;
 	for (const std::shared_ptr<CJT::CityObject>& storeyCityObject : storeyObjects_)
 	{
-		make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03);
-		//threadList.emplace_back([&]() {make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03); });
+		//make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03);
+		threadList.emplace_back([&]() {make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03); });
 	}
 
 	threadList.emplace_back([&] {monitorStoreys(storeyMutex, storyProgressList, storeyCityObjects.size()); });

@@ -108,47 +108,47 @@ std::string CommunicationStringEnum::getString(CommunicationStringID id)
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Pair voxels";
 
 	case CommunicationStringID::infoComputingStoreys02:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 0.2 Storeys";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD0.2 Storeys";
 	case CommunicationStringID::infoComputingStoreys03:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 0.3 Storeys";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD0.3 Storeys";
 	case CommunicationStringID::infoComputingLoD00:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 0.0 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD0.0 Model";
 	case CommunicationStringID::infoComputingLoD02:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 0.2 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD0.2 Model";
 	case CommunicationStringID::infoComputingLoD03:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 0.3 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD0.3 Model";
 	case CommunicationStringID::infoComputingLoD04:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 0.4 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD0.4 Model";
 	case CommunicationStringID::infoComputingLoD10:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 1.0 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD1.0 Model";
 	case CommunicationStringID::infoComputingLoD12:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 1.2 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD1.2 Model";
 	case CommunicationStringID::infoComputingLoD13:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 1.3 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD1.3 Model";
 	case CommunicationStringID::infoComputingLoD22:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 2.2 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD2.2 Model";
 	case CommunicationStringID::infoComputingLoDb0:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD b.0 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoDb.0 Model";
 	case CommunicationStringID::infoComputingLoDc1:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD c.1 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoDc.1 Model";
 	case CommunicationStringID::infoComputingLoDc2:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD c.2 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoDc.2 Model";
 	case CommunicationStringID::infoComputingLoDd1:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD d.1 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoDd.1 Model";
 	case CommunicationStringID::infoComputingLoDd2:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD d.2 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoDd.2 Model";
 	case CommunicationStringID::infoComputingLoDe1:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD e.1 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoDe.1 Model";
 	case CommunicationStringID::infoComputingLoD32:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 3.2 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD3.2 Model";
 	case CommunicationStringID::infoComputingLoD40:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 4.0 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD4.0 Model";
 	case CommunicationStringID::infoComputingLoD41:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 4.1 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD4.1 Model";
 	case CommunicationStringID::infoComputingLoD42:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 4.2 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD4.2 Model";
 	case CommunicationStringID::infoComputingLoD50:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD 5.0 Model";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Computing LoD5.0 Model";
 
 	case CommunicationStringID::infoAlternativeLoDCreationReq:
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) + "Data required: ";

@@ -1,4 +1,4 @@
-#define USE_IFC4
+#define USE_IFC2x3
 #define iterationVersion "0.4.2"
 
 #ifdef USE_IFC2x3
@@ -306,7 +306,7 @@ struct helperFunctions{
 	/// merges the input wires in the correct order
 	static TopoDS_Wire mergeWireOrientated(const TopoDS_Wire& baseWire, const TopoDS_Wire& mergingWire);
 	/// merge faces that rest against eachother
-	static std::vector<TopoDS_Face> mergeFaces(const std::vector<TopoDS_Face>& theFaceList);
+	static std::vector<TopoDS_Face> mergeFaces(const std::vector<TopoDS_Face>& theFaceList, bool communicate = false);
 	/// attempts to close an open wire
 	static TopoDS_Wire closeWireOrientated(const TopoDS_Wire& baseWire);
 

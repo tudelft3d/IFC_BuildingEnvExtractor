@@ -1,4 +1,4 @@
-#define USE_IFC2x3
+#define USE_IFC4x3add2
 #define iterationVersion "0.4.2"
 
 #ifdef USE_IFC2x3
@@ -100,6 +100,12 @@ struct HalfEdge
 	HalfEdge(const gp_Pnt& p1, const gp_Pnt& p2) {
 		p1_ = p1; p2_ = p2;
 	}
+
+	HalfEdge(const TopoDS_Edge& theEdge);
+
+	const gp_Pnt& getP1() const { return p1_; }
+	const gp_Pnt& getP2() const { return p2_; }
+
 
 	bool operator== (const HalfEdge& other) {
 		if (!other.p1_.IsEqual(p1_, 1e-6)) { return false; }
@@ -356,13 +362,19 @@ struct helperFunctions{
 	/// fuses all the planar faces into a complex planar face structure
 	static std::vector<TopoDS_Shape> planarFaces2Cluster(const std::vector<TopoDS_Face>& planarFaces); //TODO: i want this removed
 	/// creates a cluster of non-intersecting and non-overlapping edges
-	static std::vector<TopoDS_Edge> planarFaces2EdgeCluster(const std::vector<TopoDS_Face>& planarFaces);
+	static std::vector<HalfEdge> planarFaces2EdgeCluster(const std::vector<TopoDS_Face>& planarFaces);
+	/// creates the index for the edgecluster creation process, ignores meshing double edges 
+	static bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> makeEdgeClusterIndx(const std::vector<TopoDS_Face>& planarFaces);
 	/// create loops or of a planar edge cluster
-	static std::vector<HalfEdgeLoop> planarEdgeCluster2Loops(const std::vector<TopoDS_Edge>& planarEdgeCluster);
+	static std::vector<HalfEdgeLoop> planarEdgeCluster2Loops(const std::vector<HalfEdge>& planarEdgeCluster);
 	/// eliminate the non-vital loops
 	static std::vector<HalfEdgeLoop> loops2Outer(const std::vector<HalfEdgeLoop>& planarLoopList, const std::vector<TopoDS_Face>& planarFaces);
 	/// construct planar faces from the outerLoops
 	static std::vector<TopoDS_Face> outerLoops2Faces(const std::vector<HalfEdgeLoop>& outerLoopList);
+	/// split HalfEdge in multipleHalfEdges
+	static std::vector<HalfEdge> splitHalfEdge(const HalfEdge& argument, const std::vector<HalfEdge>& toolList);
+	/// split HalfEdge with another HalfEdge
+	static bool splitHalfEdge(const HalfEdge& argument, const HalfEdge& tool, double& t);
 
 	/// IFC related code
 

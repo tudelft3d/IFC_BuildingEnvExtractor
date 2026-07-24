@@ -2692,7 +2692,7 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 	}
 
 	// TODO: find a way to collapse mesehs instead of boolean
-	std::vector<TopoDS_Edge> edgeCluster = planarFaces2EdgeCluster(flattenedFaceList);
+	std::vector<HalfEdge> edgeCluster = planarFaces2EdgeCluster(flattenedFaceList);
 	std::vector<HalfEdgeLoop> loopList = planarEdgeCluster2Loops(edgeCluster);
 	std::vector<HalfEdgeLoop> outerLoopList = loops2Outer(loopList, flattenedFaceList);
 
@@ -2758,11 +2758,113 @@ std::vector<TopoDS_Shape> helperFunctions::planarFaces2Cluster(const std::vector
 	return clusteredShapeList;
 }
 
-std::vector<TopoDS_Edge> helperFunctions::planarFaces2EdgeCluster(const std::vector<TopoDS_Face>& planarFaces)
+std::vector<HalfEdge> helperFunctions::planarFaces2EdgeCluster(const std::vector<TopoDS_Face>& planarFaces)
+{
+	// split all edges with eachother
+	bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> edgeIndex = makeEdgeClusterIndx(planarFaces);
+	bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> splitEdgeIndex;
+	std::vector<HalfEdge> uniqueSplitEdges;
+
+	std::vector<HalfEdge> toolList;
+	for (const std::pair<BoostBox3D, HalfEdge>& currentPair : edgeIndex)
+	{
+		const HalfEdge& currentEdge = currentPair.second;
+		toolList.clear();
+
+		std::vector<std::pair<BoostBox3D, HalfEdge>> qResult;
+		qResult.clear();
+		edgeIndex.query(bgi::intersects(
+			currentPair.first), std::back_inserter(qResult));
+
+		const gp_Pnt& currentP1 = currentEdge.p1_;
+		const gp_Pnt& currentP2 = currentEdge.p2_;
+		gp_Vec currentVec = gp_Vec(currentP1, currentP2);
+
+		if (qResult.empty()) { continue; }
+		for (const std::pair<BoostBox3D, HalfEdge>& otherPair : qResult)
+		{
+			const HalfEdge& otherEdge = otherPair.second;
+
+			const gp_Pnt& otherP1 = otherEdge.p1_;
+			const gp_Pnt& otherP2 = otherEdge.p2_;
+
+			if (currentP1.IsEqual(otherP1, 1e-6) || currentP1.IsEqual(otherP2, 1e-6) ||
+				currentP2.IsEqual(otherP1, 1e-6) || currentP2.IsEqual(otherP2, 1e-6))
+			{
+				continue;
+			}
+
+			if (gp_Vec(otherP1, otherP2).IsParallel(currentVec, 1e-6))
+			{
+				continue;
+			}
+
+			toolList.emplace_back(otherEdge);
+		}
+
+		std::vector<HalfEdge> SplitEdgeList;
+		if (toolList.empty())
+		{
+			SplitEdgeList = { currentEdge };
+		}
+		else
+		{
+			SplitEdgeList =  splitHalfEdge(currentEdge, toolList);
+		}
+
+		for (const HalfEdge& currentTrimmedEdge: SplitEdgeList)
+		{
+			if (currentTrimmedEdge.p1_.IsEqual(currentTrimmedEdge.p2_, 1e-6))
+			{
+				continue;
+			}
+
+			BoostBox3D splitBox = createBBox(currentTrimmedEdge.p1_, currentTrimmedEdge.p2_);
+
+			std::vector<std::pair<BoostBox3D, HalfEdge>> qSplitResult;
+			qSplitResult.clear();
+			splitEdgeIndex.query(bgi::intersects(
+				splitBox), std::back_inserter(qSplitResult));
+
+			bool isUnique = true;
+			for (const std::pair<BoostBox3D, HalfEdge>& otherSplitPair : qSplitResult)
+			{
+				const HalfEdge& otherTrimmedEdge = otherSplitPair.second;
+
+
+				if (currentTrimmedEdge.p1_.IsEqual(otherTrimmedEdge.p1_, 1e-6) && currentTrimmedEdge.p2_.IsEqual(otherTrimmedEdge.p2_, 1e-6) ||
+					currentTrimmedEdge.p1_.IsEqual(otherTrimmedEdge.p2_, 1e-6) && currentTrimmedEdge.p2_.IsEqual(otherTrimmedEdge.p1_, 1e-6))
+				{
+					isUnique = false;
+					break;
+				}
+			}
+			if (!isUnique) { continue; }
+			splitEdgeIndex.insert(std::make_pair(splitBox, currentTrimmedEdge));
+			uniqueSplitEdges.emplace_back(currentTrimmedEdge);
+		}
+	}
+	return uniqueSplitEdges;
+}
+
+bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> helperFunctions::makeEdgeClusterIndx(const std::vector<TopoDS_Face>& planarFaces)
 {
 	// remove triangle dubs and index
-	bgi::rtree<std::pair<BoostBox3D, TopoDS_Edge>, bgi::rstar<25>> edgeIndex;
-	bgi::rtree<std::pair<BoostBox3D, TopoDS_Edge>, bgi::rstar<25>> edgeIndexClean;
+	bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> triangleEdgeIndex;
+	bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> edgeIndexClean;
+
+	for (const TopoDS_Face& currentEdge : planarFaces)
+	{
+		gp_Pnt p1 = getFirstPointShape(currentEdge);
+		gp_Pnt p2 = getLastPointShape(currentEdge);
+
+		if (p1.IsEqual(p2, 1e-6)) { continue; }
+
+		HalfEdge halfEdge = HalfEdge(p1, p2);
+	}
+
+
+
 	for (const TopoDS_Face currentFace : planarFaces)
 	{
 		if (getPointCount(currentFace) != 3)
@@ -2776,17 +2878,16 @@ std::vector<TopoDS_Edge> helperFunctions::planarFaces2EdgeCluster(const std::vec
 
 					for (TopExp_Explorer exp(compoundWire, TopAbs_EDGE); exp.More(); exp.Next()) {
 						const TopoDS_Edge& compundEdge = TopoDS::Edge(exp.Current());
-						edgeIndexClean.insert(std::make_pair(createBBox(compundEdge), compundEdge));
+						HalfEdge halfEdge(compundEdge);
+
+						edgeIndexClean.insert(std::make_pair(createBBox(compundEdge), halfEdge));
 					}
 					continue;
 				}
-				edgeIndexClean.insert(std::make_pair(createBBox(currentEdge), currentEdge));
+				HalfEdge halfEdge(currentEdge);
+				edgeIndexClean.insert(std::make_pair(createBBox(currentEdge), halfEdge));
 			}
 			continue;
-		}
-		else
-		{
-			std::cout << "hit\n";
 		}
 
 		gp_Vec currentVec = computeFaceNormal(currentFace);
@@ -2808,34 +2909,35 @@ std::vector<TopoDS_Edge> helperFunctions::planarFaces2EdgeCluster(const std::vec
 
 					for (TopExp_Explorer exp(compoundWire, TopAbs_EDGE); exp.More(); exp.Next()) {
 						const TopoDS_Edge& compundEdge = TopoDS::Edge(exp.Current());
-						edgeIndex.insert(std::make_pair(createBBox(compundEdge), compundEdge));
+						HalfEdge halfEdge(compundEdge);
+						triangleEdgeIndex.insert(std::make_pair(createBBox(compundEdge), halfEdge));
 					}
 					continue;
 				}
-				edgeIndex.insert(std::make_pair(createBBox(currentEdge), currentEdge));
+				HalfEdge halfEdge(currentEdge);
+				triangleEdgeIndex.insert(std::make_pair(createBBox(currentEdge), halfEdge));
 			}
 		}
 	}
 
-
-	for (const std::pair<BoostBox3D, TopoDS_Edge> currentPair : edgeIndex)
+	for (const std::pair<BoostBox3D, HalfEdge> currentPair : triangleEdgeIndex)
 	{
-		std::vector<std::pair<BoostBox3D, TopoDS_Edge>> qResult;
+		std::vector<std::pair<BoostBox3D, HalfEdge>> qResult;
 		qResult.clear();
-		edgeIndex.query(bgi::intersects(
+		triangleEdgeIndex.query(bgi::intersects(
 			currentPair.first), std::back_inserter(qResult));
 
-		const TopoDS_Edge& currentEdge = currentPair.second;
-		const gp_Pnt& currentP1 = helperFunctions::getFirstPointShape(currentEdge);
-		const gp_Pnt& currentP2 = helperFunctions::getLastPointShape(currentEdge);
+		const HalfEdge& currentEdge = currentPair.second;
+		const gp_Pnt& currentP1 = currentEdge.p1_;
+		const gp_Pnt& currentP2 = currentEdge.p2_;
 
 		bool isUnique = true;
-		for (const std::pair<BoostBox3D, TopoDS_Edge>& otherPair : qResult)
+		for (const std::pair<BoostBox3D, HalfEdge>& otherPair : qResult)
 		{
-			const TopoDS_Edge& otherEdge = otherPair.second;
+			const HalfEdge& otherEdge = otherPair.second;
 
-			const gp_Pnt& otherP1 = helperFunctions::getFirstPointShape(otherEdge);
-			const gp_Pnt& otherP2 = helperFunctions::getLastPointShape(otherEdge);
+			const gp_Pnt& otherP1 = otherEdge.p1_;
+			const gp_Pnt& otherP2 = otherEdge.p2_;
 
 			if (currentP1.IsEqual(otherP1, 1e-6) && currentP2.IsEqual(otherP2, 1e-6))
 			{
@@ -2851,120 +2953,22 @@ std::vector<TopoDS_Edge> helperFunctions::planarFaces2EdgeCluster(const std::vec
 		if (!isUnique) { continue; }
 		edgeIndexClean.insert(currentPair);
 	}
-
-
-	// split all edges with eachother
-	bgi::rtree<std::pair<BoostBox3D, TopoDS_Edge>, bgi::rstar<25>> splitEdgeIndex;
-	std::vector<TopoDS_Edge> uniqueSplitEdges;
-
-	BRepAlgoAPI_Splitter splitter;
-	splitter.SetFuzzyValue(1e-6);
-	TopTools_ListOfShape toolList;
-	TopTools_ListOfShape argumentList;
-
-	for (const std::pair<BoostBox3D, TopoDS_Edge>& currentPair : edgeIndexClean)
-	{
-		const TopoDS_Edge& currentEdge = currentPair.second;
-		
-		splitter.ClearWarnings();
-		toolList.Clear();
-		argumentList.Clear();
-
-		std::vector<std::pair<BoostBox3D, TopoDS_Edge>> qResult;
-		qResult.clear();
-		edgeIndexClean.query(bgi::intersects(
-			currentPair.first), std::back_inserter(qResult));
-
-		const gp_Pnt& currentP1 = helperFunctions::getFirstPointShape(currentEdge);
-		const gp_Pnt& currentP2 = helperFunctions::getLastPointShape(currentEdge);
-		gp_Vec currentVec = gp_Vec(currentP1, currentP2);
-
-		if (qResult.empty()) { continue; }
-		for (const std::pair<BoostBox3D, TopoDS_Edge>& otherPair : qResult)
-		{
-			const TopoDS_Edge& otherEdge = otherPair.second;
-
-			if (currentEdge.IsSame(otherEdge)) { continue; }
-			const gp_Pnt& otherP1 = helperFunctions::getFirstPointShape(otherEdge);
-			const gp_Pnt& otherP2 = helperFunctions::getLastPointShape(otherEdge);
-
-			if (currentP1.IsEqual(otherP1, 1e-6) || currentP1.IsEqual(otherP2, 1e-6) ||
-				currentP2.IsEqual(otherP1, 1e-6) || currentP2.IsEqual(otherP2, 1e-6))
-			{
-				continue;
-			}
-
-			if (gp_Vec(otherP1, otherP2).IsParallel(currentVec, 1e-6))
-			{
-				continue;
-			}
-
-			toolList.Append(otherEdge);
-		}
-
-		TopoDS_Shape splittedShape;
-		if (toolList.IsEmpty())
-		{
-			splittedShape = currentEdge;
-		}
-		else
-		{
-			argumentList.Append(currentEdge);
-			splitter.SetArguments(argumentList);
-			splitter.SetTools(toolList);
-			splitter.Build();
-			splittedShape = splitter.Shape();
-		}
-
-		// check if unique
-		for (TopExp_Explorer exp(splittedShape, TopAbs_EDGE); exp.More(); exp.Next()) {
-			const TopoDS_Edge& splitEdge = TopoDS::Edge(exp.Current());
-
-			if (getFirstPointShape(splitEdge).IsEqual(getLastPointShape(splitEdge), 1e-6))
-			{
-				continue;
-			}
-
-			BoostBox3D splitBox = createBBox(splitEdge);
-
-			std::vector<std::pair<BoostBox3D, TopoDS_Edge>> qSplitResult;
-			qSplitResult.clear();
-			splitEdgeIndex.query(bgi::intersects(
-				splitBox), std::back_inserter(qSplitResult));
-
-			bool isUnique = true;
-			for (const std::pair<BoostBox3D, TopoDS_Edge>& otherSplitPair : qSplitResult)
-			{
-				const TopoDS_Edge& otherSplitEdge = otherSplitPair.second;
-
-				if (edgeEdgeAreSame(splitEdge, otherSplitEdge))
-				{
-					isUnique = false;
-					break;
-				}
-			}
-			if (!isUnique) { continue; }
-			splitEdgeIndex.insert(std::make_pair(splitBox, splitEdge));
-			uniqueSplitEdges.emplace_back(splitEdge);
-		}
-	}
-	return uniqueSplitEdges;
+	return edgeIndexClean;
 }
 
-std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::vector<TopoDS_Edge>& planarEdgeCluster)
+std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::vector<HalfEdge>& planarEdgeCluster)
 {
 	std::vector<HalfEdge> halfEdgeList;
-	for (const TopoDS_Edge& currentEdge : planarEdgeCluster)
+	for (const HalfEdge& currentEdge : planarEdgeCluster)
 	{
-		gp_Pnt p1 = getFirstPointShape(currentEdge);
-		gp_Pnt p2 = getLastPointShape(currentEdge);
+		gp_Pnt p1 = currentEdge.p1_;
+		gp_Pnt p2 = currentEdge.p2_;
 
 		if (p1.IsEqual(p2, 1e-6)) { continue; }
 
-		HalfEdge halfEdge1 = HalfEdge(p1, p2);
-		HalfEdge halfEdge2 = HalfEdge(p2, p1);
-		halfEdgeList.emplace_back(halfEdge1);
-		halfEdgeList.emplace_back(halfEdge2);
+		HalfEdge mirroredEdge = HalfEdge(p2, p1);
+		halfEdgeList.emplace_back(currentEdge);
+		halfEdgeList.emplace_back(mirroredEdge);
 	}
 
 	// grow loop
@@ -3222,6 +3226,77 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 		clippedFaceList.emplace_back(clippedFace);
 	}
 	return clippedFaceList;
+}
+
+std::vector<HalfEdge> helperFunctions::splitHalfEdge(const HalfEdge& argument, const std::vector<HalfEdge>& toolList)
+{
+	const gp_Pnt& startPoint = argument.p1_;
+	const gp_Pnt& endPoint = argument.p2_;
+
+	std::vector<double> tList;
+
+	for (const HalfEdge& currentTool : toolList)
+	{
+		double t;
+		if (!splitHalfEdge(argument, currentTool, t))
+		{
+			continue;
+		}
+		tList.emplace_back(t);
+	}
+
+	std::sort(tList.begin(), tList.end());
+
+	tList.erase(
+		std::unique(
+			tList.begin(),
+			tList.end(),
+			[](double a, double b)
+			{
+				return std::abs(a - b) < 1e-6;
+			}),
+		tList.end());
+
+	std::vector<HalfEdge> outputList;
+
+	gp_Pnt basePoint = startPoint;
+	for (const double& t : tList)
+	{
+		gp_Vec dir(argument.p1_, argument.p2_);
+		gp_Pnt intersection = argument.p1_.Translated(dir * t);
+
+		outputList.emplace_back(HalfEdge(basePoint, intersection));
+		basePoint = intersection;
+	}
+	outputList.emplace_back(HalfEdge(basePoint, endPoint));
+	return outputList;
+}
+
+bool helperFunctions::splitHalfEdge(const HalfEdge& argument, const HalfEdge& tool, double& t)
+{
+	gp_XY p1(argument.p1_.X(), argument.p1_.Y());
+	gp_XY p2(argument.p2_.X(), argument.p2_.Y());
+
+	gp_XY p3(tool.p1_.X(), tool.p1_.Y());
+	gp_XY p4(tool.p2_.X(), tool.p2_.Y());
+
+	gp_XY r = p2 - p1;
+	gp_XY s = p4 - p3;
+
+	double denom = r.Crossed(s);
+
+	if (std::abs(denom) < 1e-6)
+		return false;
+
+	gp_XY diff = p3 - p1;
+
+	t = diff.Crossed(s) / denom;
+	double u = diff.Crossed(r) / denom;
+
+	constexpr double eps = 1e-6;
+
+	return (t > - eps && t < 1.0 + eps &&
+		u > - eps && u < 1.0 + eps);
 }
 
 double helperFunctions::getObjectZOffset(IfcSchema::IfcObjectPlacement* objectPlacement, bool deepOnly)
@@ -4510,4 +4585,10 @@ void helperFunctions::updateCounter(
 	}
 	
 	return;
+}
+
+HalfEdge::HalfEdge(const TopoDS_Edge& theEdge)
+{
+	p1_ = helperFunctions::getFirstPointShape(theEdge);
+	p2_ = helperFunctions::getLastPointShape(theEdge);
 }

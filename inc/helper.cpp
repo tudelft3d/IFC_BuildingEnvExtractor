@@ -164,15 +164,17 @@ struct IntXYZ_Equal {
 };
 
 // merges halfedges with the same direction into one single halfedge
-std::vector<HalfEdge> cleanHalfEdgeList(std::vector<HalfEdge> halfEdgeList) {
+std::vector<HalfEdge> cleanHalfEdgeList(std::vector<HalfEdge> halfEdgeList) 
+{
 	if (halfEdgeList.empty()) { return{}; }
 
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	std::vector<HalfEdge> cleanedHalfEdgeList;
 	gp_Vec startDir = halfEdgeList[0].getDir();
 	for (size_t i = 1; i < halfEdgeList.size(); i++)
 	{
 		const HalfEdge& currentEdge = halfEdgeList[i];
-		if (startDir.IsParallel(currentEdge.getDir(), 1e-6)) { continue; }
+		if (startDir.IsParallel(currentEdge.getDir(), precision)) { continue; }
 		std::rotate(halfEdgeList.begin(), halfEdgeList.begin() + i, halfEdgeList.end());
 		break;
 	}
@@ -182,8 +184,8 @@ std::vector<HalfEdge> cleanHalfEdgeList(std::vector<HalfEdge> halfEdgeList) {
 	for (size_t i = 1; i < halfEdgeList.size(); i++)
 	{
 		const HalfEdge& currentEdge = halfEdgeList[i];
-		if (baseDir.IsParallel(currentEdge.getDir(), 1e-6)) { continue; }	
-		if (basePoint.IsEqual(currentEdge.p1_, 1e-6)) { continue; }
+		if (baseDir.IsParallel(currentEdge.getDir(), precision)) { continue; }
+		if (basePoint.IsEqual(currentEdge.p1_, precision)) { continue; }
 
 		HalfEdge cleanedEdge = HalfEdge(basePoint, currentEdge.p1_);
 		cleanedHalfEdgeList.emplace_back(cleanedEdge);
@@ -191,7 +193,7 @@ std::vector<HalfEdge> cleanHalfEdgeList(std::vector<HalfEdge> halfEdgeList) {
 		baseDir = currentEdge.getDir();
 	}
 
-	if (!basePoint.IsEqual(halfEdgeList.begin()->p1_, 1e-6)) 
+	if (!basePoint.IsEqual(halfEdgeList.begin()->p1_, precision))
 	{
 		cleanedHalfEdgeList.emplace_back(HalfEdge(basePoint, halfEdgeList.begin()->p1_));
 	}
@@ -1673,7 +1675,7 @@ std::vector<TopoDS_Face> helperFunctions::mergeFaces(const std::vector<TopoDS_Fa
 
 			const gp_Vec& otherNormal = faceNormalList[j];
 
-			if (!currentNormal.IsParallel(otherNormal, 1e-6)) { continue; }
+			if (!currentNormal.IsParallel(otherNormal, precision)) { continue; }
 			evalList[j] = 1;
 			mergingPairList.emplace_back(faceCopyList[j]);
 		}
@@ -2761,6 +2763,7 @@ std::vector<TopoDS_Shape> helperFunctions::planarFaces2Cluster(const std::vector
 std::vector<HalfEdge> helperFunctions::planarFaces2EdgeCluster(const std::vector<TopoDS_Face>& planarFaces)
 {
 	// split all edges with eachother
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> edgeIndex = makeEdgeClusterIndx(planarFaces);
 	bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> splitEdgeIndex;
 	std::vector<HalfEdge> uniqueSplitEdges;
@@ -2788,13 +2791,13 @@ std::vector<HalfEdge> helperFunctions::planarFaces2EdgeCluster(const std::vector
 			const gp_Pnt& otherP1 = otherEdge.p1_;
 			const gp_Pnt& otherP2 = otherEdge.p2_;
 
-			if (currentP1.IsEqual(otherP1, 1e-6) || currentP1.IsEqual(otherP2, 1e-6) ||
-				currentP2.IsEqual(otherP1, 1e-6) || currentP2.IsEqual(otherP2, 1e-6))
+			if (currentP1.IsEqual(otherP1, precision) || currentP1.IsEqual(otherP2, precision) ||
+				currentP2.IsEqual(otherP1, precision) || currentP2.IsEqual(otherP2, precision))
 			{
 				continue;
 			}
 
-			if (gp_Vec(otherP1, otherP2).IsParallel(currentVec, 1e-6))
+			if (gp_Vec(otherP1, otherP2).IsParallel(currentVec, precision))
 			{
 				continue;
 			}
@@ -2814,7 +2817,7 @@ std::vector<HalfEdge> helperFunctions::planarFaces2EdgeCluster(const std::vector
 
 		for (const HalfEdge& currentTrimmedEdge: SplitEdgeList)
 		{
-			if (currentTrimmedEdge.p1_.IsEqual(currentTrimmedEdge.p2_, 1e-6))
+			if (currentTrimmedEdge.p1_.IsEqual(currentTrimmedEdge.p2_, precision))
 			{
 				continue;
 			}
@@ -2832,8 +2835,8 @@ std::vector<HalfEdge> helperFunctions::planarFaces2EdgeCluster(const std::vector
 				const HalfEdge& otherTrimmedEdge = otherSplitPair.second;
 
 
-				if (currentTrimmedEdge.p1_.IsEqual(otherTrimmedEdge.p1_, 1e-6) && currentTrimmedEdge.p2_.IsEqual(otherTrimmedEdge.p2_, 1e-6) ||
-					currentTrimmedEdge.p1_.IsEqual(otherTrimmedEdge.p2_, 1e-6) && currentTrimmedEdge.p2_.IsEqual(otherTrimmedEdge.p1_, 1e-6))
+				if (currentTrimmedEdge.p1_.IsEqual(otherTrimmedEdge.p1_, precision) && currentTrimmedEdge.p2_.IsEqual(otherTrimmedEdge.p2_, precision) ||
+					currentTrimmedEdge.p1_.IsEqual(otherTrimmedEdge.p2_, precision) && currentTrimmedEdge.p2_.IsEqual(otherTrimmedEdge.p1_, precision))
 				{
 					isUnique = false;
 					break;
@@ -2850,6 +2853,7 @@ std::vector<HalfEdge> helperFunctions::planarFaces2EdgeCluster(const std::vector
 bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> helperFunctions::makeEdgeClusterIndx(const std::vector<TopoDS_Face>& planarFaces)
 {
 	// remove triangle dubs and index
+	double precision = SettingsCollection::getInstance().linearTolerance();
 	bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> triangleEdgeIndex;
 	bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> edgeIndexClean;
 
@@ -2858,12 +2862,10 @@ bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> helperFunctions::mak
 		gp_Pnt p1 = getFirstPointShape(currentEdge);
 		gp_Pnt p2 = getLastPointShape(currentEdge);
 
-		if (p1.IsEqual(p2, 1e-6)) { continue; }
+		if (p1.IsEqual(p2, precision)) { continue; }
 
 		HalfEdge halfEdge = HalfEdge(p1, p2);
 	}
-
-
 
 	for (const TopoDS_Face currentFace : planarFaces)
 	{
@@ -2939,12 +2941,12 @@ bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> helperFunctions::mak
 			const gp_Pnt& otherP1 = otherEdge.p1_;
 			const gp_Pnt& otherP2 = otherEdge.p2_;
 
-			if (currentP1.IsEqual(otherP1, 1e-6) && currentP2.IsEqual(otherP2, 1e-6))
+			if (currentP1.IsEqual(otherP1, precision) && currentP2.IsEqual(otherP2, precision))
 			{
 				continue;
 			}
 
-			if (currentP1.IsEqual(otherP2, 1e-6) && currentP2.IsEqual(otherP1, 1e-6))
+			if (currentP1.IsEqual(otherP2, precision) && currentP2.IsEqual(otherP1, precision))
 			{
 				isUnique = false;
 				break;
@@ -2958,13 +2960,15 @@ bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> helperFunctions::mak
 
 std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::vector<HalfEdge>& planarEdgeCluster)
 {
+	double precision = SettingsCollection::getInstance().linearTolerance();
+
 	std::vector<HalfEdge> halfEdgeList;
 	for (const HalfEdge& currentEdge : planarEdgeCluster)
 	{
 		gp_Pnt p1 = currentEdge.p1_;
 		gp_Pnt p2 = currentEdge.p2_;
 
-		if (p1.IsEqual(p2, 1e-6)) { continue; }
+		if (p1.IsEqual(p2, precision)) { continue; }
 
 		HalfEdge mirroredEdge = HalfEdge(p2, p1);
 		halfEdgeList.emplace_back(currentEdge);
@@ -2988,7 +2992,7 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 
 		for (HalfEdge& otherHalfEdge : halfEdgeList)
 		{
-			if (!otherHalfEdge.p1_.IsEqual(endPoint, 1e-6)) { continue; }
+			if (!otherHalfEdge.p1_.IsEqual(endPoint, precision)) { continue; }
 			if (startEdge->isPartner(otherHalfEdge)) { continue; }
 
 			gp_Vec dir = otherHalfEdge.getDir();
@@ -3047,7 +3051,7 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 	std::vector<HalfEdgeLoop> loopLists;
 	SettingsCollection& settingCol = SettingsCollection::getInstance();
 	double precision = settingCol.linearTolerance();
-	double pointOffset = 1e-6 * 100; 
+	double pointOffset = precision * 100;
 
 	std::vector<TopoDS_Face> triangulatedSourceList = TriangulateFace(planarFaces);
  	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> triangulatedShapeIndx;
@@ -3093,7 +3097,7 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 				const TopoDS_Face& sourceFace = triangulatedSourceList[resultPair.second];
 
 				double otherZ = getAZ(sourceFace);
-				if (abs(otherZ - currentZ) > 1E-6) { continue; }
+				if (abs(otherZ - currentZ) > precision) { continue; }
 
 				std::vector<gp_Pnt> trianglePoints = getPoints(sourceFace);
 
@@ -3230,6 +3234,8 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 
 std::vector<HalfEdge> helperFunctions::splitHalfEdge(const HalfEdge& argument, const std::vector<HalfEdge>& toolList)
 {
+	double precision = SettingsCollection::getInstance().linearTolerance();
+
 	const gp_Pnt& startPoint = argument.p1_;
 	const gp_Pnt& endPoint = argument.p2_;
 
@@ -3238,7 +3244,7 @@ std::vector<HalfEdge> helperFunctions::splitHalfEdge(const HalfEdge& argument, c
 	for (const HalfEdge& currentTool : toolList)
 	{
 		double t;
-		if (!splitHalfEdge(argument, currentTool, t))
+		if (!splitHalfEdge(argument, currentTool, precision, t))
 		{
 			continue;
 		}
@@ -3251,9 +3257,9 @@ std::vector<HalfEdge> helperFunctions::splitHalfEdge(const HalfEdge& argument, c
 		std::unique(
 			tList.begin(),
 			tList.end(),
-			[](double a, double b)
+			[&precision](double a, double b)
 			{
-				return std::abs(a - b) < 1e-6;
+				return std::abs(a - b) < precision;
 			}),
 		tList.end());
 
@@ -3272,7 +3278,7 @@ std::vector<HalfEdge> helperFunctions::splitHalfEdge(const HalfEdge& argument, c
 	return outputList;
 }
 
-bool helperFunctions::splitHalfEdge(const HalfEdge& argument, const HalfEdge& tool, double& t)
+bool helperFunctions::splitHalfEdge(const HalfEdge& argument, const HalfEdge& tool, double precision, double& t)
 {
 	gp_XY p1(argument.p1_.X(), argument.p1_.Y());
 	gp_XY p2(argument.p2_.X(), argument.p2_.Y());
@@ -3285,7 +3291,7 @@ bool helperFunctions::splitHalfEdge(const HalfEdge& argument, const HalfEdge& to
 
 	double denom = r.Crossed(s);
 
-	if (std::abs(denom) < 1e-6)
+	if (std::abs(denom) < precision)
 		return false;
 
 	gp_XY diff = p3 - p1;
@@ -3293,10 +3299,8 @@ bool helperFunctions::splitHalfEdge(const HalfEdge& argument, const HalfEdge& to
 	t = diff.Crossed(s) / denom;
 	double u = diff.Crossed(r) / denom;
 
-	constexpr double eps = 1e-6;
-
-	return (t > - eps && t < 1.0 + eps &&
-		u > - eps && u < 1.0 + eps);
+	return (t > -precision && t < 1.0 + precision &&
+		u > -precision && u < 1.0 + precision);
 }
 
 double helperFunctions::getObjectZOffset(IfcSchema::IfcObjectPlacement* objectPlacement, bool deepOnly)
@@ -3799,6 +3803,8 @@ void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::
 {
 	if (theShapeList.empty()) { return; }
 
+	double precision = SettingsCollection::getInstance().linearTolerance();
+
 	std::ofstream objFile(targetPath);
 	int vertIdxOffset = 1;
 	std::vector<std::vector<int>> nestedTriangleIndx;
@@ -3837,7 +3843,7 @@ void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::
 					for (size_t i = 3; i >= 1; i--)
 					{
 						gp_XYZ xyz = mesh->Nodes().Value(theTriangle(i)).Transformed(loc).Coord();
-						IntXYZ intXyz = IntXYZ(xyz, 1/1e-6);
+						IntXYZ intXyz = IntXYZ(xyz, 1/ precision);
 
 						if (vertMap.find(intXyz) != vertMap.end())
 						{
@@ -3856,7 +3862,7 @@ void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::
 					for (size_t i = 1; i <= 3; i++)
 					{
 						gp_XYZ xyz = mesh->Nodes().Value(theTriangle(i)).Transformed(loc).Coord();
-						IntXYZ intXyz = IntXYZ(xyz, 1 / 1e-6);
+						IntXYZ intXyz = IntXYZ(xyz, 1 / precision);
 
 						if (vertMap.find(intXyz) != vertMap.end())
 						{

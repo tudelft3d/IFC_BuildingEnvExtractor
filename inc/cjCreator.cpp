@@ -628,7 +628,7 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<T>& shape
 	for (const TopoDS_Shape& currentShape : shapes)
 	{
 		BRepAlgoAPI_Splitter splitter;
-		splitter.SetFuzzyValue(1e-6);
+		splitter.SetFuzzyValue(precision);
 		TopTools_ListOfShape argumentList;
 		argumentList.Append(cuttingFace);
 		TopTools_ListOfShape toolList;
@@ -680,7 +680,7 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<T>& shape
 				TopoDS_Vertex vertex = TopoDS::Vertex(expl2.Current());
 				gp_Pnt point = BRep_Tool::Pnt(vertex);
 
-				if (point.IsEqual(p0, 1e-6))
+				if (point.IsEqual(p0, precision))
 				{
 					isOutside = true;
 					break;

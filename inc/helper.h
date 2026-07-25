@@ -1,4 +1,4 @@
-#define USE_IFC4x3add2
+#define USE_IFC4
 #define iterationVersion "0.4.2"
 
 #ifdef USE_IFC2x3
@@ -374,7 +374,7 @@ struct helperFunctions{
 	/// split HalfEdge in multipleHalfEdges
 	static std::vector<HalfEdge> splitHalfEdge(const HalfEdge& argument, const std::vector<HalfEdge>& toolList);
 	/// split HalfEdge with another HalfEdge
-	static bool splitHalfEdge(const HalfEdge& argument, const HalfEdge& tool, double& t);
+	static bool splitHalfEdge(const HalfEdge& argument, const HalfEdge& tool, double precision, double& t);
 
 	/// IFC related code
 

@@ -3603,11 +3603,39 @@ nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcProduct* ifcPr
 		if (optionalName.has_value()) { attributesList["Name"] = optionalName.get(); }
 		else { attributesList["Name"] = "None"; }
 
+		boost::optional<std::string> description = ifcProduct->Description();
+		if (description.has_value()) { attributesList["Description"] = description.get(); }
+		else { attributesList["Description"] = "None"; }
+
 		boost::optional<std::string> optionalType = ifcProduct->ObjectType();
 		if (optionalType.has_value()) { attributesList["ObjectType"] = optionalType.get(); }
 		else { attributesList["ObjectType"] = "None"; }
 
 		attributesList["Tag"] = ifcProduct->identity();
+			
+		
+		if (auto* ifcSpace = ifcProduct->as<IfcSchema::IfcSpace>())
+		{
+			
+			boost::optional<std::string> optonalLongName = ifcSpace->LongName();
+			if (optionalType.has_value()) { attributesList["LongName"] = optonalLongName.get(); }
+			else { attributesList["LongName"] = "None"; }
+		}
+		if (auto* ifcBuilding = ifcProduct->as<IfcSchema::IfcBuilding>())
+		{
+
+			boost::optional<std::string> optonalLongName = ifcBuilding->LongName();
+			if (optionalType.has_value()) { attributesList["LongName"] = optonalLongName.get(); }
+			else { attributesList["LongName"] = "None"; }
+		}
+		if (auto* ifcStorey = ifcProduct->as<IfcSchema::IfcBuildingStorey>())
+		{
+
+			boost::optional<std::string> optonalLongName = ifcStorey->LongName();
+			if (optionalType.has_value()) { attributesList["LongName"] = optonalLongName.get(); }
+			else { attributesList["LongName"] = "None"; }
+		}
+
 	}
 
 	// get pset data

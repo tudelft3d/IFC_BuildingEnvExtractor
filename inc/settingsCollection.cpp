@@ -518,6 +518,23 @@ void SettingsCollection::setMakeOutlines(const nlohmann::json& json)
 		return;
 	}
 
+	if (makeBAG02() && 
+		!make03() &&
+		!make04() &&
+		!make12() &&
+		!make13() &&
+		!make22() &&
+		!makeb0() &&
+		!makec1() &&
+		!makec2() &&
+		!maked1() &&
+		!maked2())
+	{
+		return;
+	}
+
+	
+
 	setMakeOutlines(true);
 	return;
 
@@ -1287,7 +1304,37 @@ bool SettingsCollection::requireVoxels() const
 		return true;
 	}
 
+	if (makeFootPrint())
+	{
+		if (make02() || make03() && make04())
+		{
+			return true;
+		}
+	}
+
 	// set generated settings
+	if (make02() && makeBAG02())
+	{
+		if (!make03() &&
+			!make04() &&
+			!make12() &&
+			!make13() &&
+			!make22() &&
+			!makeb0() &&
+			!makec1() &&
+			!makec2() &&
+			!maked1() &&
+			!maked2() &&
+			!make32() &&
+			!makee1() &&
+			!makeV() &&
+			!summaryVoxels())
+		{
+			return false;
+		}
+	}
+
+
 	if (make00() || make10() || make41() || make42())
 	{
 		if (!make02() &&
@@ -1309,6 +1356,10 @@ bool SettingsCollection::requireVoxels() const
 			return false;
 		}
 	}
+
+
+
+
 	return true;
 }
 

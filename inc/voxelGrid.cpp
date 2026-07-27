@@ -592,7 +592,7 @@ void VoxelGrid::setSemanticVoxelFace(DataManager* h, voxel& voxel , int dirIndx,
 
 	for (auto valueIt = intersectingValues.begin(); valueIt != intersectingValues.end(); ++valueIt)
 	{
-		IfcSchema::IfcProduct* intersectedProduct = h->getLookup(valueIt->second).getProductPtr();
+		const IfcSchema::IfcProduct* intersectedProduct = h->getLookup(valueIt->second).getProductPtr();
 		std::string productTypeName = intersectedProduct->data().type()->name();
 		
 		if (productTypeName == "IfcDoor")

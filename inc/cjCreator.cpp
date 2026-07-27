@@ -553,44 +553,71 @@ void CJGeoCreator::simpleRaySurfaceCast(
 
 void CJGeoCreator::initializeBasic(DataManager* cluster)
 {
-	if (!SettingsCollection::getInstance().makeOutlines()) { return; }
+	if (SettingsCollection::getInstance().makeOutlines()) {
 
-	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoPreProcessing) << std::endl;
-	// generate data required for most exports
-	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoCoarseFiltering) << std::endl;
-	std::vector<TopoDS_Shape> filteredObjects;
-	
-	if (SettingsCollection::getInstance().voxelBasedFiltering())
-	{
-		filteredObjects = getTopObjects(cluster);
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoPreProcessing) << std::endl;
+		// generate data required for most exports
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoCoarseFiltering) << std::endl;
+		std::vector<TopoDS_Shape> filteredObjects;
+
+		if (SettingsCollection::getInstance().voxelBasedFiltering())
+		{
+			filteredObjects = getTopObjects(cluster);
+		}
+		else
+		{
+			filteredObjects = cluster->getIndexedShapes(); //TODO: this bloats memory for no reason
+		}
+
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoReduceSurfaces) << std::endl;
+		bgi::rtree<Value, bgi::rstar<treeDepth_>> shapeIdx;
+		std::vector<SurfaceGridPair> shapeList;
+		reduceSurfaces(filteredObjects, &shapeIdx, shapeList);
+
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoFineFiltering) << std::endl;
+		std::vector<SurfaceGridPair> fineFilteredShapeList = FinefilterSurfaces(shapeList);
+		shapeIdx.clear();
+		shapeList.clear();
+		shapeList.shrink_to_fit();
+
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureMerging) << std::endl;
+		std::vector<RCollection> mergedSurfaceRList = mergeRoofSurfaces(fineFilteredShapeList);
+		fineFilteredShapeList.clear();
+		fineFilteredShapeList.shrink_to_fit();
+
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofOutlineConstruction) << std::endl;
+		std::vector<TopoDS_Face> roofOutlines = createRoofOutline(mergedSurfaceRList);
+
+		// sort surface groups based on the roof/footprints
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureSorting) << std::endl;
+		buildingSurfaceDataList_ = sortRoofStructures(roofOutlines, mergedSurfaceRList);
+		std::cout << "\n";
 	}
-	else
+
+	if (SettingsCollection::getInstance().makeBAG02() && SettingsCollection::getInstance().makeRoofPrint())
 	{
-		filteredObjects = cluster->getIndexedShapes();
+		std::cout << "[INFO] create BAG outline" << std::endl;
+		bgi::rtree<Value, bgi::rstar<treeDepth_>> spaceIndx;
+		std::vector<SurfaceGridPair> spaceShapeList;
+		std::vector<TopoDS_Shape> filteredSpaces = cluster->getIndexedBVOShapes();
+
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoReduceSurfaces) << std::endl;
+		reduceSurfaces(filteredSpaces, &spaceIndx, spaceShapeList);
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoFineFiltering) << std::endl;
+		std::vector<SurfaceGridPair> fineFilteredSpaceList = FinefilterSurfaces(spaceShapeList);
+		spaceIndx.clear();
+		spaceShapeList.clear();
+		spaceShapeList.shrink_to_fit();
+
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureMerging) << std::endl;
+		std::vector<RCollection> mergedSurfaceSpaceList = mergeRoofSurfaces(fineFilteredSpaceList);
+
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofOutlineConstruction) << std::endl;
+		BAGoutline_ = createRoofOutline(mergedSurfaceSpaceList);
+		mergedSurfaceSpaceList.clear();
+		mergedSurfaceSpaceList.shrink_to_fit();
 	}
 
-	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoReduceSurfaces) << std::endl;
-	bgi::rtree<Value, bgi::rstar<treeDepth_>> shapeIdx;
-	std::vector<SurfaceGridPair> shapeList;
-	reduceSurfaces(filteredObjects, &shapeIdx, shapeList);
-
-	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoFineFiltering) << std::endl;
-	std::vector<SurfaceGridPair> fineFilteredShapeList = FinefilterSurfaces(shapeList);
-	shapeIdx.clear();
-	shapeList.clear();
-	shapeList.shrink_to_fit();
-
-	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureMerging) << std::endl;
-	std::vector<RCollection> mergedSurfaceRList = mergeRoofSurfaces(fineFilteredShapeList);
-	fineFilteredShapeList.clear();
-	fineFilteredShapeList.shrink_to_fit();
-
-	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofOutlineConstruction) << std::endl;
-	std::vector<TopoDS_Face> roofOutlines = createRoofOutline(mergedSurfaceRList);
-
-	// sort surface groups based on the roof/footprints
-	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureSorting) << std::endl;
-	buildingSurfaceDataList_ = sortRoofStructures(roofOutlines, mergedSurfaceRList);
 
 	hasGeoBase_ = true;
 	return;
@@ -2730,34 +2757,66 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD02(DataManager* h, CJT::Kernel
 	std::vector<TopoDS_Shape> faceCopyCollection;
 	if (settingCollection.makeRoofPrint())
 	{	
-		// make the roof
-		for (const BuildingSurfaceCollection& buildingSurfaceData : buildingSurfaceDataList_)
+		if (settingCollection.makeBAG02())
 		{
-			TopoDS_Shape roofOutline = buildingSurfaceData.getRoofOutline();
-
-			gp_Trsf trsf;
-			trsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)),  -settingCollection.gridRotation());
-
-			std::map<std::string, std::string> semanticRoofData;
-			
-			std::string surfaceType = CJObjectEnum::getString(CJObjectID::CJTTypeProjectedRoofOutline);
-			if (hasFootprints_) { 
-				surfaceType = CJObjectEnum::getString(CJObjectID::CJTypeRoofSurface);
-				trsf.SetTranslationPart(gp_Vec(0, 0, urr.Z()));
-			}
-			else
+			for (TopoDS_Face& roofOutline : BAGoutline_)
 			{
-				trsf.SetTranslationPart(gp_Vec(0, 0, footprintHeight));
-			}
-			roofOutline.Move(trsf);
-			faceCopyCollection.emplace_back(roofOutline);
+				gp_Trsf trsf;
+				trsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingCollection.gridRotation());
 
-			semanticRoofData.emplace(CJObjectEnum::getString(CJObjectID::CJType), surfaceType);
-			CJT::GeoObject geoObject = kernel->convertToJSON(roofOutline, "0.2");
-			geoObject.appendSurfaceData(semanticRoofData);
-			geoObject.appendSurfaceTypeValue(0);
-			geoObjectCollection.emplace_back(geoObject);
+				std::map<std::string, std::string> semanticRoofData;
+				std::string surfaceType = CJObjectEnum::getString(CJObjectID::CJTTypeProjectedRoofOutline);
+
+				if (hasFootprints_) {
+					surfaceType = CJObjectEnum::getString(CJObjectID::CJTypeRoofSurface);
+					trsf.SetTranslationPart(gp_Vec(0, 0, urr.Z()));
+				}
+				else
+				{
+					trsf.SetTranslationPart(gp_Vec(0, 0, footprintHeight));
+				}
+				roofOutline.Move(trsf);
+				faceCopyCollection.emplace_back(roofOutline);
+
+				semanticRoofData.emplace(CJObjectEnum::getString(CJObjectID::CJType), surfaceType);
+				CJT::GeoObject geoObject = kernel->convertToJSON(roofOutline, "0.2");
+				geoObject.appendSurfaceData(semanticRoofData);
+				geoObject.appendSurfaceTypeValue(0);
+				geoObjectCollection.emplace_back(geoObject);
+			}
 		}
+		else
+		{
+			// make the roof
+			for (const BuildingSurfaceCollection& buildingSurfaceData : buildingSurfaceDataList_)
+			{
+				TopoDS_Shape roofOutline = buildingSurfaceData.getRoofOutline();
+
+				gp_Trsf trsf;
+				trsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingCollection.gridRotation());
+
+				std::map<std::string, std::string> semanticRoofData;
+
+				std::string surfaceType = CJObjectEnum::getString(CJObjectID::CJTTypeProjectedRoofOutline);
+				if (hasFootprints_) {
+					surfaceType = CJObjectEnum::getString(CJObjectID::CJTypeRoofSurface);
+					trsf.SetTranslationPart(gp_Vec(0, 0, urr.Z()));
+				}
+				else
+				{
+					trsf.SetTranslationPart(gp_Vec(0, 0, footprintHeight));
+				}
+				roofOutline.Move(trsf);
+				faceCopyCollection.emplace_back(roofOutline);
+
+				semanticRoofData.emplace(CJObjectEnum::getString(CJObjectID::CJType), surfaceType);
+				CJT::GeoObject geoObject = kernel->convertToJSON(roofOutline, "0.2");
+				geoObject.appendSurfaceData(semanticRoofData);
+				geoObject.appendSurfaceTypeValue(0);
+				geoObjectCollection.emplace_back(geoObject);
+			}
+		}
+		
 	}
 
 	if (hasFootprints_) 

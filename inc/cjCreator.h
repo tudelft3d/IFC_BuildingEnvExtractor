@@ -30,6 +30,7 @@ private:
 		std::vector<RCollection> roofFacesRCollection_;
 		// the roof outline in a single surface at z=0
 		TopoDS_Face roofOutline_;
+
 		// the footprint in a single surface at z=0
 		std::vector<TopoDS_Face> footPrintList_;
 
@@ -46,6 +47,9 @@ private:
 
 	// building geo data per building
 	std::vector<BuildingSurfaceCollection> buildingSurfaceDataList_;
+
+	// the outline of the BAG shape based on the IfcSpace BOV objects
+	std::vector<TopoDS_Face> BAGoutline_;
 
 	// default spatial index tree depth
 	static const int treeDepth_ = 25;

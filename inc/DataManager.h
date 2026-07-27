@@ -43,7 +43,7 @@ class IfcProductSpatialData
 {
 private:
 	// unique pointer to the product and its data
-	std::unique_ptr<IfcSchema::IfcProduct> productPtr_;
+	IfcSchema::IfcProduct* productPtr_;
 	// full shape of the product
 	TopoDS_Shape productShape_;
 
@@ -63,7 +63,7 @@ public:
 	~IfcProductSpatialData() {
 	}
 	/// returns the pointer of the product 
-	IfcSchema::IfcProduct* getProductPtr() const { return productPtr_.get(); }
+	IfcSchema::IfcProduct* getProductPtr() const { return productPtr_; }
 	/// returns the shape of the product
 	const TopoDS_Shape& getProductShape() const { return productShape_;  }
 	/// replaces or sets the stored shape of the product
@@ -246,6 +246,8 @@ public:
 	IfcProductSpatialData* getLookupPtr(int i) { return productLookup_.at(i).get(); }
 	/// get all indexed object shapes
 	std::vector<TopoDS_Shape> getIndexedShapes();
+	/// get all interior BVO shapes
+	std::vector<TopoDS_Shape> getIndexedBVOShapes();
 	/// get all indexed lookup values
 	std::vector<Value> getIndexedValues();
 

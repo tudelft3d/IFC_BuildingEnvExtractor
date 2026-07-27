@@ -520,6 +520,11 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		coms = "Unable to find selected div object class geometery";
 		importance = CommunicationStringImportanceID::warning;
 		break;
+	}	
+	case ErrorID::errorNoSpacesBAG: {
+		coms = "Unable to create BAG geometry bacause no IfcSpace objects are present that comply with the 'ILS voor ruimten in de omgevingswet', make sure that the model complies or disable BAG refined LoD0.2 output";
+		importance = CommunicationStringImportanceID::error;
+		break;
 	}
 
 	default:

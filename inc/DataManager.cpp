@@ -52,7 +52,7 @@ IfcProductSpatialData::IfcProductSpatialData(IfcSchema::IfcProduct* productPtr, 
 {
 	ErrorCollection& errorCollection = ErrorCollection::getInstance();
 
-	productPtr_ = std::make_unique<IfcSchema::IfcProduct>(*productPtr);
+	productPtr_ = productPtr;
 	productShape_ = productShape;
 	std::string objectType = productPtr->data().type()->name();
 
@@ -1206,8 +1206,30 @@ std::vector<TopoDS_Shape> DataManager::getIndexedShapes()
 	for (auto it = spatialIndx->begin(); it != spatialIndx->end(); ++it)
 	{
 		Value test = *it;
-		const IfcProductSpatialData& lookup = getLookup(test.second);
+		const IfcProductSpatialData& lookup = getSpaceLookup(test.second);
 		TopoDS_Shape currentShape = lookup.getProductShape();
+		if (currentShape.IsNull()) { continue; }
+		shapeList.emplace_back(currentShape);
+	}
+	return shapeList;
+}
+
+std::vector<TopoDS_Shape> DataManager::getIndexedBVOShapes()
+{
+	std::vector<TopoDS_Shape> shapeList;
+	auto spatialIndx = getSpaceIndexPointer();
+	for (auto it = spatialIndx->begin(); it != spatialIndx->end(); ++it)
+	{
+		Value test = *it;
+		const IfcProductSpatialData& lookup = getSpaceLookup(test.second);
+
+		const IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
+
+		nlohmann::json currentAttributes = helperFunctions::getAttributes(currentProduct);
+		std::string longName = currentAttributes["LongName"];
+		if (longName != "BVO" && longName != "BVO gemeenschappelijk") { continue; }
+
+		const TopoDS_Shape& currentShape = lookup.getProductShape();
 		if (currentShape.IsNull()) { continue; }
 		shapeList.emplace_back(currentShape);
 	}
@@ -1370,6 +1392,40 @@ void DataManager::indexGeo()
 	}
 
 	std::unordered_set<std::string> uniqueKeySet;
+	if (settingsCollection.makeInterior() || settingsCollection.makeBAG02() && settingsCollection.makeRoofPrint())
+	{
+		bool addToRoomIndex = true;
+		timedAddObjectListToIndex("IfcSpace", uniqueKeySet, addToRoomIndex);
+	}
+
+	if (spaceIndex_.empty() && settingsCollection.makeBAG02() && settingsCollection.makeRoofPrint())
+	{
+		std::cout << "\n";
+		ErrorCollection::getInstance().addError(ErrorID::errorNoSpacesBAG);
+		throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoSpacesBAG));
+	}
+
+	if (!settingsCollection.make03() &&
+		!settingsCollection.make04() &&
+		!settingsCollection.make12() &&
+		!settingsCollection.make13() &&
+		!settingsCollection.make22() &&
+		!settingsCollection.make32() &&
+		!settingsCollection.make40() &&
+		!settingsCollection.make41() &&
+		!settingsCollection.makeb0() &&
+		!settingsCollection.makec1() &&
+		!settingsCollection.makec2() &&
+		!settingsCollection.maked1() &&
+		!settingsCollection.maked2() &&
+		!settingsCollection.makee1() &&
+		!settingsCollection.makeFootPrint() 
+		)
+	{
+		std::cout << "[INFO] No full index required\n\n";
+		return;
+	}
+
 	if (settingsCollection.useDefaultDiv())
 	{
 		bool addToRoomIndex = false;
@@ -1399,13 +1455,7 @@ void DataManager::indexGeo()
 			timedAddObjectListToIndex(customDivType, uniqueKeySet);
 		}
 	}
-
-	if (settingsCollection.makeInterior())
-	{
-		bool addToRoomIndex = true;
-		timedAddObjectListToIndex("IfcSpace", uniqueKeySet, addToRoomIndex);
-	}
-	std::cout << std::endl;
+	std::cout << "\n";
 
 	// find valid voids
 	if (settingsCollection.ignoreVoidGrade() == 1)

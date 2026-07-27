@@ -1080,7 +1080,7 @@ bool IOManager::run()
 	{
 		geoCreator.initializeBasic(internalDataManager_.get());
 	}
-	catch (const std::exception&)
+	catch (const ErrorID& e)
 	{
 		ErrorCollection::getInstance().addError(ErrorID::errorFailedInit);
 		return false;

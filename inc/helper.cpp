@@ -3625,7 +3625,7 @@ nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcProduct* ifcPr
 		{
 
 			boost::optional<std::string> optonalLongName = ifcBuilding->LongName();
-			if (optionalType.has_value()) { attributesList["LongName"] = optonalLongName.get(); }
+			if (optonalLongName.has_value()) { attributesList["LongName"] = optonalLongName.get(); }
 			else { attributesList["LongName"] = "None"; }
 		}
 		if (auto* ifcStorey = ifcProduct->as<IfcSchema::IfcBuildingStorey>())

@@ -91,7 +91,7 @@ class FootprintSettings(SettingsBase):
     settings = {
         "make_footprint": (tkinter.IntVar, 1),
         "make_roofprint": (tkinter.IntVar, 1),
-        "footprint_based": (tkinter.IntVar, 0),
+        "BAG02": (tkinter.IntVar, 0),
         "footprint_elevation": (tkinter.DoubleVar, 0.0),
         "footprint_unit": (tkinter.StringVar, "m"),
         "find_footprint_elev": (tkinter.IntVar, 0)
@@ -325,6 +325,7 @@ class GuiSettings:
             lod_list.append(0.2)
             json_dictionary["JSON"]["Generate footprint"] = footprint_settings.make_footprint.get()
             json_dictionary["JSON"]["Generate roof outline"] = footprint_settings.make_roofprint.get()
+            json_dictionary["JSON"]["BAG02"] = footprint_settings.BAG02.get()
         if (lod_settings.lod03.get()):
             lod_list.append(0.3)
             json_dictionary["JSON"]["Generate footprint"] = footprint_settings.make_footprint.get()
@@ -337,13 +338,10 @@ class GuiSettings:
             lod_list.append(1.0)
         if (lod_settings.lod12.get()):
             lod_list.append(1.2)
-            json_dictionary["JSON"]["Footprint based"] = footprint_settings.footprint_based.get()
         if (lod_settings.lod13.get()):
             lod_list.append(1.3)
-            json_dictionary["JSON"]["Footprint based"] = footprint_settings.footprint_based.get()
         if (lod_settings.lod22).get():
             lod_list.append(2.2)
-            json_dictionary["JSON"]["Footprint based"] = footprint_settings.footprint_based.get()
         if (lod_settings.lode1.get()):
             lod_list.append("e.1")
         if (lod_settings.lod32.get()):
@@ -578,17 +576,17 @@ class GuiSettings:
                 else:
                     self.footprint.make_roofprint.set(False)
 
-            if "Footprint based" in json_data_json:
-                base_footprint_val = json_data_json["Footprint based"]
+            if "BAG02" in json_data_json:
+                bag_ref = json_data_json["BAG02"]
 
-                if not self.is_bool(base_footprint_val):
-                    self.throw_error_window("JSON Footprint based")
+                if not self.is_bool(bag_ref):
+                    self.throw_error_window("JSON BAG02")
                     return False
 
-                if base_footprint_val == True or base_footprint_val == 1:
-                    self.footprint.footprint_based.set(True)
+                if bag_ref == True or bag_ref == 1:
+                    self.footprint.BAG02.set(True)
                 else:
-                    self.footprint.footprint_based.set(False)
+                    self.footprint.BAG02.set(False)
         return True
 
     def set_otherSettings_from_json(self, json_data):

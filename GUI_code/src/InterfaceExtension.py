@@ -206,13 +206,9 @@ def toggleMakeRoofOutline(roofPrint_widges, settings):
         roofPrint_widges['state'] = tkinter.DISABLED
     return
 
-def toggleMakeFootprintBased(footprint_widges, settings):
+def toggleRevine02(footprint_widges, settings):
     # the relevant bools:
-    rel_lod = {settings.lod.lod12.get(),
-                    settings.lod.lod13.get(),
-                    settings.lod.lod22.get()}
-
-    if any ( b == True for b in rel_lod):
+    if (settings.lod.lod02.get() and settings.footprint.make_roofprint.get()):
         footprint_widges['state'] = tkinter.NORMAL
     else:
         footprint_widges['state'] = tkinter.DISABLED
@@ -234,7 +230,7 @@ def toggleManualFootprintEleve(toggleDict, settings):
 def checkActiveToggles(toggleDict, settings):
     toggleMakeFootprint(toggleDict["make_footprint"], settings),
     toggleMakeRoofOutline(toggleDict["make_roofprint"], settings),
-    toggleMakeFootprintBased(toggleDict["make_footprint_based"], settings),
+    toggleRevine02(toggleDict["make_BAG"], settings),
     toggleMakeInterior(toggleDict["make_interior"], settings),
     toggleIgnoreIsExternal(toggleDict["make_ignore_IsExternal"], settings)
     toggleManualFootprintEleve(toggleDict, settings)

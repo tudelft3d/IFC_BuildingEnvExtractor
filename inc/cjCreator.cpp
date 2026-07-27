@@ -594,12 +594,19 @@ void CJGeoCreator::initializeBasic(DataManager* cluster)
 		std::cout << "\n";
 	}
 
-	if (SettingsCollection::getInstance().makeBAG02() && SettingsCollection::getInstance().makeRoofPrint())
+	if (SettingsCollection::getInstance().makeBAG02() && SettingsCollection::getInstance().makeRoofPrint()) //TODO: clean this up
 	{
 		std::cout << "[INFO] create BAG outline" << std::endl;
+		std::vector<TopoDS_Shape> filteredSpaces = cluster->getIndexedBVOShapes();
+		if (filteredSpaces.empty())
+		{
+			ErrorCollection::getInstance().addError(ErrorID::errorNoSpacesBAG);
+			std::cout << errorWarningStringEnum::getString(ErrorID::errorNoSpacesBAG) << std::endl;
+			throw ErrorID::errorNoSpacesBAG;
+		}
+
 		bgi::rtree<Value, bgi::rstar<treeDepth_>> spaceIndx;
 		std::vector<SurfaceGridPair> spaceShapeList;
-		std::vector<TopoDS_Shape> filteredSpaces = cluster->getIndexedBVOShapes();
 
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoReduceSurfaces) << std::endl;
 		reduceSurfaces(filteredSpaces, &spaceIndx, spaceShapeList);
@@ -2757,24 +2764,24 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD02(DataManager* h, CJT::Kernel
 	std::vector<TopoDS_Shape> faceCopyCollection;
 	if (settingCollection.makeRoofPrint())
 	{	
-		if (settingCollection.makeBAG02())
+		gp_Trsf trsf;
+		trsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingCollection.gridRotation());
+
+		std::map<std::string, std::string> semanticRoofData;
+		std::string surfaceType = CJObjectEnum::getString(CJObjectID::CJTTypeProjectedRoofOutline);
+		if (hasFootprints_) {
+			surfaceType = CJObjectEnum::getString(CJObjectID::CJTypeRoofSurface);
+			trsf.SetTranslationPart(gp_Vec(0, 0, urr.Z()));
+		}
+		else
+		{
+			trsf.SetTranslationPart(gp_Vec(0, 0, footprintHeight));
+		}
+
+		if (settingCollection.makeBAG02()) // use the BAG outline as roofprint
 		{
 			for (TopoDS_Face& roofOutline : BAGoutline_)
 			{
-				gp_Trsf trsf;
-				trsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingCollection.gridRotation());
-
-				std::map<std::string, std::string> semanticRoofData;
-				std::string surfaceType = CJObjectEnum::getString(CJObjectID::CJTTypeProjectedRoofOutline);
-
-				if (hasFootprints_) {
-					surfaceType = CJObjectEnum::getString(CJObjectID::CJTypeRoofSurface);
-					trsf.SetTranslationPart(gp_Vec(0, 0, urr.Z()));
-				}
-				else
-				{
-					trsf.SetTranslationPart(gp_Vec(0, 0, footprintHeight));
-				}
 				roofOutline.Move(trsf);
 				faceCopyCollection.emplace_back(roofOutline);
 
@@ -2785,27 +2792,11 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD02(DataManager* h, CJT::Kernel
 				geoObjectCollection.emplace_back(geoObject);
 			}
 		}
-		else
+		else // use the actual roofprint
 		{
-			// make the roof
 			for (const BuildingSurfaceCollection& buildingSurfaceData : buildingSurfaceDataList_)
 			{
 				TopoDS_Shape roofOutline = buildingSurfaceData.getRoofOutline();
-
-				gp_Trsf trsf;
-				trsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingCollection.gridRotation());
-
-				std::map<std::string, std::string> semanticRoofData;
-
-				std::string surfaceType = CJObjectEnum::getString(CJObjectID::CJTTypeProjectedRoofOutline);
-				if (hasFootprints_) {
-					surfaceType = CJObjectEnum::getString(CJObjectID::CJTypeRoofSurface);
-					trsf.SetTranslationPart(gp_Vec(0, 0, urr.Z()));
-				}
-				else
-				{
-					trsf.SetTranslationPart(gp_Vec(0, 0, footprintHeight));
-				}
 				roofOutline.Move(trsf);
 				faceCopyCollection.emplace_back(roofOutline);
 
@@ -2819,9 +2810,8 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD02(DataManager* h, CJT::Kernel
 		
 	}
 
-	if (hasFootprints_) 
+	if (hasFootprints_) // make the footprint
 	{ 
-		// make the footprint
 		for (const BuildingSurfaceCollection& buildingSurfaceData : buildingSurfaceDataList_)
 		{
 			// TODO: make compound

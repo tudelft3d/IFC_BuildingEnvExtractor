@@ -347,8 +347,8 @@ frame_lod_settings_foot.pack(side=tkinter.RIGHT)
 toggle_makeexterior = ttk.Checkbutton(frame_lod_settings_foot, text="Generate exteriors", variable=settings.other.make_exterior)
 toggle_makeinterior = ttk.Checkbutton(frame_lod_settings_foot, text="Generate interiors", variable=settings.other.make_interior)
 toggle_makefootprint = ttk.Checkbutton(frame_lod_settings_foot, text="Export footprint", variable=settings.footprint.make_footprint)
-toggle_makeroofprint = ttk.Checkbutton(frame_lod_settings_foot, text="Export roof outline", variable=settings.footprint.make_roofprint)
-toggle_footprint_based = ttk.Checkbutton(frame_lod_settings_foot, text="Footprint based abstraction", variable=settings.footprint.footprint_based)
+toggle_makeroofprint = ttk.Checkbutton(frame_lod_settings_foot, text="Export roof outline", variable=settings.footprint.make_roofprint,command= lambda :  IExtension.checkActiveToggles(toggle_dictionary, settings))
+toggle_BAG02 = ttk.Checkbutton(frame_lod_settings_foot, text="BAG refinement", variable=settings.footprint.BAG02)
 toggle_ignore_IsExternal = ttk.Checkbutton(frame_lod_settings_foot, text="Ignore IsExternal", variable=settings.other.ignoreIsExternal)
 
 separator2 = ttk.Separator(main_window, orient='horizontal')
@@ -363,7 +363,7 @@ if not is_simple:
     toggle_makeinterior.pack(side=tkinter.TOP, fill=tkinter.X)
     toggle_makefootprint.pack(side=tkinter.TOP, fill=tkinter.X)
     toggle_makeroofprint.pack(side=tkinter.TOP, fill=tkinter.X)
-    toggle_footprint_based.pack(side=tkinter.TOP, fill=tkinter.X)
+    toggle_BAG02.pack(side=tkinter.TOP, fill=tkinter.X)
     toggle_ignore_IsExternal.pack(side=tkinter.TOP, fill=tkinter.X)
 
     separator2.pack(fill='x', pady=10)
@@ -519,7 +519,7 @@ IExtension.Tooltip(toggle_make_step, "If active output is copied to .STEP (ISO 1
 
 IExtension.Tooltip(toggle_makefootprint, "If active a footprint will be created at the footprint elevation (lod0.0, 0.2, 0.3 and 0.4 only)")
 IExtension.Tooltip(toggle_makeroofprint, "If active a roof outline will be created (lod0.0, 0.2, 0.3 and 0.4 only)")
-IExtension.Tooltip(toggle_footprint_based, "If active the footprint will be used to restrict the output (LoD1.2, 1.3 & 2.2)")
+IExtension.Tooltip(toggle_BAG02, "If active IfcSpace data will be used to refine the LoD0.2 outline to comply with the BAG requirements")
 IExtension.Tooltip(toggle_makeexterior, "If active exterior shells will be stored")
 IExtension.Tooltip(toggle_makeinterior, "If active spaces will be stored (Lod0.2, 1.2, 2.2, 3.2 & voxels) and storey "
                              "objects will be created (loD0.2 and 0.3 )")
@@ -548,7 +548,7 @@ IExtension.Tooltip(close_button, "Exit the application")
 toggle_dictionary = {
     "make_footprint" : toggle_makefootprint,
     "make_roofprint" : toggle_makeroofprint,
-    "make_footprint_based" : toggle_footprint_based,
+    "make_BAG" : toggle_BAG02,
     "make_interior" : toggle_makeinterior,
     "make_ignore_IsExternal" : toggle_ignore_IsExternal,
 

@@ -1224,8 +1224,10 @@ std::vector<TopoDS_Shape> DataManager::getIndexedBVOShapes()
 		const IfcProductSpatialData& lookup = getSpaceLookup(test.second);
 
 		const IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
-
 		nlohmann::json currentAttributes = helperFunctions::getAttributes(currentProduct);
+
+		if (!currentAttributes.contains("LongName")) { continue; }
+
 		std::string longName = currentAttributes["LongName"];
 		if (longName != "BVO" && longName != "BVO gemeenschappelijk") { continue; }
 

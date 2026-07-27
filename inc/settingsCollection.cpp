@@ -464,6 +464,25 @@ void SettingsCollection::setLoD(const nlohmann::json& json)
 	return;
 }
 
+void SettingsCollection::setMakeBAG02(const nlohmann::json& json)
+{
+	std::string refineLoD02 = JsonObjectInEnum::getString(JsonObjectInID::JSONBAG02);
+	if (json.contains(refineLoD02))
+	{
+		try
+		{
+			bool refineBool = getJsonBoolValue(json[refineLoD02]);
+			setMakeBAG02(refineBool);
+		}
+		catch (const ErrorID& exceptionId)
+		{
+			ErrorCollection::getInstance().addError(exceptionId, refineLoD02);
+			throw std::string(errorWarningStringEnum::getString(exceptionId) + refineLoD02);
+		}
+	}
+	return;
+}
+
 void SettingsCollection::setMakeSite(const nlohmann::json& json)
 {
 	std::string generateSiteOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGenSite);

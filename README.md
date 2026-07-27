@@ -322,6 +322,7 @@ The configuration json has a very simple structure. An example can be found belo
     "JSON" : {
         "Footprint elevation": 1,
         "Footprint based" : 0,
+        "BAG02": 0,
         "Horizontal section offset": 0,
         "Generate footprint": 1,
         "Generate roof outline": 1,
@@ -430,6 +431,10 @@ Optional:
 * :white_check_mark: "JSON" "Footprint based" :white_check_mark:
   * Boolean
   * Toggles footprint based shape creation for LoD1.2, 1.3, and 2.2. This is done by trimming the roofing structures on which LoD1.2, 1.3, and 2.2 are based so that they do not overhang over the footprint shape before extruding them downwards to create the solid representation.
+  * Default value = false
+* :white_check_mark: "JSON" "BAG02" :white_check_mark:
+  * Boolean
+  * Toggles BAG compliant LoD0.2 shape creation. The LoD0.2 roof outline or projected roof outline, will be refined to valid BAG geometry. This process requires IfcSpace objects based on the ["ILS voor ruimten in de Omgevingswet"](https://www.digigo.nu/wp-content/uploads/2025/05/250321_ILS_voor_ruimten_in_de_omgevingswet_DEF.pdf). If this data cannot be found the tool will terminate the process.
   * Default value = false
 * :ballot_box_with_check: "JSON" "Horizontal section offset" :ballot_box_with_check:
   * Float/double

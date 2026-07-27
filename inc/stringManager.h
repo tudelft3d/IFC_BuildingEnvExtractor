@@ -249,6 +249,7 @@ enum class JsonObjectInID {
 	JSONGenSite,
 	JSONGeoreference,
 	JSONMergeSemantics,
+	JSONBAG02,
 
 	outputFormat,
 	outputFormatJSON,

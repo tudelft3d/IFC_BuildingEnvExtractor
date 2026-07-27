@@ -754,7 +754,9 @@ std::string JsonObjectInEnum::getString(JsonObjectInID id)
 	case JsonObjectInID::JSONGeoreference:
 		return "Georeference";
 	case JsonObjectInID::JSONMergeSemantics:
-		return "Merge semantic objects";
+		return "Merge semantic objects";	
+	case JsonObjectInID::JSONBAG02:
+		return "BAG02";
 
 	case JsonObjectInID::outputFormat:
 		return "Output format";

@@ -46,6 +46,8 @@ private:
     bool make40_ = false;
     bool make41_ = false;
     bool make42_ = false;
+    
+    bool makeBAG02_ = false;
 
     bool makeSite_ = false;
 
@@ -71,8 +73,6 @@ private:
     bool mereOBJ_ = false;
 
     bool forceSolid_ = false;
-
-    bool makeBAG02_ = true;
 
 	// variables set the deviding objects
 	bool useDefaultDiv_ = true;
@@ -281,6 +281,10 @@ public:
     bool makee1() const { return makee1_; }
     void setMakee1(bool value) { makee1_ = value; }
 
+    bool makeBAG02() const { return makeBAG02_; }
+    void setMakeBAG02(bool value) { makeBAG02_ = value; }
+    void setMakeBAG02(const nlohmann::json& json);
+
     bool makeSite() const { return makeSite_; }
     void setMakeSite(bool value) { makeSite_ = value; }
     void setMakeSite(const nlohmann::json& json);
@@ -345,8 +349,6 @@ public:
     void setCreateOBJ(const nlohmann::json& json);
 
     bool forceSolid() const { return forceSolid_; }
-
-    bool makeBAG02() const { return makeBAG02_; }
 
     bool storeCustomWallAttributes() const { return addCustomWallAttributes_; }
     void setStoreCustomWallAttributes(bool value) { addCustomWallAttributes_ = value; }

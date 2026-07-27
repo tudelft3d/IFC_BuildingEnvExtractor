@@ -259,7 +259,8 @@ void IOManager::printSummary()
 		std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.footprintElevation() << "\n";
 	}
 
-
+	std::cout << "- BAG LoD0.2:\n";
+	std::cout << boolToString(settingsCollection.makeBAG02()) << "\n";
 	std::cout << "- Footrint based extraction:\n";
 	std::cout << boolToString(settingsCollection.footPrintBased()) << "\n";
 	std::cout << "- horizontal section offset\n";
@@ -479,6 +480,7 @@ nlohmann::json IOManager::settingsToJSON()
 	// store the json data
 	nlohmann::json jsonJSON;
 	std::string jsonOName = JsonObjectInEnum::getString(JsonObjectInID::JSON);
+	std::string jsonBAGrefNAme = JsonObjectInEnum::getString(JsonObjectInID::JSONBAG02);
 	std::string jsonFootprintElevOName = JsonObjectInEnum::getString(JsonObjectInID::JSONFootprintElev);
 	std::string jsonFootprintBSOName = JsonObjectInEnum::getString(JsonObjectInID::JSONFootprintBShape);
 	std::string jsonSecOffsetOName = JsonObjectInEnum::getString(JsonObjectInID::JSONSecOffset);
@@ -490,6 +492,7 @@ nlohmann::json IOManager::settingsToJSON()
 	std::string jsonGeoreferenceOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGeoreference);
 	std::string jsonMergeSemanticsOName = JsonObjectInEnum::getString(JsonObjectInID::JSONMergeSemantics);
 
+	jsonJSON[jsonBAGrefNAme] = settingsCollection.makeBAG02();
 	jsonJSON[jsonFootprintElevOName] = settingsCollection.footprintElevation();
 	jsonJSON[jsonFootprintBSOName] = settingsCollection.footPrintBased();
 	jsonJSON[jsonSecOffsetOName] = settingsCollection.horizontalSectionOffset();

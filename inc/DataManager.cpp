@@ -1407,7 +1407,8 @@ void DataManager::indexGeo()
 		throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoSpacesBAG));
 	}
 
-	if (!settingsCollection.make03() &&
+	if (settingsCollection.make02() && settingsCollection.makeBAG02() &&
+		!settingsCollection.make03() &&
 		!settingsCollection.make04() &&
 		!settingsCollection.make12() &&
 		!settingsCollection.make13() &&

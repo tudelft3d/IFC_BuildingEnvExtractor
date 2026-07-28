@@ -804,7 +804,6 @@ std::optional<gp_Pnt> helperFunctions::getPointOnFace(const TopoDS_Face& theFace
 	Handle(Poly_Triangulation) mesh = BRep_Tool::Triangulation(theFace, loc);
 
 	if (mesh.IsNull()) { return std::nullopt; }
-	if (mesh.get()->NbTriangles() == 1) { return std::nullopt; }
 
 	double bestArea = -1.0;
 	gp_Pnt bestPoint;

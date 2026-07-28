@@ -1561,6 +1561,7 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 	}
 
 	std::vector<TopoDS_Face> trimmedFace = projectionSplitting(inputFaceList, inputFaceIdx);
+
 	if (!allFlat)
 	{
 		bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> trimmedFaceIdx; // pair bbox | extruded shape faces
@@ -1571,10 +1572,10 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 			trimmedFaceIdx.insert(std::make_pair(topFaceBox, currentTopFace));
 		}
 		trimmedFace = intersectionSplitting(trimmedFace, trimmedFaceIdx);
+
 	}
 
-	std::vector<TopoDS_Face> cleanedFace = helperFunctions::TessellateFace(trimmedFace); //TODO: can this be removed?
-	std::vector<TopoDS_Face> visibleFaceList = getVisTopSurfaces(cleanedFace, lowestZ, bufferSurfaceList);
+	std::vector<TopoDS_Face> visibleFaceList = getVisTopSurfaces(trimmedFace, lowestZ, bufferSurfaceList);
 	std::vector<TopoDS_Face> visibleMergedFaceList = helperFunctions::mergeFaces(visibleFaceList);
 	//clean the surfaces
 	return  visibleMergedFaceList;

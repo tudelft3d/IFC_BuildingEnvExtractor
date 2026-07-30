@@ -169,7 +169,7 @@ private:
 	void monitorStoreys(std::mutex& storeyMutex, std::map<std::string, int>& progressMap, int totalProcesses);
 
 	/// create the roof outline at z=0 based on the flattened roof surface representations
-	std::vector<TopoDS_Face> createRoofOutline(const std::vector<RCollection>& rCollectionList);
+	std::vector<TopoDS_Face> createRoofOutline(const std::vector<SurfaceGridPair>& rCollectionList);
 
 	void makeFloorSection(std::vector<TopoDS_Face>& facesOut, DataManager* h, double sectionHeight);
 

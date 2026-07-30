@@ -119,8 +119,8 @@ public:
 
 	const TopoDS_Face getProjectedFace() const;
 
-	const gp_Pnt getLLLPoint() { return lllPoint_; }
-	const gp_Pnt getURRPoint() { return urrPoint_; }
+	const gp_Pnt& getLLLPoint() const { return lllPoint_; }
+	const gp_Pnt& getURRPoint() const { return urrPoint_; }
 };
 
 class Edge {

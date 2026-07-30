@@ -582,11 +582,12 @@ void CJGeoCreator::initializeBasic(DataManager* cluster)
 
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureMerging) << std::endl;
 		std::vector<RCollection> mergedSurfaceRList = mergeRoofSurfaces(fineFilteredShapeList);
-		fineFilteredShapeList.clear();
-		fineFilteredShapeList.shrink_to_fit();
 
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofOutlineConstruction) << std::endl;
-		std::vector<TopoDS_Face> roofOutlines = createRoofOutline(mergedSurfaceRList);
+		std::vector<TopoDS_Face> roofOutlines = createRoofOutline(fineFilteredShapeList);
+		fineFilteredShapeList.clear();
+		fineFilteredShapeList.shrink_to_fit();
+		DebugUtils::WriteToTxt(roofOutlines, "C:/Users/Jasper/Desktop/desk/l.txt");
 
 		// sort surface groups based on the roof/footprints
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureSorting) << std::endl;
@@ -616,13 +617,8 @@ void CJGeoCreator::initializeBasic(DataManager* cluster)
 		spaceShapeList.clear();
 		spaceShapeList.shrink_to_fit();
 
-		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureMerging) << std::endl;
-		std::vector<RCollection> mergedSurfaceSpaceList = mergeRoofSurfaces(fineFilteredSpaceList);
-
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofOutlineConstruction) << std::endl;
-		BAGoutline_ = createRoofOutline(mergedSurfaceSpaceList);
-		mergedSurfaceSpaceList.clear();
-		mergedSurfaceSpaceList.shrink_to_fit();
+		BAGoutline_ = createRoofOutline(fineFilteredSpaceList);
 	}
 
 
@@ -1559,7 +1555,6 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 			inputFaceIdx.insert(std::make_pair(bufferFaceBox, bufferSurface));
 		}
 	}
-
 	std::vector<TopoDS_Face> trimmedFace = projectionSplitting(inputFaceList, inputFaceIdx);
 
 	if (!allFlat)
@@ -2096,14 +2091,15 @@ std::vector<TopoDS_Shape> CJGeoCreator::getTopObjects(DataManager* h)
 	return topCleanObjects;
 }
 
-std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<RCollection>& rCollectionList)
+std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<SurfaceGridPair>& rCollectionList)
 {
 	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
 	std::vector<TopoDS_Face> projectedFaceList;
 
-	for (const RCollection& currentGroup : rCollectionList)
+	for (const SurfaceGridPair& currentGroup : rCollectionList)
 	{
-		TopoDS_Face currentFace = currentGroup.getProjectedFace();
+		TopoDS_Face currentFace = currentGroup.getFace();
+		currentFace = helperFunctions::projectFaceFlat(currentFace, 0);
 		if (currentFace.IsNull()) { continue; }
 		projectedFaceList.emplace_back(currentFace);
 	}

@@ -1445,6 +1445,7 @@ bool helperFunctions::surfaceIsIncapsulated(const TopoDS_Face& innerSurface, con
 bool helperFunctions::triangleIntersecting(const std::array<gp_Pnt, 2>& line, const std::array<gp_Pnt, 3>& triangle)
 {
 	gp_Vec triangleNormal = gp_Vec(triangle[0], triangle[1]).Crossed(gp_Vec(triangle[0], triangle[2]));
+	if (triangleNormal.Magnitude() < 1e-6) { return false; }
 	triangleNormal.Normalize();
 	return triangleIntersecting(line, triangle, triangleNormal);
 }
@@ -1495,7 +1496,7 @@ bool helperFunctions::baryCentricTest(const gp_Pnt& point, const std::array<gp_P
 	double dot12 = v1.Dot(v2);
 
 	double denom = dot00 * dot11 - dot01 * dot01;
-	if (std::abs(denom) < precision) { return false; }
+	if (std::abs(denom) < 1e-10) { return false; }
 
 	double invDenom = 1.0 / denom;
 	double u = (dot11 * dot02 - dot01 * dot12) * invDenom;
@@ -3086,8 +3087,8 @@ std::vector<HalfEdgeLoop> helperFunctions::loops2Outer(const std::vector<HalfEdg
 			qResult.clear();
 			triangulatedShapeIndx.query(bgi::intersects(
 				helperFunctions::createBBox(
-					gp_Pnt(evalP1.X() - 0.1, evalP1.Y() - 0.1, evalP1.Z() - 0.1),
-					gp_Pnt(evalP1.X() + 0.1, evalP1.Y() + 0.1, evalP1.Z() + 0.1)
+					gp_Pnt(evalP1.X() - 0.01, evalP1.Y() - 0.01, evalP1.Z() - 0.01),
+					gp_Pnt(evalP1.X() + 0.01, evalP1.Y() + 0.01, evalP1.Z() + 0.1)
 				)), std::back_inserter(qResult));
 
 			for (const std::pair<BoostBox3D, int>& resultPair : qResult)

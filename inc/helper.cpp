@@ -1104,8 +1104,8 @@ gp_Vec helperFunctions::computeFaceNormal(const T& theFace)
 			Handle(Geom_Curve) currentCurve = BRep_Tool::Curve(currentEdge, sParam, lParam);
 			if (currentCurve.IsNull()) continue;
 
-			Standard_Real mParam = 0.5 * (sParam + lParam);
-			pts.emplace_back(currentCurve->Value(mParam));
+			pts.emplace_back(currentCurve->Value(sParam));
+			pts.emplace_back(currentCurve->Value(lParam));
 		}
 		return newellsNormal(pts);
 

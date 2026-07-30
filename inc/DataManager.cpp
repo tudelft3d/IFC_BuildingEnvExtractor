@@ -1206,7 +1206,7 @@ std::vector<TopoDS_Shape> DataManager::getIndexedShapes()
 	for (auto it = spatialIndx->begin(); it != spatialIndx->end(); ++it)
 	{
 		Value test = *it;
-		const IfcProductSpatialData& lookup = getSpaceLookup(test.second);
+		const IfcProductSpatialData& lookup = getLookup(test.second);
 		TopoDS_Shape currentShape = lookup.getProductShape();
 		if (currentShape.IsNull()) { continue; }
 		shapeList.emplace_back(currentShape);

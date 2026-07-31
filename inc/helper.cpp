@@ -1055,24 +1055,31 @@ bool helperFunctions::pointOnEdge(const TopoDS_Edge& theEdge, const gp_Pnt& theP
 	gp_Pnt p1 = getFirstPointShape(theEdge);
 	gp_Pnt p2 = getLastPointShape(theEdge);
 
-	if (p1.Distance(thePoint) < precision) { return true; }
-	if (p2.Distance(thePoint) < precision) { return true; }
-	if (p1.Distance(p2) < precision) return false;
+	return pointOnEdge(p1, p2, thePoint, precision);
+}
 
-	gp_Vec v12 = gp_Vec(p1, p2);
-	gp_Vec v1p = gp_Vec(p1, thePoint);
+bool helperFunctions::pointOnEdgeLoc(const gp_Pnt& edgePoint1, const gp_Pnt& edgePoint2, const gp_Pnt& thePoint, double& t, double precision)
+{
+	if (edgePoint1.Distance(thePoint) < precision) { return true; }
+	if (edgePoint2.Distance(thePoint) < precision) { return true; }
+	if (edgePoint1.Distance(edgePoint2) < precision) { return false; }
 
-	double projectionPar = v1p.Dot(v12) / v12.Dot(v12);
+	gp_Vec v12 = gp_Vec(edgePoint1, edgePoint2);
+	gp_Vec v1p = gp_Vec(edgePoint1, thePoint);
 
-	if (projectionPar < 0.0) projectionPar = 0.0;
-	else if (projectionPar > 1.0) projectionPar = 1.0;
+	t = v1p.Dot(v12) / v12.Dot(v12);
 
-	gp_Pnt projectionPoint = p1.XYZ() + projectionPar * v12.XYZ();
-	if (projectionPoint.Distance(thePoint) > precision )
-	{
-		return false;
-	}
-	return true;
+	gp_Pnt projectionPoint = edgePoint1.XYZ() + t * v12.XYZ();
+	if (projectionPoint.Distance(thePoint) > precision) { return false; }
+
+
+	return (t >= 0.0 && t <= 1.0);
+}
+
+bool helperFunctions::pointOnEdge(const gp_Pnt& edgePoint1, const gp_Pnt& edgePoint2, const gp_Pnt& thePoint, double precision)
+{
+	double t;
+	return pointOnEdgeLoc(edgePoint1, edgePoint2, thePoint, t, precision);
 }
 
 
@@ -2693,12 +2700,9 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 		flattenedFaceList = planarFaces;
 	}
 
-	// TODO: find a way to collapse mesehs instead of boolean
 	std::vector<HalfEdge> edgeCluster = planarFaces2EdgeCluster(flattenedFaceList);
 	std::vector<HalfEdgeLoop> loopList = planarEdgeCluster2Loops(edgeCluster);
 	std::vector<HalfEdgeLoop> outerLoopList = loops2Outer(loopList, flattenedFaceList);
-
-	//TODO: remove not required vertex
 	std::vector<TopoDS_Face> clippedFaceList = outerLoops2Faces(outerLoopList);
 
 	// return the surfaces to the input orientation
@@ -2799,7 +2803,7 @@ std::vector<HalfEdge> helperFunctions::planarFaces2EdgeCluster(const std::vector
 
 			if (gp_Vec(otherP1, otherP2).IsParallel(currentVec, precision))
 			{
-				continue;
+				//continue;
 			}
 
 			toolList.emplace_back(otherEdge);
@@ -2958,21 +2962,28 @@ bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> helperFunctions::mak
 	return edgeIndexClean;
 }
 
-std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::vector<HalfEdge>& planarEdgeCluster)
+std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::vector<HalfEdge>& planarEdgeCluster, bool untangle)
 {
 	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	std::vector<HalfEdge> halfEdgeList;
-	for (const HalfEdge& currentEdge : planarEdgeCluster)
+	if (!untangle)
 	{
-		gp_Pnt p1 = currentEdge.p1_;
-		gp_Pnt p2 = currentEdge.p2_;
+		for (const HalfEdge& currentEdge : planarEdgeCluster)
+		{
+			gp_Pnt p1 = currentEdge.p1_;
+			gp_Pnt p2 = currentEdge.p2_;
 
-		if (p1.IsEqual(p2, precision)) { continue; }
+			if (p1.IsEqual(p2, precision)) { continue; }
 
-		HalfEdge mirroredEdge = HalfEdge(p2, p1);
-		halfEdgeList.emplace_back(currentEdge);
-		halfEdgeList.emplace_back(mirroredEdge);
+			HalfEdge mirroredEdge = HalfEdge(p2, p1);
+			halfEdgeList.emplace_back(currentEdge);
+			halfEdgeList.emplace_back(mirroredEdge);
+		}
+	}
+	else
+	{
+		halfEdgeList = planarEdgeCluster;
 	}
 
 	// grow loop
@@ -2989,6 +3000,10 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 
 		HalfEdge* bestEdge = nullptr;
 		double bestAngle = 1e30;
+		if (untangle)
+		{
+			bestAngle = -1e30;
+		}
 
 		for (HalfEdge& otherHalfEdge : halfEdgeList)
 		{
@@ -3000,7 +3015,7 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 			double dot = baseDir.Dot(dir);
 			double angle = std::atan2(crossZ, dot);
 
-			if (!bestEdge || angle < bestAngle)
+			if (!bestEdge || ((angle < bestAngle) ^ untangle))
 			{
 				bestEdge = &otherHalfEdge;
 				bestAngle = angle;
@@ -3009,13 +3024,18 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 
 		if (bestEdge == nullptr) 
 		{
+			bool newFound = false;
 			for (HalfEdge& currentHalfedge : halfEdgeList)
 			{
 				if (currentHalfedge.isUsed_) { continue; }
 				startEdge = &currentHalfedge;
+				newFound = true;
 				break;
 			}
-			continue; 
+
+			if (newFound) { continue; }
+			break;
+
 		}
 
 		if (bestEdge->isUsed_)
@@ -3043,6 +3063,30 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 		startEdge = bestEdge;
 	}
 
+	if (!untangle)
+	{
+		std::vector<HalfEdgeLoop> cleanedLoopList;
+		for (HalfEdgeLoop& currentLoop : loopList)
+		{
+			if (currentLoop.selfIntersects())
+			{
+				currentLoop.reset();
+				std::vector<HalfEdgeLoop> untangledList = planarEdgeCluster2Loops(currentLoop.halfEdgeList_, true);
+
+				if (untangledList.size() <=1)
+				{
+					std::cout << "new" << std::endl;
+					DebugUtils::printPoints(currentLoop.getWire());
+				}
+
+				cleanedLoopList.insert(cleanedLoopList.end(), untangledList.begin(), untangledList.end());
+				continue;
+			}
+			cleanedLoopList.emplace_back(currentLoop);
+
+		}
+		return cleanedLoopList;
+	}
 	return loopList;
 }
 
@@ -3241,13 +3285,24 @@ std::vector<HalfEdge> helperFunctions::splitHalfEdge(const HalfEdge& argument, c
 
 	std::vector<double> tList;
 
+
 	for (const HalfEdge& currentTool : toolList)
 	{
+		bool onLine = false;
 		double t;
-		if (!splitHalfEdge(argument, currentTool, precision, t))
+		if (pointOnEdgeLoc(argument.p1_, argument.p2_, currentTool.p1_, t, precision))
 		{
-			continue;
+			tList.emplace_back(t);
+			onLine = true;
 		}
+		if (pointOnEdgeLoc(argument.p1_, argument.p2_, currentTool.p2_, t, precision))
+		{
+			tList.emplace_back(t);
+			onLine = true;
+		}
+		
+		if (onLine) { continue; }
+		if (!splitHalfEdge(argument, currentTool, precision, t)) { continue; }
 		tList.emplace_back(t);
 	}
 

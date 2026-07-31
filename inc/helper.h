@@ -136,6 +136,32 @@ struct HalfEdgeLoop
 		return halfEdgeList_[0].p1_.Z(); 
 	}
 
+	void reset() {
+		for (HalfEdge& currentEdge : halfEdgeList_)
+		{
+			currentEdge.isUsed_ = false;
+		}
+		return;
+	}
+
+	bool selfIntersects() const {
+		std::vector<gp_Pnt> pointList;
+		for (const HalfEdge& currentEdge : halfEdgeList_)
+		{
+			const gp_Pnt& currentPoint = currentEdge.getP1();
+
+			for (const gp_Pnt& otherP : pointList)
+			{
+				if (otherP.IsEqual(currentPoint, 1e-6))
+				{
+					return true;
+				}
+			}
+			pointList.emplace_back(currentPoint);
+		}
+		return false;
+	}
+
 	TopoDS_Wire getWire() const {
 		BRepBuilderAPI_MakeWire wireBuilder;
 		for (const HalfEdge& currentEdge : halfEdgeList_) {
@@ -263,6 +289,10 @@ struct helperFunctions{
 	static bool pointOnWire(const TopoDS_Wire& theWire, const gp_Pnt& thePoint, double precision = 0.0);
 	/// check if point is on edge
 	static bool pointOnEdge(const TopoDS_Edge& theEdge, const gp_Pnt& thePoint, double precision = 0.0);
+	/// check if point is on edge
+	static bool pointOnEdge(const gp_Pnt& edgePoint1, const gp_Pnt& edgePoint2, const gp_Pnt& thePoint, double precision = 0.0);	
+	/// check if point is on edge
+	static bool pointOnEdgeLoc(const gp_Pnt& edgePoint1, const gp_Pnt& edgePoint2, const gp_Pnt& thePoint, double& t, double precision = 0.0);
 	
 	/// direction and angle code
 
@@ -366,7 +396,7 @@ struct helperFunctions{
 	/// creates the index for the edgecluster creation process, ignores meshing double edges 
 	static bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> makeEdgeClusterIndx(const std::vector<TopoDS_Face>& planarFaces);
 	/// create loops or of a planar edge cluster
-	static std::vector<HalfEdgeLoop> planarEdgeCluster2Loops(const std::vector<HalfEdge>& planarEdgeCluster);
+	static std::vector<HalfEdgeLoop> planarEdgeCluster2Loops(const std::vector<HalfEdge>& planarEdgeCluster, bool untangle = false);
 	/// eliminate the non-vital loops
 	static std::vector<HalfEdgeLoop> loops2Outer(const std::vector<HalfEdgeLoop>& planarLoopList, const std::vector<TopoDS_Face>& planarFaces);
 	/// construct planar faces from the outerLoops

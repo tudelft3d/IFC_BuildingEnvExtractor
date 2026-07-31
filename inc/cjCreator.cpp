@@ -583,11 +583,15 @@ void CJGeoCreator::initializeBasic(DataManager* cluster)
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureMerging) << std::endl;
 		std::vector<RCollection> mergedSurfaceRList = mergeRoofSurfaces(fineFilteredShapeList);
 
+		for (const RCollection& test: mergedSurfaceRList)
+		{
+			DebugUtils::WriteToTxt(test.getFaces(), "C:/Users/Jasper/Desktop/desk/l.txt", true);
+		}
+
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofOutlineConstruction) << std::endl;
 		std::vector<TopoDS_Face> roofOutlines = createRoofOutline(fineFilteredShapeList);
 		fineFilteredShapeList.clear();
 		fineFilteredShapeList.shrink_to_fit();
-		DebugUtils::WriteToTxt(roofOutlines, "C:/Users/Jasper/Desktop/desk/l.txt");
 
 		// sort surface groups based on the roof/footprints
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureSorting) << std::endl;

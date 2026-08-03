@@ -2715,10 +2715,9 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 		flattenedFaceList = planarFaces;
 	}
 
-	std::vector<HalfEdge> edgeCluster = planarFaces2EdgeCluster(flattenedFaceList);
-	//TODO: insert transitional edges check here
-	std::vector<HalfEdgeLoop> loopList = planarEdgeCluster2Loops(edgeCluster);
-	std::vector<HalfEdgeLoop> outerLoopList = loops2Outer(loopList, flattenedFaceList);
+	std::vector<HalfEdge> edgeCluster = helperFunctions::planarFaces2EdgeCluster(flattenedFaceList);
+	std::vector<HalfEdge> outerEdges = helperFunctions::getTransitionalEdges(edgeCluster, flattenedFaceList);
+	std::vector<HalfEdgeLoop> outerLoopList = helperFunctions::planarEdgeCluster2Loops2(outerEdges);
 	std::vector<TopoDS_Face> clippedFaceList = outerLoops2Faces(outerLoopList);
 
 	// return the surfaces to the input orientation

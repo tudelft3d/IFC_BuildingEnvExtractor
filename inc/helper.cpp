@@ -171,12 +171,17 @@ std::vector<HalfEdge> cleanHalfEdgeList(std::vector<HalfEdge> halfEdgeList)
 	double precision = SettingsCollection::getInstance().linearTolerance();
 	std::vector<HalfEdge> cleanedHalfEdgeList;
 	gp_Vec startDir = halfEdgeList[0].getDir();
-	for (size_t i = 1; i < halfEdgeList.size(); i++)
+	for (size_t i = 1; i < halfEdgeList.size(); i++) // search for a proper starting edge
 	{
 		const HalfEdge& currentEdge = halfEdgeList[i];
 		if (startDir.IsParallel(currentEdge.getDir(), precision)) { continue; }
 		std::rotate(halfEdgeList.begin(), halfEdgeList.begin() + i, halfEdgeList.end());
 		break;
+	}
+
+	for (size_t i = 0; i < halfEdgeList.size(); i++) // search for a proper starting edge
+	{
+		const HalfEdge& currentEdge = halfEdgeList[i];
 	}
 
 	gp_Pnt basePoint = halfEdgeList[0].p1_;
@@ -1505,12 +1510,22 @@ bool helperFunctions::baryCentricTest(const gp_Pnt& point, const std::array<gp_P
 	double denom = dot00 * dot11 - dot01 * dot01;
 	if (std::abs(denom) < 1e-10) { return false; }
 
+	double area2 = gp_Vec(triangle[0], triangle[1])
+		.Crossed(gp_Vec(triangle[0], triangle[2]))
+		.Magnitude();
+
+	double h0 = area2 / triangle[1].Distance(triangle[2]);
+	double h1 = area2 / triangle[0].Distance(triangle[2]);
+	double h2 = area2 / triangle[0].Distance(triangle[1]);
+
 	double invDenom = 1.0 / denom;
 	double u = (dot11 * dot02 - dot01 * dot12) * invDenom;
 	double v = (dot00 * dot12 - dot01 * dot02) * invDenom;
 	double w = 1 - u - v;
 
-	return (u >= -precision && v >= -precision &&  w >= -precision);
+	return u * h2 >= -precision &&
+		v * h1 >= -precision &&
+		w * h0 >= -precision;
 }
 
 
@@ -2701,6 +2716,7 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 	}
 
 	std::vector<HalfEdge> edgeCluster = planarFaces2EdgeCluster(flattenedFaceList);
+	//TODO: insert transitional edges check here
 	std::vector<HalfEdgeLoop> loopList = planarEdgeCluster2Loops(edgeCluster);
 	std::vector<HalfEdgeLoop> outerLoopList = loops2Outer(loopList, flattenedFaceList);
 	std::vector<TopoDS_Face> clippedFaceList = outerLoops2Faces(outerLoopList);
@@ -2803,7 +2819,7 @@ std::vector<HalfEdge> helperFunctions::planarFaces2EdgeCluster(const std::vector
 
 			if (gp_Vec(otherP1, otherP2).IsParallel(currentVec, precision))
 			{
-				//continue;
+				continue;
 			}
 
 			toolList.emplace_back(otherEdge);
@@ -2838,7 +2854,6 @@ std::vector<HalfEdge> helperFunctions::planarFaces2EdgeCluster(const std::vector
 			{
 				const HalfEdge& otherTrimmedEdge = otherSplitPair.second;
 
-
 				if (currentTrimmedEdge.p1_.IsEqual(otherTrimmedEdge.p1_, precision) && currentTrimmedEdge.p2_.IsEqual(otherTrimmedEdge.p2_, precision) ||
 					currentTrimmedEdge.p1_.IsEqual(otherTrimmedEdge.p2_, precision) && currentTrimmedEdge.p2_.IsEqual(otherTrimmedEdge.p1_, precision))
 				{
@@ -2852,6 +2867,92 @@ std::vector<HalfEdge> helperFunctions::planarFaces2EdgeCluster(const std::vector
 		}
 	}
 	return uniqueSplitEdges;
+}
+
+std::vector<HalfEdge> helperFunctions::getTransitionalEdges(const std::vector<HalfEdge>& planarEdgeCluster, const std::vector<TopoDS_Face>& planarFaces)
+{
+	SettingsCollection& settingCol = SettingsCollection::getInstance();
+	double precision = settingCol.linearTolerance();
+	double pointOffset = precision * 2;
+
+	std::vector<TopoDS_Face> triangulatedSourceList = TriangulateFace(planarFaces);
+	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> triangulatedShapeIndx;
+	for (const TopoDS_Face& currentFace : triangulatedSourceList)
+	{
+		bg::model::box <BoostPoint3D> bbox = helperFunctions::createBBox(currentFace);
+		triangulatedShapeIndx.insert(std::make_pair(bbox, triangulatedShapeIndx.size()));
+	}
+
+	std::vector<HalfEdge> outerEdgeList;
+	for (const HalfEdge& currentHalfEdge : planarEdgeCluster)
+	{
+		gp_Vec edgeDir = currentHalfEdge.getDir();
+		gp_Vec perpDir = gp_Vec(edgeDir.Y(), -edgeDir.X(), 0) * pointOffset;
+
+		const gp_Pnt& p1 = currentHalfEdge.p1_;
+		const gp_Pnt& p2 = currentHalfEdge.p2_;
+		gp_Pnt middlePoint(
+			(p1.X() + p2.X()) / 2,
+			(p1.Y() + p2.Y()) / 2,
+			(p1.Z())
+		);
+
+		gp_Pnt evalP1 = middlePoint.Translated(perpDir);
+		gp_Pnt evalP2 = middlePoint.Translated(perpDir.Reversed());
+
+		double currentZ = p1.Z();
+		std::vector<std::pair<BoostBox3D, int>> qResult;
+		qResult.clear();
+		triangulatedShapeIndx.query(bgi::intersects(
+			helperFunctions::createBBox(
+				gp_Pnt(evalP1.X() + 0.01, evalP1.Y() + 0.01, evalP1.Z() + 0.01),
+				gp_Pnt(evalP2.X() - 0.01, evalP2.Y() - 0.01, evalP2.Z() - 0.01)
+			)), std::back_inserter(qResult));
+
+		bool onFace1 = false;
+		bool onFace2 = false;
+		for (const std::pair<BoostBox3D, int>& resultPair : qResult)
+		{
+			const TopoDS_Face& sourceFace = triangulatedSourceList[resultPair.second];
+
+			double otherZ = getAZ(sourceFace);
+			if (abs(otherZ - currentZ) > precision) { continue; }
+
+			std::vector<gp_Pnt> trianglePoints = getPoints(sourceFace);
+
+			if (pointOnTriangle(
+				gp_Pnt2d(evalP1.X(), evalP1.Y()),
+				gp_Pnt2d(trianglePoints[0].X(), trianglePoints[0].Y()),
+				gp_Pnt2d(trianglePoints[2].X(), trianglePoints[2].Y()),
+				gp_Pnt2d(trianglePoints[4].X(), trianglePoints[4].Y()))
+				)
+			{
+				onFace1 = true;
+			}
+
+			if (pointOnTriangle(
+				gp_Pnt2d(evalP2.X(), evalP2.Y()),
+				gp_Pnt2d(trianglePoints[0].X(), trianglePoints[0].Y()),
+				gp_Pnt2d(trianglePoints[2].X(), trianglePoints[2].Y()),
+				gp_Pnt2d(trianglePoints[4].X(), trianglePoints[4].Y()))
+				)
+			{
+				onFace2 = true;
+			}
+			if (onFace1 && onFace2) { break; }
+		}
+
+		if (onFace1 == onFace2) { continue; }
+		if (onFace1)
+		{
+			outerEdgeList.emplace_back(currentHalfEdge.reversed());
+		}
+		else
+		{
+			outerEdgeList.emplace_back(currentHalfEdge);
+		}	
+	}
+	return outerEdgeList;
 }
 
 bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> helperFunctions::makeEdgeClusterIndx(const std::vector<TopoDS_Face>& planarFaces)
@@ -2962,6 +3063,101 @@ bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> helperFunctions::mak
 	return edgeIndexClean;
 }
 
+std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops2(std::vector<HalfEdge>& planarEdgeCluster)
+{
+	std::vector<HalfEdge> loopEdgeList;
+	std::vector<HalfEdgeLoop> loopList;
+
+	double precision = SettingsCollection::getInstance().linearTolerance();
+
+	HalfEdge startEdge = planarEdgeCluster[0];
+	HalfEdge* currentEdge = &planarEdgeCluster[0];
+	while (true)
+	{
+		loopEdgeList.emplace_back(*currentEdge);
+		currentEdge->isUsed_ = true;
+
+		const gp_Pnt endPoint = currentEdge->p2_;
+
+		HalfEdge* bestEdge = nullptr;
+
+		bool isClosed = false;
+		for (HalfEdge& otherHalfEdge : planarEdgeCluster)
+		{
+			if (!otherHalfEdge.p1_.IsEqual(endPoint, precision)) { continue; }
+
+			if (otherHalfEdge.isSame(startEdge))
+			{
+				isClosed = true;
+				break;
+			}
+			if (otherHalfEdge.isUsed_) { continue; }
+
+			if (bestEdge != nullptr ) //Prefer longer edges if mistakes pass through
+			{
+				if (bestEdge->p1_.Distance(bestEdge->p2_) > otherHalfEdge.p1_.Distance(otherHalfEdge.p2_))
+				{
+					continue;
+				}
+			}	
+
+			bestEdge = &otherHalfEdge;
+		}
+
+		if (isClosed)
+		{
+			if (!loopEdgeList.empty() )
+			{
+				std::vector<HalfEdge> cleanedLoopEdgeList = cleanHalfEdgeList(loopEdgeList);
+				HalfEdgeLoop currentLoop = HalfEdgeLoop(cleanedLoopEdgeList);
+				loopList.emplace_back(currentLoop);
+			}
+			loopEdgeList.clear();
+			for (HalfEdge& currentHalfedge : planarEdgeCluster)
+			{
+				if (currentHalfedge.isUsed_) { continue; }
+				currentEdge = &currentHalfedge;
+				startEdge = currentHalfedge;
+				break;
+			}
+
+			if (currentEdge->isUsed_)
+			{
+				break;
+			}
+			continue;
+		}
+
+		if (bestEdge == nullptr) // loop could not be closed
+		{
+			// release all faulted edges except the starting edge if loop cannot be closed
+			if (!loopEdgeList.size() > 1)
+			{
+				for (size_t i = 1; i < loopEdgeList.size(); i++)
+				{
+					loopEdgeList[i].isUsed_ = false;
+				}
+			}
+
+			bool newFound = false;
+			for (HalfEdge& currentHalfedge : planarEdgeCluster)
+			{
+				if (currentHalfedge.isUsed_) { continue; }
+				currentEdge = &currentHalfedge;
+				startEdge = currentHalfedge;
+				newFound = true;
+				break;
+			}
+			loopEdgeList.clear();
+			if (newFound) { continue; }
+			break;
+
+		}		
+		currentEdge = bestEdge;
+	}
+	return loopList;
+}
+
 std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::vector<HalfEdge>& planarEdgeCluster, bool untangle)
 {
 	double precision = SettingsCollection::getInstance().linearTolerance();
@@ -3042,8 +3238,9 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 		{
 			if (!loopEdgeList.empty() && *bestEdge == loopEdgeList[0])
 			{
-				std::vector<HalfEdge> cleanedLoopEdgeList = cleanHalfEdgeList(loopEdgeList);
-				HalfEdgeLoop currentLoop = HalfEdgeLoop(cleanedLoopEdgeList);
+				//TODO:reneable
+				//std::vector<HalfEdge> cleanedLoopEdgeList = cleanHalfEdgeList(loopEdgeList);
+				HalfEdgeLoop currentLoop = HalfEdgeLoop(loopEdgeList);
 				loopList.emplace_back(currentLoop);
 			}
 			loopEdgeList.clear();
@@ -3075,8 +3272,8 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(const std::ve
 
 				if (untangledList.size() <=1)
 				{
-					std::cout << "new" << std::endl;
-					DebugUtils::printPoints(currentLoop.getWire());
+					//std::cout << "new" << std::endl;
+					//DebugUtils::printPoints(currentLoop.getWire());
 				}
 
 				cleanedLoopList.insert(cleanedLoopList.end(), untangledList.begin(), untangledList.end());
@@ -3284,8 +3481,6 @@ std::vector<HalfEdge> helperFunctions::splitHalfEdge(const HalfEdge& argument, c
 	const gp_Pnt& endPoint = argument.p2_;
 
 	std::vector<double> tList;
-
-
 	for (const HalfEdge& currentTool : toolList)
 	{
 		bool onLine = false;
@@ -3346,7 +3541,7 @@ bool helperFunctions::splitHalfEdge(const HalfEdge& argument, const HalfEdge& to
 
 	double denom = r.Crossed(s);
 
-	if (std::abs(denom) < precision)
+	if (std::abs(denom) < 1e-10) //TODO: update this
 		return false;
 
 	gp_XY diff = p3 - p1;

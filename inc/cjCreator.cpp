@@ -583,11 +583,6 @@ void CJGeoCreator::initializeBasic(DataManager* cluster)
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofStructureMerging) << std::endl;
 		std::vector<RCollection> mergedSurfaceRList = mergeRoofSurfaces(fineFilteredShapeList);
 
-		for (const RCollection& test: mergedSurfaceRList)
-		{
-			DebugUtils::WriteToTxt(test.getFaces(), "C:/Users/Jasper/Desktop/desk/l.txt", true);
-		}
-
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoRoofOutlineConstruction) << std::endl;
 		std::vector<TopoDS_Face> roofOutlines = createRoofOutline(fineFilteredShapeList);
 		fineFilteredShapeList.clear();
@@ -2121,8 +2116,9 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<Surfa
 	std::reverse(projectedFaceList.begin(), projectedFaceList.end());
 
 	std::vector<HalfEdge> edgeCluster = helperFunctions::planarFaces2EdgeCluster(projectedFaceList);
-	std::vector<HalfEdgeLoop> loopList = helperFunctions::planarEdgeCluster2Loops(edgeCluster);
-	std::vector<HalfEdgeLoop> outerLoopList = helperFunctions::loops2Outer(loopList, projectedFaceList);
+	std::vector<HalfEdge> outerEdges = helperFunctions::getTransitionalEdges(edgeCluster, projectedFaceList);
+	std::vector<HalfEdgeLoop> outerLoopList = helperFunctions::planarEdgeCluster2Loops2(outerEdges);
+
 	//TODO: remove not required vertex
 	std::vector<TopoDS_Face> clippedFaceList = helperFunctions::outerLoops2Faces(outerLoopList);
 

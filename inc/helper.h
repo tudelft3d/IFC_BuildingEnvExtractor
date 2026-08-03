@@ -106,6 +106,12 @@ struct HalfEdge
 	const gp_Pnt& getP1() const { return p1_; }
 	const gp_Pnt& getP2() const { return p2_; }
 
+	void reverse() {
+		std::swap(p1_, p2_);
+		return;
+	}
+
+	HalfEdge reversed() const { return HalfEdge(p2_, p1_); }
 
 	bool operator== (const HalfEdge& other) {
 		if (!other.p1_.IsEqual(p1_, 1e-6)) { return false; }
@@ -166,9 +172,12 @@ struct HalfEdgeLoop
 		BRepBuilderAPI_MakeWire wireBuilder;
 		for (const HalfEdge& currentEdge : halfEdgeList_) {
 			TopoDS_Edge segment = BRepBuilderAPI_MakeEdge(currentEdge.p1_, currentEdge.p2_);
+			if (segment.IsNull()) { continue;}
 			wireBuilder.Add(segment);
 		}
 		wireBuilder.Build();
+		if (!wireBuilder.IsDone()) { return {}; }
+
 		return wireBuilder.Wire();
 	}
 };
@@ -393,8 +402,12 @@ struct helperFunctions{
 	static std::vector<TopoDS_Shape> planarFaces2Cluster(const std::vector<TopoDS_Face>& planarFaces); //TODO: i want this removed
 	/// creates a cluster of non-intersecting and non-overlapping edges
 	static std::vector<HalfEdge> planarFaces2EdgeCluster(const std::vector<TopoDS_Face>& planarFaces);
+	/// isolate the halfedges that seperate faces from void
+	static std::vector<HalfEdge> getTransitionalEdges(const std::vector<HalfEdge>& planarEdgeCluster, const std::vector<TopoDS_Face>& planarFaces);
 	/// creates the index for the edgecluster creation process, ignores meshing double edges 
 	static bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> makeEdgeClusterIndx(const std::vector<TopoDS_Face>& planarFaces);
+	/// create loops or of a planar edge cluster
+	static std::vector<HalfEdgeLoop> planarEdgeCluster2Loops2(std::vector<HalfEdge>& planarEdgeCluster);
 	/// create loops or of a planar edge cluster
 	static std::vector<HalfEdgeLoop> planarEdgeCluster2Loops(const std::vector<HalfEdge>& planarEdgeCluster, bool untangle = false);
 	/// eliminate the non-vital loops

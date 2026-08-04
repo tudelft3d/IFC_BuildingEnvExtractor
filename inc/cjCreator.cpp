@@ -2095,12 +2095,17 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<Surfa
 	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
 	std::vector<TopoDS_Face> projectedFaceList;
 
-	for (const SurfaceGridPair& currentGroup : rCollectionList)
+	for (const SurfaceGridPair& currentGroup : rCollectionList) //TODO: centralize this to avoid repeated tesselation of the same faces
 	{
 		TopoDS_Face currentFace = currentGroup.getFace();
-		currentFace = helperFunctions::projectFaceFlat(currentFace, 0);
-		if (currentFace.IsNull()) { continue; }
-		projectedFaceList.emplace_back(currentFace);
+		std::vector<TopoDS_Face> tesselatedFaces = helperFunctions::TessellateFace(currentFace);
+
+		for (const TopoDS_Face& tesselatedFace : tesselatedFaces)
+		{
+			TopoDS_Face flatTesselatedFace = helperFunctions::projectFaceFlat(tesselatedFace, 0);
+			if (flatTesselatedFace.IsNull()) { continue; }
+			projectedFaceList.emplace_back(flatTesselatedFace);
+		}
 	}
 
 	if (projectedFaceList.empty()) { return {}; }

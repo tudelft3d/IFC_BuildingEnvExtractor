@@ -683,13 +683,19 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<T>& shape
 				for (const gp_Pnt& currentFacePoint : facePoints)
 				{
 					if (abs(currentFacePoint.Z() - cutlvl) > buffer) { continue; }
-					spltFaceCollection.emplace_back(helperFunctions::projectFaceFlat(currentFace, cutlvl));
+
+					for (const TopoDS_Face& tesselatedFace : helperFunctions::TessellateFace(currentFace))
+					{
+						spltFaceCollection.emplace_back(helperFunctions::projectFaceFlat(tesselatedFace, cutlvl));
+					}
 					break;
 				}
 				continue;
 			}
-
-			toolList.Append(currentFace);
+			for (const TopoDS_Face& tesselatedFace : helperFunctions::TessellateFace(currentFace))
+			{
+				toolList.Append(tesselatedFace);
+			}		
 		}
 
 		splitter.SetArguments(argumentList);
@@ -954,6 +960,7 @@ void CJGeoCreator::makeFootprint(DataManager* h)
 		for (TopoDS_Face& footprintItem : footprintList) { footprintItem.Move(translation); }	
 		for (const TopoDS_Face& currentFootprint : footprintList)
 		{
+
 			TopoDS_Face currentCleanFootprint = eleminateInnerVoids(currentFootprint);
 			cleanedFootprintList.emplace_back(currentCleanFootprint);
 		}

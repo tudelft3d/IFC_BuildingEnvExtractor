@@ -407,7 +407,7 @@ struct helperFunctions{
 	/// creates the index for the edgecluster creation process, ignores meshing double edges 
 	static bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> makeEdgeClusterIndx(const std::vector<TopoDS_Face>& planarFaces);
 	/// create loops or of a planar edge cluster
-	static std::vector<HalfEdgeLoop> planarEdgeCluster2Loops2(std::vector<HalfEdge>& planarEdgeCluster);
+	static std::vector<HalfEdgeLoop> planarEdgeCluster2Loops(std::vector<HalfEdge>& planarEdgeCluster);
 	/// create loops or of a planar edge cluster
 	static std::vector<HalfEdgeLoop> planarEdgeCluster2Loops(const std::vector<HalfEdge>& planarEdgeCluster, bool untangle = false);
 	/// eliminate the non-vital loops

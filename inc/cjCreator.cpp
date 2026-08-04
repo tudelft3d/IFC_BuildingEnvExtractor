@@ -2129,7 +2129,7 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<Surfa
 
 	std::vector<HalfEdge> edgeCluster = helperFunctions::planarFaces2EdgeCluster(projectedFaceList);
 	std::vector<HalfEdge> outerEdges = helperFunctions::getTransitionalEdges(edgeCluster, projectedFaceList);
-	std::vector<HalfEdgeLoop> outerLoopList = helperFunctions::planarEdgeCluster2Loops2(outerEdges);
+	std::vector<HalfEdgeLoop> outerLoopList = helperFunctions::planarEdgeCluster2Loops(outerEdges);
 
 	//TODO: remove not required vertex
 	std::vector<TopoDS_Face> clippedFaceList = helperFunctions::outerLoops2Faces(outerLoopList);

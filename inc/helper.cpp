@@ -2717,7 +2717,7 @@ std::vector<TopoDS_Face> helperFunctions::planarFaces2Outline(const std::vector<
 
 	std::vector<HalfEdge> edgeCluster = helperFunctions::planarFaces2EdgeCluster(flattenedFaceList);
 	std::vector<HalfEdge> outerEdges = helperFunctions::getTransitionalEdges(edgeCluster, flattenedFaceList);
-	std::vector<HalfEdgeLoop> outerLoopList = helperFunctions::planarEdgeCluster2Loops2(outerEdges);
+	std::vector<HalfEdgeLoop> outerLoopList = helperFunctions::planarEdgeCluster2Loops(outerEdges);
 	std::vector<TopoDS_Face> clippedFaceList = outerLoops2Faces(outerLoopList);
 
 	// return the surfaces to the input orientation
@@ -3062,8 +3062,10 @@ bgi::rtree<std::pair<BoostBox3D, HalfEdge>, bgi::rstar<25>> helperFunctions::mak
 	return edgeIndexClean;
 }
 
-std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops2(std::vector<HalfEdge>& planarEdgeCluster)
+std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(std::vector<HalfEdge>& planarEdgeCluster)
 {
+	if (planarEdgeCluster.empty()) { return {}; }
+
 	std::vector<HalfEdge> loopEdgeList;
 	std::vector<HalfEdgeLoop> loopList;
 
@@ -3071,6 +3073,7 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops2(std::vector<
 
 	HalfEdge startEdge = planarEdgeCluster[0];
 	HalfEdge* currentEdge = &planarEdgeCluster[0];
+
 	while (true)
 	{
 		loopEdgeList.emplace_back(*currentEdge);

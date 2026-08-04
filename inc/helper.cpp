@@ -4298,15 +4298,19 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 		}
 
 		TopLoc_Location loc;
+		triangleMutex->lock();
 		Handle(Poly_Triangulation) triangulation = BRep_Tool::Triangulation(currentFace, loc);
 
 		if (!triangulation.IsNull()) {
 			if (!force)
 			{
+				triangleMutex->unlock();
 				continue;  // No triangulation present, skip to the next face
 			}
 			BRepTools::Clean(currentFace);
+			triangleMutex->unlock();
 		}
+		triangleMutex->unlock();
 
 		std::vector<gp_Pnt> uniquePointList = helperFunctions::getUniquePoints(currentFace);
 
@@ -4342,7 +4346,9 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 
 			// add shape
 			BRep_Builder builder;
+			triangleMutex->lock();
 			builder.UpdateFace(currentFace, triangulation);
+			triangleMutex->unlock();
 			continue;
 		}
 		
@@ -4350,14 +4356,12 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 		double triangleCount = area / (0.5 * std::pow(setDeflection, 2) * std::sqrt(3.0));
 		if (std::isinf(triangleCount)) { continue; }
 
-		BRepTools::Clean(currentFace);
-
 		triangleMutex->lock();
+		BRepTools::Clean(currentFace);
 		BRepMesh_IncrementalMesh(currentFace, setDeflection, Standard_False);
-		triangleMutex->unlock();
-
 		TopLoc_Location locLocal;
 		Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(currentFace, loc);
+		triangleMutex->unlock();
 	}
 	return;
 }

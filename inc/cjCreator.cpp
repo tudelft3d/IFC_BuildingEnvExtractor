@@ -1043,7 +1043,6 @@ void CJGeoCreator::makeFloorSection(std::vector<TopoDS_Face>& facesOut, DataMana
 	}
 
 	facesOut = helperFunctions::planarFaces2Outline(splitFaceList);
-
 	return;
 }
 

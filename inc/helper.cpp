@@ -2831,7 +2831,7 @@ std::vector<HalfEdge> helperFunctions::planarFaces2EdgeCluster(const std::vector
 		}
 		else
 		{
-			SplitEdgeList =  splitHalfEdge(currentEdge, toolList);
+			SplitEdgeList = splitHalfEdge(currentEdge, toolList);
 		}
 
 		for (const HalfEdge& currentTrimmedEdge: SplitEdgeList)
@@ -2872,7 +2872,7 @@ std::vector<HalfEdge> helperFunctions::getTransitionalEdges(const std::vector<Ha
 {
 	SettingsCollection& settingCol = SettingsCollection::getInstance();
 	double precision = settingCol.linearTolerance();
-	double pointOffset = precision * 2;
+	double pointOffset = precision * 1.5;
 
 	std::vector<TopoDS_Face> triangulatedSourceList = TriangulateFace(planarFaces);
 	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> triangulatedShapeIndx;
@@ -3066,7 +3066,7 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(std::vector<H
 {
 	if (planarEdgeCluster.empty()) { return {}; }
 
-	std::vector<HalfEdge> loopEdgeList;
+	std::vector<HalfEdge*> loopEdgeList;
 	std::vector<HalfEdgeLoop> loopList;
 
 	double precision = SettingsCollection::getInstance().linearTolerance();
@@ -3074,9 +3074,11 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(std::vector<H
 	HalfEdge startEdge = planarEdgeCluster[0];
 	HalfEdge* currentEdge = &planarEdgeCluster[0];
 
+	double maxGap = 0.01;
+
 	while (true)
 	{
-		loopEdgeList.emplace_back(*currentEdge);
+		loopEdgeList.emplace_back(currentEdge);
 		currentEdge->isUsed_ = true;
 
 		const gp_Pnt endPoint = currentEdge->p2_;
@@ -3084,33 +3086,78 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(std::vector<H
 		HalfEdge* bestEdge = nullptr;
 
 		bool isClosed = false;
+
+		std::vector<std::pair<double, HalfEdge*>> potentialNextstepList;
 		for (HalfEdge& otherHalfEdge : planarEdgeCluster)
 		{
-			if (!otherHalfEdge.p1_.IsEqual(endPoint, precision)) { continue; }
+			double distance = otherHalfEdge.p1_.Distance(endPoint);
+			if (distance > maxGap) { continue; }
+			potentialNextstepList.emplace_back(std::make_pair(distance, &otherHalfEdge));
+		}
 
-			if (otherHalfEdge.isSame(startEdge))
+		std::sort(potentialNextstepList.begin(), potentialNextstepList.end(),
+			[](const auto& a, const auto& b) {
+				return a.first < b.first;
+			});
+
+		for (auto [distance, potentialNextStep] : potentialNextstepList)
+		{
+			if (potentialNextStep->isSame(startEdge))
 			{
 				isClosed = true;
 				break;
 			}
-			if (otherHalfEdge.isUsed_) { continue; }
 
-			if (bestEdge != nullptr ) //Prefer longer edges if mistakes pass through
+			for (size_t i = 0; i < loopEdgeList.size(); i++)
 			{
-				if (bestEdge->p1_.Distance(bestEdge->p2_) > otherHalfEdge.p1_.Distance(otherHalfEdge.p2_))
-				{
-					continue;
-				}
-			}	
+				const HalfEdge* storedHalfEdge = loopEdgeList[i];
+				if (storedHalfEdge != potentialNextStep) { continue; }
 
-			bestEdge = &otherHalfEdge;
+				std::vector<HalfEdge*> subList(loopEdgeList.begin() + i, loopEdgeList.end());
+
+				for (HalfEdge* resetHalfEdge : loopEdgeList)
+				{
+					resetHalfEdge->isUsed_ = false;
+				}
+
+				for (HalfEdge* resetHalfEdge : subList)
+				{
+					resetHalfEdge->isUsed_ = true;
+				}
+
+				loopEdgeList = subList;
+
+				isClosed = true;
+				break;
+			}
+
+			if (isClosed)
+			{
+				break;
+			}
+
+			if (potentialNextStep->isUsed_)
+			{
+				continue;
+			}
+
+			bestEdge = potentialNextStep;
+			break;
 		}
 
 		if (isClosed)
 		{
-			if (!loopEdgeList.empty() )
+			if (loopEdgeList.size() > 2 )
 			{
-				std::vector<HalfEdge> cleanedLoopEdgeList = cleanHalfEdgeList(loopEdgeList);
+				std::vector<HalfEdge> loopEdgeValueList;
+				loopEdgeValueList.reserve(loopEdgeList.size());
+
+				for (const HalfEdge* halfEdgePtr : loopEdgeList)
+				{
+					loopEdgeValueList.emplace_back(*halfEdgePtr);
+				}
+
+				std::vector<HalfEdge> cleanedLoopEdgeList = cleanHalfEdgeList(loopEdgeValueList);
 				HalfEdgeLoop currentLoop = HalfEdgeLoop(cleanedLoopEdgeList);
 				loopList.emplace_back(currentLoop);
 			}
@@ -3132,15 +3179,6 @@ std::vector<HalfEdgeLoop> helperFunctions::planarEdgeCluster2Loops(std::vector<H
 
 		if (bestEdge == nullptr) // loop could not be closed
 		{
-			// release all faulted edges except the starting edge if loop cannot be closed
-			if (!loopEdgeList.size() > 1)
-			{
-				for (size_t i = 1; i < loopEdgeList.size(); i++)
-				{
-					loopEdgeList[i].isUsed_ = false;
-				}
-			}
-
 			bool newFound = false;
 			for (HalfEdge& currentHalfedge : planarEdgeCluster)
 			{
@@ -3392,6 +3430,11 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 		TopoDS_Wire& currentWire = wireList[0];
 		gp_Vec currentVec = computeFaceNormal(currentWire);
 
+		if (currentVec.Magnitude() < SettingsCollection::getInstance().linearTolerance())
+		{
+			return {};
+		}
+
 		BRepBuilderAPI_MakeFace faceBuilder = BRepBuilderAPI_MakeFace(
 			gp_Pln(getFirstPointShape(currentWire), currentVec),
 			currentWire
@@ -3412,6 +3455,11 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 		if (currentVec.Z() > 0)
 		{
 			outerWires.emplace_back(currentWire);
+			continue;
+		}
+
+		if (computeArea(currentWire) < 1) //TODO: move this to settings
+		{
 			continue;
 		}
 		innerWires.emplace_back(currentWire);
@@ -3455,6 +3503,7 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 		{
 			if (innerIsUsed[i] != 0) { continue; }
 			const TopoDS_Wire& currentWire = innerWires[i];
+
 			gp_Pnt wirePoint = getFirstPointShape(currentWire);
 			if (!pointOnFace(currentFace, wirePoint)) { continue; }
 

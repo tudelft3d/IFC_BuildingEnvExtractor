@@ -221,6 +221,8 @@ void IOManager::printSummary()
 	std::cout << boolToString(settingsCollection.simplefyGeo()) << "\n";
 	std::cout << "- Ignore IsExternal:\n";
 	std::cout << boolToString(settingsCollection.ignoreIsExternal()) << "\n";
+	std::cout << "- Ignore Complex:\n";
+	std::cout << boolToString(settingsCollection.ignoreComplex()) << "\n";
 	std::cout << "- Ignore simplification for: \n";
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.getIgnoreSimplificationList().size() << " object(s)" << std::endl;
 	std::cout << "- Space dividing objects:\n";
@@ -451,6 +453,7 @@ nlohmann::json IOManager::settingsToJSON()
 	std::string ifcignoreVoidOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreVoids);
 	std::string ifcSimpleOName = JsonObjectInEnum::getString(JsonObjectInID::IFCsimplefyGeo);
 	std::string ifcIgnoreSimpleOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreSimple);
+	std::string ifcIgnoreComplex = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreComplex);
 	std::string IFCignoreIsExternalOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreIsExternal);
 	std::string ifcDetectFootprintElevation = JsonObjectInEnum::getString(JsonObjectInID::IFCDetectFootprintElev);
 	
@@ -473,6 +476,7 @@ nlohmann::json IOManager::settingsToJSON()
 	ifcJSON[ifcignoreVoidOName] = settingsCollection.ignoreVoidGrade();
 	ifcJSON[ifcSimpleOName] = settingsCollection.simplefyGeo();
 	ifcJSON[ifcIgnoreSimpleOName] = settingsCollection.getIgnoreSimplificationList();
+	ifcJSON[ifcIgnoreComplex] = settingsCollection.ignoreComplex();
 	ifcJSON[IFCignoreIsExternalOName] = settingsCollection.ignoreIsExternal();
 	ifcJSON[ifcDetectFootprintElevation] = settingsCollection.detectFootprintElevation();
 	settingsJSON[ifcOName] = ifcJSON;

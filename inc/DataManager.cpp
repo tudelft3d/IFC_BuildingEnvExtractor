@@ -1151,6 +1151,14 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 		}
 		std::unique_ptr<IfcProductSpatialData> lookup = std::make_unique<IfcProductSpatialData>(product, shape);
 
+		if (helperFunctions::getFaceCount(shape) > 500)
+		{
+			ErrorCollection::getInstance().addError(ErrorID::warningDenseMesh, productGuid);
+			settings.setDenseMesh(true);
+
+			if (settings.ignoreComplex()) { continue; }
+		}
+
 		if (isRoom)
 		{
 			std::lock_guard<std::mutex> spaceLock(spaceIndexMutex_);
@@ -1470,8 +1478,8 @@ void DataManager::indexGeo()
 	{
 		if (!SettingsCollection::getInstance().ignoreIsExternal())
 		{
-			std::cout << "[WARNING] No objects could be found, possibly IsExternal is not well set in file" << std::endl;
-			std::cout << "\tConsider enable ignoring the IsExternal attribute in the configuration" << std::endl;
+			std::cout << "[WARNING] No objects could be found, possibly IsExternal is not well set in file\n";
+			std::cout << "\tConsider enable ignoring the IsExternal attribute in the configuration\n";
 		}
 
 		ErrorCollection::getInstance().addError(ErrorID::errorNoObjects);
@@ -1480,11 +1488,17 @@ void DataManager::indexGeo()
 			throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects));
 		}
 
-		std::cout << std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects)) << std::endl;
+		std::cout << std::string(errorWarningStringEnum::getString(ErrorID::errorNoObjects)) << "\n";
 		std::cout << "[INFO] Continue processing LoD4.1 and/or LoD4.2 only\n\n";
 		SettingsCollection::getInstance().disableClassSelectiveLoD();
 		return;
 	}
+
+	if (SettingsCollection::getInstance().hasDenseMesh())
+	{
+		std::cout << errorWarningStringEnum::getString(ErrorID::warningDenseMesh) << "\n\n";;
+	}
+
 	return;
 }
 

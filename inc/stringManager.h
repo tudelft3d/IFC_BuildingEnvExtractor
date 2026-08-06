@@ -234,6 +234,7 @@ enum class JsonObjectInID {
 	IFCsimplefyGeo,
 	IFCignoreVoids,
 	IFCignoreIsExternal,
+	IFCignoreComplex,
 	IFCignoreSimple,
 	IFCCorrentPlacement,
 	IFCDetectFootprintElev,

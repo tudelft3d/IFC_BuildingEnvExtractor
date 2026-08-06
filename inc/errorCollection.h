@@ -77,6 +77,8 @@ enum class ErrorID {
 	warningNoFootprint,
 	warningNonLinearEdges,
 
+	warningDenseMesh,
+
 	warningSimplefication,
 
 	warningInputIncFootprintElev,

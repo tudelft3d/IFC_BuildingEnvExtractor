@@ -111,7 +111,8 @@ ErrorCollection::ErrorCollection() {
 		{ErrorID::warningUnableToExtrude, ErrorObject("I0021", errorWarningStringEnum::getString(ErrorID::warningUnableToSimplefy, false))},
 		{ErrorID::warningNoRoofOutline, ErrorObject("I0022", errorWarningStringEnum::getString(ErrorID::warningNoRoofOutline, false))},
 		{ErrorID::warningNoFootprint, ErrorObject("I0023", errorWarningStringEnum::getString(ErrorID::warningNoFootprint, false))},
-		{ErrorID::warningIfcIncorrectGeoRefTranslation, ErrorObject("I0024", errorWarningStringEnum::getString(ErrorID::warningIfcIncorrectGeoRefTranslation, false))},
+		{ErrorID::warningIfcIncorrectGeoRefTranslation, ErrorObject("I0024", errorWarningStringEnum::getString(ErrorID::warningIfcIncorrectGeoRefTranslation, false))},	
+		{ErrorID::warningDenseMesh, ErrorObject("I0025", errorWarningStringEnum::getString(ErrorID::warningDenseMesh, false))},
 
 
 		{ErrorID::warningUnableToSimplefy, ErrorObject("I0100", errorWarningStringEnum::getString(ErrorID::warningInputIncFootprintElev, false))},

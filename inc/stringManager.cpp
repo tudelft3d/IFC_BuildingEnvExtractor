@@ -494,6 +494,11 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		importance = CommunicationStringImportanceID::warning;
 		break;
 	}
+	case ErrorID::warningDenseMesh: {
+		coms = "Objects with dense meshes are present in the input file(s)";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}
 	case ErrorID::warningSimplefication: {
 		coms = "Simple geometry is used, this can cause issues with windows and door detection";
 		importance = CommunicationStringImportanceID::warning;
@@ -728,6 +733,8 @@ std::string JsonObjectInEnum::getString(JsonObjectInID id)
 		return "Ignore simplification";
 	case JsonObjectInID::IFCignoreIsExternal:
 		return "Ignore IsExternal";
+	case JsonObjectInID::IFCignoreComplex:
+		return "Ignore complex";
 	case JsonObjectInID::IFCCorrentPlacement:
 		return "Correct placement";
 	case JsonObjectInID::IFCDetectFootprintElev:

@@ -960,7 +960,6 @@ void CJGeoCreator::makeFootprint(DataManager* h)
 		for (TopoDS_Face& footprintItem : footprintList) { footprintItem.Move(translation); }	
 		for (const TopoDS_Face& currentFootprint : footprintList)
 		{
-
 			TopoDS_Face currentCleanFootprint = eleminateInnerVoids(currentFootprint);
 			cleanedFootprintList.emplace_back(currentCleanFootprint);
 		}
@@ -1043,6 +1042,7 @@ void CJGeoCreator::makeFloorSection(std::vector<TopoDS_Face>& facesOut, DataMana
 	}
 
 	facesOut = helperFunctions::planarFaces2Outline(splitFaceList);
+
 	return;
 }
 

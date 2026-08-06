@@ -95,6 +95,7 @@ private:
     int ignoreVoidGrade_ = 0;
     bool ignoreIsExternal_ = true;
     bool simplefyGeo_ = true;
+    bool ignoreComplex_ = false;
     std::vector<std::string> ignoreSimplificationList_;
 
     bool mergeSemantics_ = true;
@@ -136,6 +137,9 @@ private:
 	
     // software computes itself or sets it to the desired rotation
 	double gridRotation_ = 0; 
+
+    // are extremely densh meshes present
+    bool hasDenseMesh_ = false;
 
     // set of the supported versions of the tool (read only!)
     std::unordered_set<std::string> ifcVersionList_ = { "IFC2X3", "IFC4X3_ADD2", "IFC4X3", "IFC4X2", "IFC4X1", "IFC4",};
@@ -373,6 +377,10 @@ public:
     void setSimplefyGeo(bool value) { simplefyGeo_ = value; }
     void setSimplefyGeo(const nlohmann::json& json);
 
+    bool ignoreComplex() const { return ignoreComplex_; }
+    void setIgnoreComplex(bool value) { ignoreComplex_ = value; }
+    void setIgnoreComplex(const nlohmann::json& json);
+
     const std::vector<std::string>& getIgnoreSimplificationList() const { return ignoreSimplificationList_; }
     void setIgnoreSimplificationList(const std::vector<std::string>& value) { ignoreSimplificationList_ = value; }
     void setIgnoreSimplificationList(const nlohmann::json& json);
@@ -468,6 +476,9 @@ public:
 
     double gridRotation() const { return gridRotation_; }
     void setGridRotation(double value) { gridRotation_ = value; }
+
+    bool hasDenseMesh() const { return hasDenseMesh_; }
+    void setDenseMesh(bool value) { hasDenseMesh_ = value; }
 
     std::unordered_set<std::string> getSupportedIfcVersionList() { return ifcVersionList_; }
     std::unordered_set<std::string> getOpeningObjectsList() { return openingObjects_; }

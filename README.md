@@ -314,6 +314,7 @@ The configuration json has a very simple structure. An example can be found belo
         "Div objects" : [],
         "Ignore voids" : 0,
         "Ignore IsExternal" : true,
+        "Ignore complex" : false,
         "Simplify geometry" : true,
         "Ignore simplification" : [],
         "Correct placement" : true,
@@ -408,6 +409,10 @@ Optional:
   * Boolean
   * Toggles the use of the IsExternal object property. If not used the software will determine itself if an object is external or not. Currently this is only implemented for LoD4.0
   * Default value = true
+* :white_check_mark: "Ignore complex":white_check_mark:
+  * Boolean
+  * Toggles if objects that contain more than 500 faces should be used by the tool.
+  * Default value = false
 * :ballot_box_with_check: "IFC" "Simplify geometry" :ballot_box_with_check:
   * Boolean
   * Toggles the use of oriented bounding box simplification of *IfcWindow* and *IfcDoor* objects.

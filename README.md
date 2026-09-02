@@ -108,7 +108,7 @@ If a more direct (human) user friendly approach is desired on windows, the appli
 
 If it is desired to compile the code locally the following libraries are required:
 
-* [IfcOpenShell 0.7](http://ifcopenshell.org/)
+* [IfcOpenShell 0.8](http://ifcopenshell.org/)
 * [Nlohmann](https://github.com/nlohmann/json)
 * [CJT](https://github.com/jaspervdv/CJT)
 * [Boost](https://www.boost.org/)

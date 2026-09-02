@@ -5,8 +5,6 @@
 #include <gp_Pnt.hxx>
 
 #include <ifcparse/IfcFile.h>
-#include <ifcgeom_schema_agnostic/Kernel.h>
-#include <ifcgeom_schema_agnostic/Serialization.h>
 #include <ifcparse/IfcHierarchyHelper.h>
 
 #include <BRepClass3d_SolidClassifier.hxx>

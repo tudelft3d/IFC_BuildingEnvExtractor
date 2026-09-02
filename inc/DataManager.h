@@ -10,9 +10,16 @@
 
 // IfcOpenShell includes
 #include <ifcparse/IfcFile.h>
-#include <ifcgeom/IfcGeom.h>
-#include <ifcgeom_schema_agnostic/Kernel.h>
-#include <ifcgeom_schema_agnostic/Serialization.h>
+#include <ifcgeom/kernels/opencascade/OpenCascadeKernel.h>
+
+#include <ifcgeom/Iterator.h>
+#include <ifcgeom/ConversionSettings.h>
+#include <ifcgeom/IfcGeomElement.h>
+#include <ifcgeom/IfcGeomRepresentation.h>
+
+//#include <ifcgeom/IfcGeom.h>
+//#include <ifcgeom_schema_agnostic/Kernel.h>
+//#include <ifcgeom_schema_agnostic/Serialization.h>
 #include <ifcparse/IfcHierarchyHelper.h>
 
 // OpenCascade includes
@@ -57,7 +64,7 @@ private:
 
 public:
 	IfcProductSpatialData(
-		IfcSchema::IfcProduct* productPtr,
+		const IfcSchema::IfcProduct* productPtr,
 		const TopoDS_Shape& productShape);
 
 	~IfcProductSpatialData() {
@@ -79,9 +86,9 @@ public:
 class fileKernelCollection 
 {
 private:
-	IfcParse::IfcFile* file_; //TODO: find out why memory needs to be leaked
 
-	std::unique_ptr<IfcGeom::Kernel> kernel_;
+	std::unique_ptr<IfcParse::IfcFile> file_ = nullptr;
+	std::unique_ptr<IfcGeom::OpenCascadeKernel> kernel_;
 
 	// The unit multipliers found
 	double length_ = 0;
@@ -95,10 +102,18 @@ public:
 	~fileKernelCollection() {
 	}
 
+	fileKernelCollection(const fileKernelCollection&) = delete;
+	fileKernelCollection& operator=(const fileKernelCollection&) = delete;
+
+	fileKernelCollection(fileKernelCollection&&) noexcept = default;
+	fileKernelCollection& operator=(fileKernelCollection&&) noexcept = default;
+
+	IfcGeom::OpenCascadeKernel* getKernelPtr() { return kernel_.get(); }
+
 	/// returns the pointer to the file object
-	IfcParse::IfcFile* getFilePtr()  { return file_; }
-	/// returns the pointer to the kernel object
-	IfcGeom::Kernel* getKernelPtr() { return kernel_.get(); }
+	IfcParse::IfcFile* getFilePtr() {return file_.get();}
+	/// returns the pointer to the iterator
+	IfcGeom::Iterator* getIteratorPtr(bool isSimple);
 	/// returns the length multiplier
 	double getLengthMultiplier() const { return length_; }
 	/// returns if the file object is good (functioning)
@@ -124,7 +139,7 @@ private:
 	// translation that is adding the object translation to the ifc georef translation
 	gp_Trsf objectIfcTranslation_;
 
-	std::vector<std::unique_ptr<fileKernelCollection>> datacollection_;
+	std::vector<fileKernelCollection> datacollection_;
 
 	static const int treeDepth = 5;
 	
@@ -160,7 +175,9 @@ private:
 	void timedAddObjectListToIndex(const std::string& typeName, std::unordered_set<std::string>& uniqueKeySet, bool addToRoomIndx = false);
 	
 	/// get the kernel which contains the product with the supplied product guid
-	IfcGeom::Kernel* getKernelObject(const std::string& productGuid);
+	IfcGeom::Iterator* getIteratorPtr(const std::string& productGuid);	
+	/// get the kernel which contains the product with the supplied product guid
+	IfcGeom::OpenCascadeKernel* getKernelObject(const std::string& productGuid);
 	/// gets shapes from memory without checking for correct adjusted boolean
 	int getObjectShapeLocation(IfcSchema::IfcProduct* product);
 
@@ -203,7 +220,7 @@ private:
 	// populate a map that has all the guid related propertysets 
 	void populateAttributeLookup();
 
-	void AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::unordered_set<std::string>& uniqueKeySet, int& counter, std::mutex& counterMutex, bool isRoom = false);
+	void AddBRepElementToIndex(const std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>& shapeList, std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>::const_iterator  startIdx, std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>::const_iterator  endIdx, std::unordered_set<std::string>& uniqueKeySet, int& counter, std::mutex& counterMutex, bool isRoom = false);
 
 public:
 	/*
@@ -219,13 +236,13 @@ public:
 	/// returns true when length, area and volume multiplier of the internal geo ifc kernels are not 0
 	bool hasSetUnits();
 	/// returns a pointer to the sourcefile
-	IfcParse::IfcFile* getSourceFile(int i) const { return datacollection_[i].get()->getFilePtr(); }
+	IfcParse::IfcFile* getSourceFile(int i) { return datacollection_[i].getFilePtr(); }
 	/// returns a vector of pointers to the sourcefiles
-	std::vector<IfcParse::IfcFile*> getSourceFiles() const;
+	std::vector<IfcParse::IfcFile*> getSourceFiles();
 	/// get the total amount of items in the datacollection
 	int getSourceFileCount() const { return datacollection_.size(); }
 	/// get the length multiplier of a sourcefile
-	double getScaler(int i) const { return datacollection_[i].get()->getLengthMultiplier(); }
+	double getScaler(int i) const { return datacollection_[i].getLengthMultiplier(); }
 	/// get the lll point of the ifc bbox
 	const gp_Pnt& getLllPoint() { return lllPoint_; }
 	/// get the urr point of the ifc bbox
@@ -281,7 +298,7 @@ public:
 	TopoDS_Shape getObjectShapeFromMem(IfcSchema::IfcProduct* product, bool isSimple);
 
 	/// get the shape of an ifcproduct
-	TopoDS_Shape getObjectShape(IfcSchema::IfcProduct* product, bool getNested = false, bool isSimple = false, bool fromMemOnly = false);
+	TopoDS_Shape getObjectShape(IfcSchema::IfcProduct* product, bool getNested = false, bool isSimple = false, bool fromMemOnly = false); //TODO: remove this
 
 	/// gets all the objects stored in the ifc file, does not cache
 	std::vector<IfcGeom::BRepElement*> getAllObjects();

@@ -84,6 +84,97 @@ elseif(UNIX)
     endforeach()
 endif()
 
+# Eigen
+if("${EIGEN_INCLUDE_DIR}" STREQUAL "")
+    find_path(EIGEN_INCLUDE_DIR
+        NAMES Eigen/Core
+    )
+    if(EIGEN_INCLUDE_DIR)
+        message(STATUS "Found Open EIGEN include files in: ${EIGEN_INCLUDE_DIR}")
+    else()
+        message(FATAL_ERROR "Unable to find EIGEN include directory. Specify EIGEN_INCLUDE_DIR manually")
+    endif()
+endif()
+
+# rocksdb
+if("${ROCKSDB_INCLUDE_DIR}" STREQUAL "")
+    find_path(
+        ROCKSDB_INCLUDE_DIR
+        NAMES rocksdb/advanced_cache.h
+    )
+    if(ROCKSDB_INCLUDE_DIR)
+        message(STATUS "Found Open ROCKSDB include files in: ${ROCKSDB_INCLUDE_DIR}")
+    else()
+        message(FATAL_ERROR "Unable to find ROCKSDB include directory. Specify ROCKSDB_INCLUDE_DIR manually")
+    endif()
+endif()
+
+if("${ROCKSDB_LIBRARY_DIR}" STREQUAL "")
+    if(WIN32)
+        find_path(ROCKSDB_LIBRARY_DIR rocksdb.lib
+            PATHS
+            ${ROCKSDB_INCLUDE_DIR}/../lib
+    )
+    endif()
+
+    if(ROCKSDB_LIBRARY_DIR)
+        message(STATUS "Found Open ROCKSDB library files in: ${ROCKSDB_LIBRARY_DIR}")
+    else()
+        message(FATAL_ERROR "Unable find Open ROCKSDB library directory, specify ROCKSDB_LIBRARY_DIR manually.")
+    endif()
+else()
+    set(ROCKSDB_LIBRARY_DIR ${ROCKSDB_LIBRARY_DIR} CACHE FILEPATH "Open ROCKSDB library files")
+    message(STATUS "Looking for Open ROCKSDB library files in: ${ROCKSDB_LIBRARY_DIR}")
+endif()
+
+find_library(
+    ROCKSDB_LIBRARY
+    NAMES rocksdb
+    PATHS ${ROCKSDB_LIBRARY_DIR}
+    NO_DEFAULT_PATH
+)
+
+if(ROCKSDB_LIBRARY)
+    message(STATUS "Found ROCKSDB library: ${ROCKSDB_LIBRARY}")
+else()
+    message(FATAL_ERROR
+        "Unable to find rocksdb.lib in: ${ROCKSDB_LIBRARY_DIR}"
+    )
+endif()
+
+# zstd
+if("${ZSTD_LIBRARY_DIR}" STREQUAL "")
+    find_path(
+        ZSTD_LIBRARY_DIR
+        NAMES zstd_static.lib
+        PATHS
+            ${ROCKSDB_LIBRARY_DIR}/../zstd/lib
+    )
+
+    if(ZSTD_LIBRARY_DIR)
+        message(STATUS "Found ZSTD library files in: ${ZSTD_LIBRARY_DIR}")
+    else()
+        message(FATAL_ERROR
+            "Unable to find ZSTD library directory. Specify ZSTD_LIBRARY_DIR manually"
+        )
+    endif()
+endif()
+
+find_library(
+    ZSTD_LIBRARY
+    NAMES zstd_static
+    PATHS ${ZSTD_LIBRARY_DIR}
+    NO_DEFAULT_PATH
+)
+
+if(ZSTD_LIBRARY)
+    message(STATUS "Found ROCKSDB library: ${ZSTD_LIBRARY}")
+else()
+    message(FATAL_ERROR
+        "Unable to find rocksdb.lib in: ${ZSTD_LIBRARY_DIR}"
+    )
+endif()
+
 # OpenCascade
 if("${OCC_INCLUDE_DIR}" STREQUAL "")
     find_path(OCC_INCLUDE_DIR Standard_Version.hxx
@@ -237,9 +328,9 @@ else()
 endif()
 
 if(UNIX)
-    include_directories("/usr/local/include" ${Boost_INCLUDE_DIRS} ${OCC_INCLUDE_DIR} ${IFC_INCLUDE_DIR} ${IFCGEOM_INCLUDE_DIR} ${IFCGEOMSCHEMA_INCLUDE_DIR} ${IFCPARSE_INCLUDE_DIR} ${CJT_INCLUDE_DIR}  )
+    include_directories("/usr/local/include" ${Boost_INCLUDE_DIRS} ${OCC_INCLUDE_DIR} ${EIGEN_INCLUDE_DIR} ${ROCKSDB_INCLUDE_DIR} ${IFC_INCLUDE_DIR} ${IFCGEOM_INCLUDE_DIR} ${IFCGEOMSCHEMA_INCLUDE_DIR} ${IFCPARSE_INCLUDE_DIR} ${CJT_INCLUDE_DIR}  )
 elseif(WIN32)
-    include_directories("/usr/local/include" ${Boost_INCLUDE_DIRS} ${OCC_INCLUDE_DIR} ${IFC_INCLUDE_DIR} ${CJT_INCLUDE_DIR}  )
+    include_directories("/usr/local/include" ${Boost_INCLUDE_DIRS} ${OCC_INCLUDE_DIR} ${EIGEN_INCLUDE_DIR} ${ROCKSDB_INCLUDE_DIR} ${IFC_INCLUDE_DIR} ${CJT_INCLUDE_DIR}  )
 endif()
 
 add_executable(${PROJECT_NAME} 
@@ -268,12 +359,17 @@ inc/voxelGrid.h
 inc/voxelGrid.cpp
 )
 
+target_compile_definitions(Ifc_Envelope_Extractor
+    PRIVATE
+        IFOPSH_WITH_ROCKSDB
+)
+
 link_directories("/usr/local/lib" ${Boost_LIBRARY_DIRS} ${OCC_LIBRARY_DIR} ${IFC_LIBRARY_DIR} ${CJT_LIBRARY_DIR})
 
 if(UNIX)
-    target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${BCRYPT_LIBRARIES} ${CJT_Foundation_LIBRARIES} nlohmann_json::nlohmann_json)
+    target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${BCRYPT_LIBRARIES} ${CJT_Foundation_LIBRARIES} nlohmann_json::nlohmann_json ${ROCKSDB_LIBRARY} ${ZSTD_LIBRARY})
 elseif(WIN32)
-    target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${BCRYPT_LIBRARIES} ws2_32.lib ${CJT_Foundation_LIBRARIES} nlohmann_json::nlohmann_json)
+    target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${BCRYPT_LIBRARIES} ws2_32.lib Rpcrt4.lib Shlwapi.lib ${CJT_Foundation_LIBRARIES} nlohmann_json::nlohmann_json ${ROCKSDB_LIBRARY} ${ZSTD_LIBRARY})
 endif()
 
 message(STATUS "Boost libraries are:")

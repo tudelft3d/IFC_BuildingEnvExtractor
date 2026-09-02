@@ -57,8 +57,10 @@
 
 #include <STEPControl_Writer.hxx>
 #include <STEPControl_StepModelType.hxx>
-#include <ifcgeom_schema_agnostic/IfcGeomFilter.h>
-#include <ifcgeom_schema_agnostic/IfcGeomIterator.h>
+#include <ifcgeom/IfcGeomFilter.h>
+#include <ifcgeom/Iterator.h>
+#include <ifcgeom/ConversionSettings.h>
+#include <ifcgeom/kernels/opencascade/OpenCascadeKernel.h>
 
 #include <execution>
 #include <algorithm>
@@ -1713,7 +1715,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 			std::string currentType = "";
 			if (currentProduct != nullptr)
 			{
-				currentType = currentProduct->data().type()->name();
+				currentType = currentProduct->declaration().name();
 			}
 			if (currentType == "IfcWindow" || currentType == "IfcDoor") { break; } // windows and doors can not be merged
 
@@ -1737,7 +1739,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 				std::string otherType = "";
 				if (otherProduct != nullptr)
 				{
-					otherType = otherProduct->data().type()->name();
+					otherType = otherProduct->declaration().name();
 				}
 				if (otherType == "IfcWindow" || otherType == "IfcDoor") { continue; } // windows and doors can not be merged
 
@@ -2503,7 +2505,7 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeRoomObjects(Data
 #endif
 				IfcSchema::IfcObjectDefinition* potentialStorey = ifcRelAggregate->RelatingObject();
 
-				if (potentialStorey->data().type()->name() != "IfcBuildingStorey")
+				if (potentialStorey->declaration().name() != "IfcBuildingStorey")
 				{
 					continue;
 				}
@@ -2564,7 +2566,7 @@ void CJGeoCreator::setLoD32SurfaceAttributes(
 		c++;
 		std::cout << "\tCopying Attribute data - " << c << " of " << surfacePairList.size() << "\r";
 		const  IfcSchema::IfcProduct* product = currentFacePair.second;
-		std::string productType = product->data().type()->name();
+		std::string productType = product->declaration().name();
 		const TopoDS_Face& currentFace = currentFacePair.first;
 
 		if (productType == "IfcPlate")
@@ -5450,7 +5452,7 @@ void CJGeoCreator::getOuterRayObjects(
 		processCountLock.unlock();
 
 		const IfcProductSpatialData& lookup = h->getLookup(currentValue.second);
-		const std::string& lookupType = lookup.getProductPtr()->data().type()->name();
+		const std::string& lookupType = lookup.getProductPtr()->declaration().name();
 		const TopoDS_Shape& currentShape = lookup.getProductShape();
 
 		bool objectIsExternal = false;
@@ -6076,7 +6078,7 @@ void CJGeoCreator::valueToGeoObject(
 		IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
 
 		nlohmann::json attributeMap;
-		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->data().type()->name();
+		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->declaration().name();
 		nlohmann::json attributeList = helperFunctions::getAttributes(currentProduct);
 
 		for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
@@ -6123,7 +6125,7 @@ void CJGeoCreator::productToGeoObject(DataManager* h, CJT::Kernel* kernel, const
 		IfcSchema::IfcProduct* currentProduct = currentShapeProductPair.second;
 
 		nlohmann::json attributeMap;
-		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->data().type()->name();
+		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->declaration().name();
 		nlohmann::json attributeList = helperFunctions::getAttributes(currentProduct); //TODO: this could be written faster
 
 		for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
@@ -6155,7 +6157,7 @@ void CJGeoCreator::productToGeoObject(DataManager* h, CJT::Kernel* kernel, const
 	return;
 }
 
-void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, std::vector<CJT::GeoObject>& geoObjectList, std::vector<TopoDS_Shape>& collectionShape)
+void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* cjtKernel, std::vector<CJT::GeoObject>& geoObjectList, std::vector<TopoDS_Shape>& collectionShape)
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
@@ -6167,12 +6169,14 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, s
 	std::set<std::string> uniqueKeySet;
 	for (size_t i = 0; i < h->getSourceFileCount(); i++)
 	{
-		std::vector<IfcGeom::BRepElement*> shapeList;
-
 		int itThread = threadCount;
 		if (itThread < 2) { itThread = 2; } // ifcopenshell doesnt work on 1 thread
 
+		ifcopenshell::geometry::Settings settings = settingsCollection.iteratorSettings();
+		auto kernel = std::make_unique<IfcGeom::OpenCascadeKernel>(settings);
+
 		IfcGeom::Iterator it(
+			std::move(kernel),
 			settingsCollection.iteratorSettings(),
 			h->getSourceFile(i),
 			filterFuncs,
@@ -6180,9 +6184,21 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, s
 		);
 		if (!it.initialize()) { continue; }
 
-		do { shapeList.emplace_back(it.get_native()); } while (it.next());
-		gp_Trsf localRotationTrsf;
-		localRotationTrsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
+		std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>> shapeList;
+		int currentItemNum = 0;
+		do {
+			IfcGeom::BRepElement* boundaryRepElem = it.get_native();
+			if (!boundaryRepElem) { continue; }
+
+			auto* compound = boundaryRepElem->geometry().as_compound();
+			auto* occtShape = dynamic_cast<ifcopenshell::geometry::OpenCascadeShape*>(compound);
+
+			if (!occtShape) { throw std::runtime_error("Expected OpenCascadeShape"); }
+			TopoDS_Shape shape = occtShape->shape();
+			auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
+			shapeList.emplace_back(std::make_pair(product, shape));
+		} while (it.next());
+
 
 		int coreUse = threadCount;
 		double maxSplit = 300;
@@ -6202,9 +6218,9 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, s
 		{
 			currentBin++;
 
-			auto startIdx = shapeList.begin() + i * maxSplit;
-			auto endIdx = (i == maxBinNr - 1) ? shapeList.end() : startIdx + maxSplit;
-			std::vector<IfcGeom::BRepElement*> binList(startIdx, endIdx);
+			auto startIdxBin = shapeList.begin() + i * maxSplit;
+			auto endIdxBin = (i == maxBinNr - 1) ? shapeList.end() : startIdxBin + maxSplit;
+			std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>> binList(startIdxBin, endIdxBin);
 
 			if (binList.size() < coreUse) { coreUse = binList.size(); }
 			int splitListSize = static_cast<int>(std::floor(binList.size() / coreUse));
@@ -6215,8 +6231,8 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, s
 			{
 				auto startIdx = binList.begin() + j * splitListSize;
 				auto endIdx = (j == coreUse - 1) ? binList.end() : startIdx + splitListSize;
-				std::vector<IfcGeom::BRepElement*> sublist(startIdx, endIdx);
-				threadList.emplace_back([&, sublist]() { brepIFcElemToGeoObject(h, kernel, sublist, countMutex, counter, listMutex, "4.2", uniqueKeySet, geoObjectList, collectionShape); });
+
+				threadList.emplace_back([&, startIdx, endIdx]() { brepIFcElemToGeoObject(h, cjtKernel, binList, startIdx, endIdx, countMutex, counter, listMutex, "4.2", uniqueKeySet, geoObjectList, collectionShape); });
 				activeThreads++;
 			}
 
@@ -6236,27 +6252,32 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, s
 	return;
 }
 
-void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, const std::vector<IfcGeom::BRepElement*>& brepElemList, std::mutex& countMutex, int& counter, std::mutex& listMutex, const std::string& LoDnr, std::set<std::string>& uniqueKeySet, std::vector< CJT::GeoObject>& geoObjectListOut, std::vector<TopoDS_Shape>& collectionShapeOut)
+void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, 
+	CJT::Kernel* cjtKernel,
+	const std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>& brepElemList, 
+	std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>::const_iterator startIdx,
+	std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>::const_iterator endIdx,
+	std::mutex& countMutex,
+	int& counter, 
+	std::mutex& listMutex, 
+	const std::string& LoDnr, 
+	std::set<std::string>& uniqueKeySet,
+	std::vector< CJT::GeoObject>& geoObjectListOut, 
+	std::vector<TopoDS_Shape>& collectionShapeOut
+)
 {
 	gp_Trsf objectTranslation = h->getObjectTranslation();
 	gp_Trsf localTrans;
 	localTrans.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -SettingsCollection::getInstance().gridRotation());
 
-	for (IfcGeom::BRepElement* brepElem : brepElemList)
+	for (auto it = startIdx; it != endIdx; ++it)
 	{
 		countMutex.lock();
 		counter++;
 		countMutex.unlock();
 
-		if (!brepElem || brepElem == nullptr) { continue; }
-		IfcUtil::IfcBaseEntity* brepBaseEntity = brepElem->product();
-		if (!brepBaseEntity || brepBaseEntity == nullptr) { continue; }
-		auto product = brepElem->product()->as<IfcSchema::IfcProduct>();
-		if (product == nullptr) { continue; } //TODO: check why this can happen
-		TopoDS_Shape shape = brepElem->geometry().as_compound();
-		if (shape.IsNull()) { continue; }
-		gp_Trsf ifcPlacement = brepElem->transformation().data();
-		shape = shape.Moved(ifcPlacement);
+		TopoDS_Shape shape = it->second;
+
 		shape.Move(objectTranslation);
 
 		gp_Trsf trs;
@@ -6264,8 +6285,8 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, c
 		shape.Move(trs);
 		shape = helperFunctions::addSolidSemantic(shape);
 
-
-		std::string productType = product->data().type()->name();
+		const IfcSchema::IfcProduct* product = it->first;
+		std::string productType = product->declaration().name();
 		std::string productGuid = product->GlobalId();
 
 		if (productType == "IfcOpeningElement") { continue; }
@@ -6284,11 +6305,10 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, c
 			cleanShape = shape;
 		}			
 		
-
 		cleanShape.Move(localTrans);
 
 		nlohmann::json attributeMap;
-		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + product->data().type()->name();
+		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + product->declaration().name();
 		nlohmann::json attributeList = helperFunctions::getAttributes(product);
 		for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
 			attributeMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();
@@ -6300,7 +6320,7 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, c
 		
 		try
 		{
-			CJT::GeoObject geoObject = kernel->convertToJSON(cleanShape, LoDnr);
+			CJT::GeoObject geoObject = cjtKernel->convertToJSON(cleanShape, LoDnr);
 			geoObject.setSurfaceTypeValues(TypeValueList);
 			geoObject.appendSurfaceData(attributeMap);
 

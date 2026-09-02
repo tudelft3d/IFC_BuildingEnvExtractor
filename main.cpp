@@ -38,6 +38,7 @@ void enableVirtualTerminal() {}
 #endif
 
 int main(int argc, char** argv) {
+
 	enableVirtualTerminal();
 
 	std::cout << " " << std::endl;

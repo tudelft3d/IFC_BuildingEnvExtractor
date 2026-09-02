@@ -246,10 +246,17 @@ void SettingsCollection::setTolerances(const nlohmann::json& json)
 void SettingsCollection::generateGeneralSettings()
 {
 	// set ifcGeomsettings
-	IfcGeom::IteratorSettings iteratorSettings;
+	ifcopenshell::geometry::Settings iteratorSettings;
 
-	IfcGeom::IteratorSettings simpleIteratorSettings;
-	simpleIteratorSettings.set(simpleIteratorSettings.DISABLE_OPENING_SUBTRACTIONS, true);
+	ifcopenshell::geometry::Settings simpleIteratorSettings;
+
+	iteratorSettings.get< ifcopenshell::geometry::settings::UseWorldCoords >().value = true;
+	simpleIteratorSettings.get< ifcopenshell::geometry::settings::UseWorldCoords >().value = true;
+
+	simpleIteratorSettings.get<ifcopenshell::geometry::Precision>().value = linearTolerance_;
+	iteratorSettings.get<ifcopenshell::geometry::Precision>().value = linearTolerance_;
+
+	simpleIteratorSettings.get<ifcopenshell::geometry::DisableOpeningSubtractions>().value = true;
 
 	setIterator(iteratorSettings);
 	setSimpleIterator(simpleIteratorSettings);
@@ -1470,7 +1477,7 @@ void SettingsCollection::setAllLoDOutputFalse()
 	return;
 }
 
-IfcGeom::IteratorSettings SettingsCollection::iteratorSettings(bool simple)
+ifcopenshell::geometry::Settings SettingsCollection::iteratorSettings(bool simple)
 {
 	if (simple)
 	{

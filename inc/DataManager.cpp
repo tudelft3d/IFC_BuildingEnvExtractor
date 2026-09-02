@@ -10,8 +10,8 @@
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 
-#include <ifcgeom_schema_agnostic/IfcGeomFilter.h>
-#include <ifcgeom_schema_agnostic/IfcGeomIterator.h>
+#include <ifcgeom/IfcGeomFilter.h>
+#include <ifcgeom/Iterator.h>
 
 #include <thread>
 #include <shared_mutex> 
@@ -48,13 +48,14 @@ template std::string DataManager::getIfcObjectName<IfcSchema::IfcRoad>(const std
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcRailway>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
 #endif
 
-IfcProductSpatialData::IfcProductSpatialData(IfcSchema::IfcProduct* productPtr, const TopoDS_Shape& productShape)
+IfcProductSpatialData::IfcProductSpatialData(const IfcSchema::IfcProduct* productPtr, const TopoDS_Shape& productShape)
 {
 	ErrorCollection& errorCollection = ErrorCollection::getInstance();
 
-	productPtr_ = productPtr;
+	productPtr_ = const_cast<IfcSchema::IfcProduct*>(productPtr);;
 	productShape_ = productShape;
-	std::string objectType = productPtr->data().type()->name();
+	//std::string objectType = productPtr->data().type()->name();
+	std::string objectType = productPtr->declaration().name();
 
 	for (TopExp_Explorer expl(productShape_, TopAbs_FACE); expl.More(); expl.Next())
 	{
@@ -73,9 +74,9 @@ IfcProductSpatialData::IfcProductSpatialData(IfcSchema::IfcProduct* productPtr, 
 			const Poly_Triangle& theTriangle = mesh->Triangles().Value(i);
 
 			std::array<gp_Pnt, 3> trianglePoints{
-				mesh->Nodes().Value(theTriangle(1)).Transformed(loc),
-				mesh->Nodes().Value(theTriangle(2)).Transformed(loc),
-				mesh->Nodes().Value(theTriangle(3)).Transformed(loc)
+				mesh->Node(theTriangle(1)).Transformed(loc),
+				mesh->Node(theTriangle(2)).Transformed(loc),
+				mesh->Node(theTriangle(3)).Transformed(loc)
 			};
 
 			auto box = helperFunctions::createBBox(trianglePoints);
@@ -84,8 +85,7 @@ IfcProductSpatialData::IfcProductSpatialData(IfcSchema::IfcProduct* productPtr, 
 		}
 	}
 
-	std::string productType = productPtr_->data().type()->name();
-	if (productType == "IfcDoor" || productType == "IfcWindow")
+	if (objectType == "IfcDoor" || objectType == "IfcWindow")
 	{
 		isDetailed_ = true;
 	}
@@ -140,13 +140,20 @@ double fileKernelCollection::getSiScaleValue(const IfcSchema::IfcSIUnit& unitIte
 
 fileKernelCollection::fileKernelCollection(const std::string& filePath)
 {
-	file_ = new IfcParse::IfcFile(filePath);
+	file_ = std::make_unique<IfcParse::IfcFile>(filePath);
+	kernel_ = std::make_unique<IfcGeom::OpenCascadeKernel>(SettingsCollection::getInstance().iteratorSettings(false));
 	if (!file_->good()) { return; }
-	kernel_ = std::make_unique<IfcGeom::Kernel>(file_);
-	IfcGeom::Kernel* kernelObject = kernel_.get();
-	kernel_.get()->setValue(kernelObject->GV_PRECISION, SettingsCollection::getInstance().linearTolerance());
 	setUnits();
 }
+
+//IfcGeom::Iterator* fileKernelCollection::getIteratorPtr(bool isSimple)
+//{
+//	if (isSimple)
+//	{
+//		return iteratorSimple_.get();
+//	}
+//	return iterator_.get();
+//}
 
 void fileKernelCollection::setUnits()
 {
@@ -214,9 +221,9 @@ DataManager::DataManager(const std::vector<std::string>& pathList) {
 		}
 
 		// make new collection
-		std::unique_ptr<fileKernelCollection> dataCollection = std::make_unique<fileKernelCollection>(path);
+		fileKernelCollection dataCollection = fileKernelCollection(path);
 		
-		if (!dataCollection.get()->isGood())
+		if (!dataCollection.isGood())
 		{
 			std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcUnableToParse) << " " << path << std::endl;
 			continue;
@@ -296,7 +303,7 @@ void DataManager::elementCountSummary()
 
 	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
-		IfcParse::IfcFile* fileObject = datacollection_[i]->getFilePtr();
+		IfcParse::IfcFile* fileObject = datacollection_[i].getFilePtr();
 		IfcSchema::IfcProduct::list::ptr products = fileObject->instances_by_type<IfcSchema::IfcProduct>();
 		IfcSchema::IfcBuildingElementProxy::list::ptr proxyProducts = fileObject->instances_by_type<IfcSchema::IfcBuildingElementProxy>();
 
@@ -386,28 +393,38 @@ gp_Vec DataManager::computeObjectTranslation()
 
 gp_Vec DataManager::computeObjectTranslation(const std::string& objectType)
 {
+	std::vector<IfcGeom::filter_t> filterFuncs;
+	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { objectType }));
+
+	ifcopenshell::geometry::Settings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(true);
+
 	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
-		aggregate_of_instance::ptr productList = datacollection_[i]->getFilePtr()->instances_by_type(objectType);
-		if (productList == nullptr) { continue; }
-		if (!productList->size()) { continue; }
+		auto kernel = std::make_unique<IfcGeom::OpenCascadeKernel>(iteratorSettings);
 
-		for (auto et = productList->begin(); et != productList->end(); ++et)
-		{
-			IfcUtil::IfcBaseClass* test = *et;
-			IfcSchema::IfcProduct* product = (*et)->as<IfcSchema::IfcProduct>();
+		IfcGeom::Iterator it(
+			std::move(kernel),
+			iteratorSettings,
+			datacollection_[i].getFilePtr(),
+			filterFuncs,
+			SettingsCollection::getInstance().threadcount()
+		);
+		if (!it.initialize()) { continue; }
+
+		do {
+			
+			auto* compound = it.get_native()->geometry().as_compound();
+			auto* occtShape = dynamic_cast<ifcopenshell::geometry::OpenCascadeShape*>(compound);
+			if (!occtShape) { throw std::runtime_error("Expected OpenCascadeShape"); }
+
+			TopoDS_Shape shape = occtShape->shape();
 
 			gp_Pnt lllPoint;
 			gp_Pnt urrPoint;
-			TopoDS_Shape slabShape = getObjectShape(product, false, true);
-
-			if (slabShape.IsNull()) { continue; }
-			helperFunctions::bBoxDiagonal(helperFunctions::getPoints(slabShape), &lllPoint, &urrPoint, 0);
-
+			helperFunctions::bBoxDiagonal(helperFunctions::getPoints(shape), &lllPoint, &urrPoint, 0);
 			std::cout << "	Translation based on " << objectType << " class\n";
-
 			return gp_Vec(-lllPoint.X(), -lllPoint.Y(), -lllPoint.Z());
-		}
+		} while (it.next());
 	}
 	ErrorCollection::getInstance().addError(ErrorID::warningIFCMissingType, objectType);
 	return gp_Vec();
@@ -431,13 +448,14 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { typeName }));
 
 	int fileNum = 0;
-	for (const std::unique_ptr<fileKernelCollection>& collectionItem : datacollection_)
+	for (fileKernelCollection& collectionItem : datacollection_)
 	{
-		fileNum++;
+		auto kernel = std::make_unique<IfcGeom::OpenCascadeKernel>(settings.iteratorSettings(isSimple));
 
 		IfcGeom::Iterator it(
+			std::move(kernel),
 			settings.iteratorSettings(isSimple),
-			collectionItem->getFilePtr(),
+			collectionItem.getFilePtr(),
 			filterFuncs,
 			settings.threadcount()
 		);
@@ -445,12 +463,21 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 
 		int itCount = 0;
 
-		std::vector<IfcGeom::BRepElement*> shapeList;
-		shapeList.reserve(collectionItem->getFilePtr()->instances_by_type(typeName)->size()); //TODO: optimize this
+		std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>> shapeList;
+		shapeList.reserve(collectionItem.getFilePtr()->instances_by_type(typeName)->size()); //TODO: optimize this
 
 		int currentItemNum = 0;
 		do { 
-			shapeList.emplace_back((it.get_native()));
+			IfcGeom::BRepElement* boundaryRepElem = it.get_native();
+			if (!boundaryRepElem) { continue; }
+
+			auto* compound = boundaryRepElem->geometry().as_compound();
+			auto* occtShape = dynamic_cast<ifcopenshell::geometry::OpenCascadeShape*>(compound);
+
+			if (!occtShape) { throw std::runtime_error("Expected OpenCascadeShape"); }
+			TopoDS_Shape shape = occtShape->shape();
+			auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
+			shapeList.emplace_back(std::make_pair(product, shape));
 
 			if (currentItemNum % 100 == 0)
 			{
@@ -475,8 +502,8 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 		{
 			auto startIdx = shapeList.begin() + i * splitListSize;
 			auto endIdx = (i == coreUse - 1) ? shapeList.end() : startIdx + splitListSize;
-			std::vector<IfcGeom::BRepElement*> sublist(startIdx, endIdx);
-			threadList.emplace_back([=, &uniqueKeySet, &processedItemCount, &counterMutex]() { AddBRepElementToIndex(sublist, uniqueKeySet, processedItemCount, counterMutex, addToRoomIndx); });
+
+			threadList.emplace_back([=, &shapeList, &uniqueKeySet, &processedItemCount, &counterMutex]() { AddBRepElementToIndex(shapeList, startIdx, endIdx, uniqueKeySet, processedItemCount, counterMutex, addToRoomIndx); });
 		}
 
 		std::cout << "                                                                                          \r";
@@ -497,19 +524,43 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 		UnitStringEnum::getString(UnitStringID::seconds) << "                                                " << std::endl;
 }
 
-IfcGeom::Kernel* DataManager::getKernelObject(const std::string& productGuid)
+//IfcGeom::Iterator* DataManager::getIteratorPtr(const std::string& productGuid) //TODO: implement this
+//{
+//	if (getSourceFileCount() == 1)
+//	{
+//		return datacollection_[0].getIteratorPtr(false);
+//	}
+//	else {
+//		for (size_t i = 0; i < getSourceFileCount(); i++)
+//		{
+//			try { 
+//				std::ostringstream oss;
+//				datacollection_[i].getFilePtr()->instance_by_guid(productGuid)->toString(oss);
+//			}
+//			catch (const std::exception&) { continue; }
+//
+//			return datacollection_[i].getIteratorPtr(false);
+//		}
+//	}
+//	return nullptr;
+//}
+
+IfcGeom::OpenCascadeKernel* DataManager::getKernelObject(const std::string& productGuid)
 {
 	if (getSourceFileCount() == 1)
 	{
-		return datacollection_[0]->getKernelPtr();
+		return datacollection_[0].getKernelPtr();
 	}
 	else {
 		for (size_t i = 0; i < getSourceFileCount(); i++)
 		{
-			try { datacollection_[i]->getFilePtr()->instance_by_guid(productGuid)->data().toString(); }
+			try { 
+				std::ostringstream oss;
+				datacollection_[i].getFilePtr()->instance_by_guid(productGuid)->toString(oss);
+			}
 			catch (const std::exception&) { continue; }
 
-			return datacollection_[i]->getKernelPtr();
+			return datacollection_[i].getKernelPtr();
 		}
 	}
 	return nullptr;
@@ -517,7 +568,7 @@ IfcGeom::Kernel* DataManager::getKernelObject(const std::string& productGuid)
 
 int DataManager::getObjectShapeLocation(IfcSchema::IfcProduct* product)
 {
-	std::string objectType = product->data().type()->name();
+	std::string objectType = product->declaration().name();
 	const std::shared_lock<std::shared_mutex> lock(indexMutex_);
 	auto typeSearch = productIndxLookup_.find(objectType);
 	if (typeSearch == productIndxLookup_.end()) { return -1; }
@@ -581,20 +632,37 @@ IfcSchema::IfcProduct::list::ptr DataManager::getNestedProductList(IfcSchema::If
 
 std::vector<gp_Pnt> DataManager::getObjectListPoints(const std::string& classTypeName, bool simple)
 {
-	std::vector<gp_Pnt> pointList;
-	for (const auto& fileObject : datacollection_)
-	{
-		aggregate_of_instance::ptr objectList = fileObject->getFilePtr()->instances_by_type(classTypeName);
-		if (objectList == nullptr) { continue; }
+	std::vector<IfcGeom::filter_t> filterFuncs;
+	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { classTypeName }));
 
-		for (auto it = objectList->begin(); it != objectList->end(); ++it) {
-			IfcSchema::IfcProduct* product = (*it)->as<IfcSchema::IfcProduct>();
-			std::vector<gp_Pnt> temp = getObjectPoints(product, simple);
+	ifcopenshell::geometry::Settings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(true);
+
+
+	std::vector<gp_Pnt> pointList;
+	for (auto& fileObject : datacollection_)
+	{
+		auto kernel = std::make_unique<IfcGeom::OpenCascadeKernel>(iteratorSettings);
+		IfcGeom::Iterator it(
+			std::move(kernel),
+			iteratorSettings,
+			fileObject.getFilePtr(),
+			filterFuncs,
+			SettingsCollection::getInstance().threadcount()
+		);
+		if (!it.initialize()) { continue; }
+
+		do {
+			auto* compound = it.get_native()->geometry().as_compound();
+			auto* occtShape = dynamic_cast<ifcopenshell::geometry::OpenCascadeShape*>(compound);
+			if (!occtShape) { throw std::runtime_error("Expected OpenCascadeShape"); }
+
+			TopoDS_Shape shape = occtShape->shape();
+			std::vector<gp_Pnt> temp = helperFunctions::getPoints(shape);
 
 			for (const auto& point : temp) {
 				pointList.emplace_back(point);
 			}
-		}
+		} while (it.next());
 	}
 	return std::vector<gp_Pnt>(pointList);
 }
@@ -611,7 +679,7 @@ void DataManager::updateShapeMemory(IfcSchema::IfcProduct* product, TopoDS_Shape
 	if (!product->Representation()) { return; }
 
 	helperFunctions::triangulateShape(shape);
-	std::string objectType = product->data().type()->name();
+	std::string objectType = product->declaration().name();
 
 	// filter with lookup
 	std::lock_guard<std::shared_mutex> lock(indexMutex_);
@@ -642,8 +710,8 @@ void DataManager::timedVoidShapeAdjust(const std::string& typeName)
 
 	for (size_t i = 0; i < getSourceFileCount(); i++) //TODO: multithread
 	{
-		IfcParse::IfcFile* fileObject = datacollection_[i]->getFilePtr();
-		voidShapeAdjust(datacollection_[i]->getFilePtr()->instances_by_type<T>());
+		IfcParse::IfcFile* fileObject = datacollection_[i].getFilePtr();
+		voidShapeAdjust(datacollection_[i].getFilePtr()->instances_by_type<T>());
 
 		std::cout << "finished in: " <<
 			std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<
@@ -684,7 +752,7 @@ void DataManager::voidShapeAdjust(T productList)
 
 nlohmann::json DataManager::get2x3GeoData()
 {
-	IfcParse::IfcFile* fileObject = datacollection_[0]->getFilePtr();
+	IfcParse::IfcFile* fileObject = datacollection_[0].getFilePtr();
 	IfcSchema::IfcPropertySet::list::ptr psets = fileObject->instances_by_type<IfcSchema::IfcPropertySet>();
 
 	bool isSite = false;
@@ -775,7 +843,7 @@ std::vector<TopoDS_Shape> DataManager::computeEmptyVoids(IfcSchema::IfcRelVoidsE
 		{
 			const IfcProductSpatialData& lookup = getLookup(qResult[i].second);
 			IfcSchema::IfcProduct* qProduct = lookup.getProductPtr();
-			if (cuttingObjects.find(qProduct->data().type()->name()) == cuttingObjects.end()) { continue; }
+			if (cuttingObjects.find(qProduct->declaration().name()) == cuttingObjects.end()) { continue; }
 
 			TopoDS_Shape qShape = getObjectShape(qProduct, false);
 			for (TopExp_Explorer expl(qShape, TopAbs_VERTEX); expl.More(); expl.Next())
@@ -966,7 +1034,7 @@ void DataManager::getScaleAndProjection(CJT::ObjectTransformation* transformatio
 		}
 	}
 #else
-	IfcParse::IfcFile* fileObject = datacollection_[0]->getFilePtr();
+	IfcParse::IfcFile* fileObject = datacollection_[0].getFilePtr();
 	IfcSchema::IfcMapConversion::list::ptr mapList = fileObject->instances_by_type<IfcSchema::IfcMapConversion>();
 	if (mapList->size() != 0) {
 		if (mapList->size() > 1) {
@@ -1004,7 +1072,7 @@ void DataManager::populateAttributeLookup()
 {
 	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
-		IfcSchema::IfcRelDefinesByProperties::list::ptr relDefList = datacollection_[i]->getFilePtr()->instances_by_type <IfcSchema::IfcRelDefinesByProperties>();
+		IfcSchema::IfcRelDefinesByProperties::list::ptr relDefList = datacollection_[i].getFilePtr()->instances_by_type <IfcSchema::IfcRelDefinesByProperties>();
 		for (auto reldefIt = relDefList->begin(); reldefIt != relDefList->end(); reldefIt++)
 		{
 			IfcSchema::IfcRelDefinesByProperties* relDefItem = *reldefIt;
@@ -1029,7 +1097,7 @@ void DataManager::populateAttributeLookup()
 #endif
 
 			if (propertyDef == nullptr) { continue; }
-			if (propertyDef->data().type()->name() != "IfcPropertySet") { continue; }
+			if (propertyDef->declaration().name() != "IfcPropertySet") { continue; }
 			IfcSchema::IfcPropertySet* propertySet = relDefItem->RelatingPropertyDefinition()->as<IfcSchema::IfcPropertySet>();
 
 			for (const std::string currentGuid : GuidList)
@@ -1048,7 +1116,14 @@ void DataManager::populateAttributeLookup()
 	return;
 }
 
-void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>& shapeList, std::unordered_set<std::string>& uniqueKeySet, int& counter, std::mutex& counterMutex, bool isRoom)
+void DataManager::AddBRepElementToIndex(
+	const std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>& shapeList,
+	std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>::const_iterator startIdx, 
+	std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>> ::const_iterator endIdx, 
+	std::unordered_set<std::string>& uniqueKeySet, 
+	int& counter, 
+	std::mutex& counterMutex,
+	bool isRoom)
 {
 	SettingsCollection& settings = SettingsCollection::getInstance();
 	bool ignoreIsExternal = settings.ignoreIsExternal();
@@ -1058,20 +1133,17 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 	bool forceSolid = settings.forceSolid();
 	const std::vector<std::string>& ignoreList = settings.getIgnoreSimplificationList();
 
-	for (IfcGeom::BRepElement* boundaryRepElem : shapeList)
+	for (auto it = startIdx; it != endIdx; ++it)
 	{
 		counterMutex.lock();
 		counter++;
 		counterMutex.unlock();
 
-		if (!boundaryRepElem)
-		{ 
-			continue;
-		}
-		
-		TopoDS_Shape shape = boundaryRepElem->geometry().as_compound();
-		gp_Trsf ifcPlacement = boundaryRepElem->transformation().data();
-		shape = shape.Moved(ifcPlacement);
+		auto producftPair = *it;
+
+		TopoDS_Shape shape = producftPair.second;
+
+		//TODO: fix this
 		shape.Move(objectTranslation_);
 		
 		gp_Trsf trs;
@@ -1087,7 +1159,7 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 				solidSemanticMutex_.unlock();
 			}
 		}
-		auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
+		auto product = producftPair.first;
 
 		if (product == nullptr) { continue; }
 
@@ -1101,7 +1173,7 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 			}
 		}
 
-		std::string productType = product->data().type()->name();
+		std::string productType = product->declaration().name();
 		std::string productGuid = product->GlobalId();
 
 		uniqueKeyMutex_.lock();
@@ -1192,17 +1264,22 @@ void DataManager::AddBRepElementToIndex(const std::vector<IfcGeom::BRepElement*>
 bool DataManager::hasSetUnits() {
 	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
-		if (!datacollection_[i]->getLengthMultiplier()) { return false; }
+		if (!datacollection_[i].getLengthMultiplier()) { return false; }
 	}
 	return true; 
 }
 
-std::vector<IfcParse::IfcFile*> DataManager::getSourceFiles() const
+std::vector<IfcParse::IfcFile*> DataManager::getSourceFiles()
 {
 	std::vector<IfcParse::IfcFile*> ptrList;
 	int sourceFileCount = getSourceFileCount();
 	ptrList.reserve(sourceFileCount);
-	for (int i = 0; 1 < sourceFileCount; i ++) { ptrList.emplace_back(datacollection_[i].get()->getFilePtr()); }
+
+	for (auto& fileKernelCollection : datacollection_)
+	{
+		ptrList.emplace_back(fileKernelCollection.getFilePtr());
+	}
+
 	return ptrList;
 }
 
@@ -1308,9 +1385,9 @@ void DataManager::fetchGroundFloorElevation()
 	std::vector<std::string> groundFloorCodes = { "0 ", "00 ", "0-" , "00-" };
 
 	std::vector<double> groundfloorElevationList;
-	for (const std::unique_ptr<fileKernelCollection>& dataItem : datacollection_)
+	for (fileKernelCollection& dataItem : datacollection_)
 	{
-		IfcSchema::IfcBuildingStorey::list::ptr storeyList = dataItem->getFilePtr()->instances_by_type<IfcSchema::IfcBuildingStorey>();
+		IfcSchema::IfcBuildingStorey::list::ptr storeyList = dataItem.getFilePtr()->instances_by_type<IfcSchema::IfcBuildingStorey>();
 
 		for (auto it = storeyList->begin(); it != storeyList->end(); ++it)
 		{
@@ -1505,7 +1582,7 @@ void DataManager::indexGeo()
 
 gp_Trsf DataManager::getProjectionTransformation()
 {
-	IfcParse::IfcFile* fileObject = datacollection_[0]->getFilePtr();
+	IfcParse::IfcFile* fileObject = datacollection_[0].getFilePtr(); //TODO: make it possible to evaluate all the entries
 
 #if defined(USE_IFC2x3)
 
@@ -1589,7 +1666,7 @@ nlohmann::json DataManager::getBuildingInformation()
 
 	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
-		IfcParse::IfcFile* fileObject = datacollection_[i]->getFilePtr();
+		IfcParse::IfcFile* fileObject = datacollection_[i].getFilePtr();
 
 		auto buildingList = fileObject->instances_by_type<T>();
 
@@ -1617,7 +1694,7 @@ std::string DataManager::getIfcObjectName(const std::string& objectTypeName, boo
 	std::vector<std::string> stringList;
 	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
-		IfcParse::IfcFile* fileObject = datacollection_[i]->getFilePtr();
+		IfcParse::IfcFile* fileObject = datacollection_[i].getFilePtr();
 		std::string nameString = getIfcObjectName<T>(objectTypeName, fileObject, isLong);
 		if (nameString == "") { continue; }
 		stringList.emplace_back(nameString);
@@ -1671,7 +1748,7 @@ std::string DataManager::getIfcObjectName(const std::string& objectTypeName, Ifc
 TopoDS_Shape DataManager::getObjectShapeFromMem(IfcSchema::IfcProduct* product, bool isSimple)
 {
 	// filter with lookup
-	std::string objectType = product->data().type()->name();
+	std::string objectType = product->declaration().name();
 	std::unordered_set<std::string> openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();
 
 	if (openingObjects.find(objectType) == openingObjects.end() &&
@@ -1693,7 +1770,7 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 	// filter with lookup
 	if (product == nullptr) { return {}; }
 
-	std::string objectType = product->data().type()->name();
+	std::string objectType = product->declaration().name();
 	const std::unordered_set<std::string>& openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();
 
 	int simplefyGeoGrade = SettingsCollection::getInstance().ignoreVoidGrade();
@@ -1732,69 +1809,65 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 		if (fromMemOnly) { return {}; }
 	}
 
-	IfcGeom::Kernel* kernelObject = getKernelObject(product->GlobalId());
+	return {};
 
-	if (kernelObject == nullptr) {
-		//TODO: add error
-		return {}; 
-	}
+	//gp_Trsf trsf;
 
-	gp_Trsf trsf;
-	kernelObject->convert_placement(product->ObjectPlacement(), trsf);
+	//kernelObject->convert_placement(product->ObjectPlacement(), trsf);
 
-	IfcGeom::IteratorSettings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(isSimple);
+	//IfcGeom::IteratorSettings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(isSimple);
 
 
-	IfcGeom::BRepElement* brep = nullptr;
-	try
-	{
-		convertMutex_.lock(); //TODO: I want those removed in update
-		brep = kernelObject->convert(iteratorSettings, ifc_representation, product);
-		convertMutex_.unlock();
-	}
-	catch (const std::exception&)
-	{
-		//TODO: add error
-	}
+	//IfcGeom::BRepElement* brep = nullptr;
+	//try
+	//{
+	//	convertMutex_.lock(); //TODO: I want those removed in update
+	//	brep = kernelObject->convert(iteratorSettings, ifc_representation, product);
+	//	convertMutex_.unlock();
+	//}
+	//catch (const std::exception&)
+	//{
+	//	//TODO: add error
+	//}
 
-	if (brep == nullptr) { 
-		//TODO: add error
-		return {}; 
-	}
+	//if (brep == nullptr) { 
+	//	//TODO: add error
+	//	return {}; 
+	//}
 
-	gp_Trsf placement;
-	gp_Trsf trs;
+	//gp_Trsf placement;
+	//gp_Trsf trs;
+	//
+	//trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
+	//kernelObject->convert_placement(ifc_representation, placement);
 
-	trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
-	kernelObject->convert_placement(ifc_representation, placement);
+	//auto shapeCollection = brep->geometry().shapes();
 
-	auto shapeCollection = brep->geometry().shapes();
+	//int collectionSize = shapeCollection.size();
 
-	int collectionSize = shapeCollection.size();
+	//BRep_Builder builder;
+	//TopoDS_Compound collection;
+	//builder.MakeCompound(collection);
+	//for (auto it = shapeCollection.begin(); it != shapeCollection.end(); ++it)
+	//{
+	//	TopoDS_Shape currentShape = (*it).Shape();
+	//	currentShape.Move((*it).Placement().Trsf());
+	//	if (forceSolid && currentShape.ShapeType() == TopAbs_COMPOUND)
+	//	{
+	//		if (!helperFunctions::containsSolid(currentShape))
+	//		{
+	//			currentShape = helperFunctions::addSolidSemantic(currentShape);
+	//		}
+	//	}
 
-	BRep_Builder builder;
-	TopoDS_Compound collection;
-	builder.MakeCompound(collection);
-	for (auto it = shapeCollection.begin(); it != shapeCollection.end(); ++it)
-	{
-		TopoDS_Shape currentShape = (*it).Shape();
-		currentShape.Move((*it).Placement().Trsf());
-		if (forceSolid && currentShape.ShapeType() == TopAbs_COMPOUND)
-		{
-			if (!helperFunctions::containsSolid(currentShape))
-			{
-				currentShape = helperFunctions::addSolidSemantic(currentShape);
-			}
-		}
+	//	helperFunctions::triangulateShape(currentShape);
 
-		helperFunctions::triangulateShape(currentShape);
+	//	//if (collectionSize < 2) { return currentShape; }
+	//	builder.Add(collection, currentShape);	
+	//}
+	//collection.Move(trsf * placement); // location in global space
+	//collection.Move(objectTranslation_);
+	//collection.Move(trs);
 
-		//if (collectionSize < 2) { return currentShape; }
-		builder.Add(collection, currentShape);	
-	}
-	collection.Move(trsf * placement); // location in global space
-	collection.Move(objectTranslation_);
-	collection.Move(trs);
-
-	return collection;
+	//return collection;
 }

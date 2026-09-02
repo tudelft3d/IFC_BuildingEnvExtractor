@@ -377,12 +377,14 @@ private:
 		std::vector<TopoDS_Shape>& collectionShapeOut,
 		const int num);
 
-	void brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* kernel, std::vector< CJT::GeoObject>& geoObjectList, std::vector<TopoDS_Shape>& collectionShape);
+	void brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* cjtKernel, std::vector< CJT::GeoObject>& geoObjectList, std::vector<TopoDS_Shape>& collectionShape);
 
 	void brepIFcElemToGeoObject(
 		DataManager* h, 
-		CJT::Kernel* kernel, 
-		const std::vector<IfcGeom::BRepElement*>& brepElemList, 
+		CJT::Kernel* cjtKernel,
+		const std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>& brepElemList,
+		std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>::const_iterator startIdx,
+		std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>::const_iterator endIdx,
 		std::mutex& countMutex, int& counter,
 		std::mutex& listMutex, 
 		const std::string& LoDnr,

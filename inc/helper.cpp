@@ -3607,13 +3607,15 @@ bool helperFunctions::splitHalfEdge(const HalfEdge& argument, const HalfEdge& to
 double helperFunctions::getObjectZOffset(IfcSchema::IfcObjectPlacement* objectPlacement, bool deepOnly)
 {
 	double offset = 0;
-	if (objectPlacement->data().type()->name() != "IfcLocalPlacement") { return 0.0; }
+	//if (objectPlacement->data().type()->name() != "IfcLocalPlacement") { return 0.0; }
+	if (objectPlacement->declaration().name() != "IfcLocalPlacement") { return 0.0; }
 	IfcSchema::IfcLocalPlacement* storeyLocalPlacement = objectPlacement->as<IfcSchema::IfcLocalPlacement>();
 	IfcSchema::IfcObjectPlacement* localObjectPlacement = storeyLocalPlacement->PlacementRelTo();
 
 	if (!deepOnly && localObjectPlacement != nullptr || localObjectPlacement == nullptr)
 	{
-		if (storeyLocalPlacement->RelativePlacement()->data().type()->name() != "IfcAxis2Placement3D") { return 0.0; }
+		//if (storeyLocalPlacement->RelativePlacement()->data().type()->name() != "IfcAxis2Placement3D") { return 0.0; }
+		if (storeyLocalPlacement->declaration().name() != "IfcAxis2Placement3D") { return 0.0; }
 		IfcSchema::IfcAxis2Placement3D* axisPlacement = storeyLocalPlacement->RelativePlacement()->as<IfcSchema::IfcAxis2Placement3D>();
 
 #if defined(USE_IFC4x3) || defined (USE_IFC4x3add1)|| defined (USE_IFC4x3add2)
@@ -3648,13 +3650,16 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 	for (IfcSchema::IfcRelAssociates::list::it it = associations->begin(); it != associations->end(); ++it)
 	{
 		IfcSchema::IfcRelAssociates* IfcRelAssociates = *it;
-		if (IfcRelAssociates->data().type()->name() != "IfcRelAssociatesMaterial") { continue; }
+
+		if (IfcRelAssociates->declaration().name() != "IfcRelAssociatesMaterial") { continue; }
 
 		IfcSchema::IfcRelAssociatesMaterial* MaterialAss = IfcRelAssociates->as<IfcSchema::IfcRelAssociatesMaterial>();
-		if (MaterialAss->data().type()->name() != "IfcRelAssociatesMaterial") { continue; }
+		//if (MaterialAss->data().type()->name() != "IfcRelAssociatesMaterial") { continue; }
+		if (MaterialAss->declaration().name() != "IfcRelAssociatesMaterial") { continue; }
 
 		IfcSchema::IfcMaterialSelect* relMaterial = MaterialAss->RelatingMaterial();
-		if (relMaterial->data().type()->name() != "IfcMaterial") { continue; }
+		//if (relMaterial->data().type()->name() != "IfcMaterial") { continue; }
+		if (relMaterial->declaration().name() != "IfcMaterial") { continue; }
 
 		IfcSchema::IfcMaterial* ifcMaterial = relMaterial->as<IfcSchema::IfcMaterial>();
 		std::string materialName = boost::to_upper_copy(ifcMaterial->Name());
@@ -3681,7 +3686,7 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 			for (auto repIt = representationList->begin(); repIt != representationList->end(); ++repIt)
 			{
 				IfcSchema::IfcRepresentation* currentRep = *repIt;
-				if (currentRep->data().type()->name() == "IfcStyledRepresentation")
+				if (currentRep->declaration().name() == "IfcStyledRepresentation")
 				{
 					currentStyleRep = currentRep->as<IfcSchema::IfcStyledRepresentation>();
 					found = true;
@@ -3697,7 +3702,7 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 			for (auto propertyIt = representationList->begin(); propertyIt != representationList->end(); ++propertyIt)
 			{
 				IfcSchema::IfcRepresentationItem* currentItem = *propertyIt;
-				if (currentItem->data().type()->name() != "IfcStyledItem") { continue; }
+				if (currentItem->declaration().name() != "IfcStyledItem") { continue; }
 				IfcSchema::IfcStyledItem* currentStyledItem = currentItem->as<IfcSchema::IfcStyledItem>();
 
 #if defined(USE_IFC2x3) 
@@ -3713,14 +3718,14 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 #elif defined(USE_IFC4) 
 					IfcSchema::IfcStyleAssignmentSelect* currentStyleAss = *currenStyleAssIt;
 #endif				
-					if (currentStyleAss->data().type()->name() != "IfcPresentationStyleAssignment") { continue; }
+					if (currentStyleAss->declaration().name() != "IfcPresentationStyleAssignment") { continue; }
 					IfcSchema::IfcPresentationStyleAssignment* currentAss = currentStyleAss->as<IfcSchema::IfcPresentationStyleAssignment>();
 					IfcSchema::IfcPresentationStyleSelect::list::ptr styleSelectList = currentAss->Styles();
 
 					for (auto styleSelectIt = styleSelectList->begin(); styleSelectIt != styleSelectList->end(); ++styleSelectIt)
 					{
 						IfcSchema::IfcPresentationStyleSelect* currentStyleSelect = *styleSelectIt;
-						if (currentStyleSelect->data().type()->name() != "IfcSurfaceStyle") { continue; }
+						if (currentStyleSelect->declaration().name() != "IfcSurfaceStyle") { continue; }
 						IfcSchema::IfcSurfaceStyle* currentStyle = currentStyleSelect->as<IfcSchema::IfcSurfaceStyle>();
 						IfcSchema::IfcSurfaceStyleElementSelect::list::ptr elementSurfList = currentStyle->Styles();
 
@@ -3728,7 +3733,7 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 						for (auto styleElementIt = elementSurfList->begin(); styleElementIt != elementSurfList->end(); ++styleElementIt)
 						{
 							IfcSchema::IfcSurfaceStyleElementSelect* currentElemStyle = *styleElementIt;
-							if (currentElemStyle->data().type()->name() != "IfcSurfaceStyleRendering") { continue; }
+							if (currentElemStyle->declaration().name() != "IfcSurfaceStyleRendering") { continue; }
 							IfcSchema::IfcSurfaceStyleRendering* currentRenderStyle = currentElemStyle->as< IfcSchema::IfcSurfaceStyleRendering>();
 							if (currentRenderStyle->Transparency() > 0.2) { return true; }
 							hasRenderingStyle = true;
@@ -3759,7 +3764,7 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 			for (auto represenetationSubIt = representationSubItemList->begin(); represenetationSubIt != representationSubItemList->end(); ++represenetationSubIt)
 			{
 				IfcSchema::IfcRepresentationItem* subRepresentationItem = *represenetationSubIt;
-				if (subRepresentationItem->data().type()->name() != "IfcMappedItem") { continue; }
+				if (subRepresentationItem->declaration().name() != "IfcMappedItem") { continue; }
 				IfcSchema::IfcMappedItem* currentMappedItem = subRepresentationItem->as<IfcSchema::IfcMappedItem>();
 				IfcSchema::IfcRepresentationMap* currentRepMap = currentMappedItem->MappingSource();
 				IfcSchema::IfcRepresentation* subRep = currentRepMap->MappedRepresentation();
@@ -3796,7 +3801,7 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 #elif defined(USE_IFC4)
 					IfcSchema::IfcStyleAssignmentSelect* currentStyleAss = *currenStyleAssIt;
 #endif
-					if (currentStyleAss->data().type()->name() == "IfcSurfaceStyle") {
+					if (currentStyleAss->declaration().name() == "IfcSurfaceStyle") {
 
 						IfcSchema::IfcSurfaceStyle* currentStyle = currentStyleAss->as<IfcSchema::IfcSurfaceStyle>();
 						IfcSchema::IfcSurfaceStyleElementSelect::list::ptr elementSurfList = currentStyle->Styles();
@@ -3804,18 +3809,18 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 						for (auto styleElementIt = elementSurfList->begin(); styleElementIt != elementSurfList->end(); ++styleElementIt)
 						{
 							IfcSchema::IfcSurfaceStyleElementSelect* currentElemStyle = *styleElementIt;
-							if (currentElemStyle->data().type()->name() != "IfcSurfaceStyleRendering") { continue; }
+							if (currentElemStyle->declaration().name() != "IfcSurfaceStyleRendering") { continue; }
 							IfcSchema::IfcSurfaceStyleRendering* currentRenderStyle = currentElemStyle->as< IfcSchema::IfcSurfaceStyleRendering>();
 							if (currentRenderStyle->Transparency() > 0.1) { return true; }
 						}
 					}
 #if defined(USE_IFC2x3)
-					if (currentStyleAss->data().type()->name() == "IfcPresentationStyleAssignment") {
+					if (currentStyleAss->declaration().name() == "IfcPresentationStyleAssignment") {
 						IfcSchema::IfcPresentationStyleSelect::list::ptr presentationStyles = currentStyleAss->Styles();
 						for (auto styleElementIt = presentationStyles->begin(); styleElementIt != presentationStyles->end(); ++styleElementIt)
 						{
 							IfcSchema::IfcPresentationStyleSelect* presentationStyleSelect = *styleElementIt;
-							if (presentationStyleSelect->data().type()->name() == "IfcSurfaceStyle") {
+							if (presentationStyleSelect->declaration().name() == "IfcSurfaceStyle") {
 
 								IfcSchema::IfcSurfaceStyle* currentStyle = presentationStyleSelect->as<IfcSchema::IfcSurfaceStyle>();
 								IfcSchema::IfcSurfaceStyleElementSelect::list::ptr elementSurfList = currentStyle->Styles();
@@ -3823,7 +3828,7 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 								for (auto styleElementIt = elementSurfList->begin(); styleElementIt != elementSurfList->end(); ++styleElementIt)
 								{
 									IfcSchema::IfcSurfaceStyleElementSelect* currentElemStyle = *styleElementIt;
-									if (currentElemStyle->data().type()->name() != "IfcSurfaceStyleRendering") { continue; }
+									if (currentElemStyle->declaration().name() != "IfcSurfaceStyleRendering") { continue; }
 									IfcSchema::IfcSurfaceStyleRendering* currentRenderStyle = currentElemStyle->as< IfcSchema::IfcSurfaceStyleRendering>();
 									if (currentRenderStyle->Transparency() > 0.2) { return true; }
 								}
@@ -3877,7 +3882,8 @@ bool helperFunctions::isExternal(const IfcSchema::IfcProduct* ifcProduct)
 			IfcSchema::IfcValue* ifcValue = ifcValue = propertyItem->NominalValue();
 			if (ifcValue == nullptr) { continue; }
 
-			std::string propertyIdName = ifcValue->data().type()->name();
+			//std::string propertyIdName = ifcValue->data().type()->name();
+			std::string propertyIdName = ifcValue->declaration().name();
 			if (propertyIdName != "IfcBoolean") { continue; }
 			return ifcValue->as<IfcSchema::IfcBoolean>()->operator bool();
 		}
@@ -3898,7 +3904,8 @@ nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcProduct* ifcPr
 	if (!filter || PsetName == "Element Specific")
 	{
 		attributesList["Guid"] = ifcProduct->GlobalId();
-		attributesList["IfcEntity"] = ifcProduct->data().type()->name();
+		//attributesList["IfcEntity"] = ifcProduct->data().type()->name();
+		attributesList["IfcEntity"] = ifcProduct->declaration().name();
 
 		boost::optional<std::string> optionalName = ifcProduct->Name();
 		if (optionalName.has_value()) { attributesList["Name"] = optionalName.get(); }
@@ -3982,7 +3989,8 @@ nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcPropertySet& p
 	{
 		if (*propertyIt == nullptr) { continue; }
 
-		if ((*propertyIt)->data().type()->name() != "IfcPropertySingleValue") //TODO: implement IfcPropertyEnumeratedValue
+		//if ((*propertyIt)->data().type()->name() != "IfcPropertySingleValue") //TODO: implement IfcPropertyEnumeratedValue
+		if ((*propertyIt)->declaration().name() != "IfcPropertySingleValue") //TODO: implement IfcPropertyEnumeratedValue
 		{
 			continue;
 		}
@@ -3991,7 +3999,8 @@ nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcPropertySet& p
 		IfcSchema::IfcValue* ifcValue = ifcValue = propertyItem->NominalValue();
 		if (ifcValue == nullptr) { continue; }
 
-		std::string propertyIdName = ifcValue->data().type()->name();
+		//std::string propertyIdName = ifcValue->data().type()->name();
+		std::string propertyIdName = ifcValue->declaration().name();
 
 		if (propertyIdName == "IfcIdentifier")
 		{
@@ -4171,7 +4180,7 @@ void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::
 				{
 					for (size_t i = 3; i >= 1; i--)
 					{
-						gp_XYZ xyz = mesh->Nodes().Value(theTriangle(i)).Transformed(loc).Coord();
+						gp_XYZ xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord();
 						IntXYZ intXyz = IntXYZ(xyz, 1/ precision);
 
 						if (vertMap.find(intXyz) != vertMap.end())
@@ -4190,7 +4199,7 @@ void helperFunctions::writeToOBJ(const std::vector<T>& theShapeList, const std::
 				{
 					for (size_t i = 1; i <= 3; i++)
 					{
-						gp_XYZ xyz = mesh->Nodes().Value(theTriangle(i)).Transformed(loc).Coord();
+						gp_XYZ xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord();
 						IntXYZ intXyz = IntXYZ(xyz, 1 / precision);
 
 						if (vertMap.find(intXyz) != vertMap.end())
@@ -4337,6 +4346,7 @@ double helperFunctions::computeArea(const TopoDS_Wire& wire)
 
 void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 {
+	//TODO: test this
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	std::mutex* triangleMutex = settingsCollection.getTriangleMutex();
 
@@ -4373,28 +4383,25 @@ void helperFunctions::triangulateShape(const TopoDS_Shape& shape, bool force)
 			Handle(Poly_Triangulation) triangulation = new Poly_Triangulation(3, 1, Standard_True);
 
 			// add 3D points
-			TColgp_Array1OfPnt nodes(1, 3);
-			nodes.SetValue(1, uniquePointList[0].Transformed(inverseLoc));
-			nodes.SetValue(2, uniquePointList[1].Transformed(inverseLoc));
-			nodes.SetValue(3, uniquePointList[2].Transformed(inverseLoc));
-			triangulation->ChangeNodes() = nodes;
+			for (int i = 0; i < 3; ++i) 
+			{ 
+				triangulation->SetNode( i + 1, uniquePointList[i].Transformed(inverseLoc)); 
+			}
 
-			// add the triangular shape
-			Poly_Array1OfTriangle triangles(1, 1);  // One triangle at index 1
-			triangles.SetValue(1, Poly_Triangle(1, 2, 3));
-			triangulation->ChangeTriangles() = triangles;
+			triangulation->SetTriangle( 1, Poly_Triangle(1, 2, 3));
 
 			// add uv data
 			Handle(Geom_Surface) surf = BRep_Tool::Surface(currentFace);
-			TColgp_Array1OfPnt2d uvNodes(1, 3);
+
 			for (int i = 1; i <= 3; ++i)
 			{
-				GeomAPI_ProjectPointOnSurf proj(nodes.Value(i), surf);
+				GeomAPI_ProjectPointOnSurf proj( triangulation->Node(i), surf);
+
 				Standard_Real u, v;
 				proj.LowerDistanceParameters(u, v);
-				uvNodes.SetValue(i, gp_Pnt2d(u, v));
+
+				triangulation->SetUVNode(i, gp_Pnt2d(u, v));
 			}
-			triangulation->ChangeUVNodes() = uvNodes;
 
 			// add shape
 			BRep_Builder builder;

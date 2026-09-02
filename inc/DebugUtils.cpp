@@ -69,10 +69,11 @@ std::string DebugUtils::faceToString(const TopoDS_Face& currentFace)
 
 		for (int i = 1; i <= mesh.get()->NbTriangles(); i++)
 		{
-			const Poly_Triangle& theTriangle = mesh->Triangles().Value(i);
-			gp_Pnt p1 = mesh->Nodes().Value(theTriangle(1)).Transformed(loc);
-			gp_Pnt p2 = mesh->Nodes().Value(theTriangle(2)).Transformed(loc);
-			gp_Pnt p3 = mesh->Nodes().Value(theTriangle(3)).Transformed(loc);
+			const Poly_Triangle& theTriangle = mesh->Triangle(i);
+			gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
+			gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
+			gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
+
 			currentString += "new\n";
 			currentString += pointToString3D(p1);
 			currentString += pointToString3D(p2);
@@ -177,11 +178,12 @@ void DebugUtils::printMesh(const TopoDS_Shape& shape)
 
 		for (int i = 1; i <= mesh.get()->NbTriangles(); i++)
 		{
+			const Poly_Triangle& theTriangle = mesh->Triangle(i);
 
-			const Poly_Triangle& theTriangle = mesh->Triangles().Value(i);
-			gp_Pnt p1 = mesh->Nodes().Value(theTriangle(1)).Transformed(loc);
-			gp_Pnt p2 = mesh->Nodes().Value(theTriangle(2)).Transformed(loc);
-			gp_Pnt p3 = mesh->Nodes().Value(theTriangle(3)).Transformed(loc);
+			gp_Pnt p1 = mesh->Node(theTriangle(1)).Transformed(loc);
+			gp_Pnt p2 = mesh->Node(theTriangle(2)).Transformed(loc);
+			gp_Pnt p3 = mesh->Node(theTriangle(3)).Transformed(loc);
+
 			currentString += "new\n";
 			currentString += pointToString3D(p1);
 			currentString += pointToString3D(p2);

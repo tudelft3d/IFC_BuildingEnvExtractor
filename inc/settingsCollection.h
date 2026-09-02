@@ -162,8 +162,8 @@ private:
 
 	SettingsCollection() = default;
 
-    IfcGeom::IteratorSettings iteratorSettings_;
-    IfcGeom::IteratorSettings simpleIteratorSettings_;
+    ifcopenshell::geometry::Settings iteratorSettings_; 
+    ifcopenshell::geometry::Settings simpleIteratorSettings_;
 
     //  \/ global mutex \/
     std::mutex wireOffSetterMutex_;
@@ -484,9 +484,9 @@ public:
     std::unordered_set<std::string> getOpeningObjectsList() { return openingObjects_; }
     std::unordered_set<std::string> getCuttingObjectsList() { return cuttingObjects_; }
 
-    IfcGeom::IteratorSettings iteratorSettings(bool simple = false);
-    void setIterator(const IfcGeom::IteratorSettings& settingsObject) { iteratorSettings_ = settingsObject; }
-    void setSimpleIterator(const IfcGeom::IteratorSettings& settingsObject) { simpleIteratorSettings_ = settingsObject; }
+    ifcopenshell::geometry::Settings iteratorSettings(bool simple = false);
+    void setIterator(const ifcopenshell::geometry::Settings& settingsObject) { iteratorSettings_ = settingsObject; }
+    void setSimpleIterator(const ifcopenshell::geometry::Settings& settingsObject) { simpleIteratorSettings_ = settingsObject; }
 
     std::mutex* getWireOffsetterMutex() { return &wireOffSetterMutex_; }
     std::mutex* getTriangleMutex() { return &triangleMutex_; }

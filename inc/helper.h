@@ -1,5 +1,5 @@
-#define USE_IFC2x3
-#define iterationVersion "0.4.2"
+#define USE_IFC4x3add2
+#define iterationVersion "0.5.0"
 
 #ifdef USE_IFC2x3
 #include <ifcparse/Ifc2x3.h>
@@ -57,9 +57,14 @@
 #include "surfaceCollection.h"
 
 // IfcOpenShell includes
+#include <ifcgeom/kernels/opencascade/OpenCascadeKernel.h>
+#include <ifcgeom/Iterator.h>
+#include <ifcgeom/ConversionSettings.h>
+//#include <ifcgeom/kernels/opencascade/ser>
+
 #include <ifcparse/IfcFile.h>
-#include <ifcgeom_schema_agnostic/Kernel.h>
-#include <ifcgeom_schema_agnostic/Serialization.h>
+//#include <ifcgeom_schema_agnostic/Kernel.h>
+//#include <ifcgeom_schema_agnostic/Serialization.h>
 #include <ifcparse/IfcHierarchyHelper.h>
 
 // OpenCascade includes

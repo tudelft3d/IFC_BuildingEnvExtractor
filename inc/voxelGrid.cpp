@@ -564,7 +564,8 @@ bool VoxelGrid::voxelBeamWindowIntersection(DataManager* h, const voxel& current
 		std::vector<Value> intersectingValues = voxelBeam[j].getInternalProductList();
 		for (auto valueIt = intersectingValues.begin(); valueIt != intersectingValues.end(); ++valueIt)
 		{
-			std::string productTypeName = h->getLookup(valueIt->second).getProductPtr()->data().type()->name();
+			//std::string productTypeName = h->getLookup(valueIt->second).getProductPtr()->data().type()->name();
+			std::string productTypeName = h->getLookup(valueIt->second).getProductPtr()->declaration().name();
 
 			if (productTypeName == "IfcDoor" || productTypeName == "IfcWindow")
 			{
@@ -593,7 +594,8 @@ void VoxelGrid::setSemanticVoxelFace(DataManager* h, voxel& voxel , int dirIndx,
 	for (auto valueIt = intersectingValues.begin(); valueIt != intersectingValues.end(); ++valueIt)
 	{
 		const IfcSchema::IfcProduct* intersectedProduct = h->getLookup(valueIt->second).getProductPtr();
-		std::string productTypeName = intersectedProduct->data().type()->name();
+		//std::string productTypeName = intersectedProduct->data().type()->name();
+		std::string productTypeName = intersectedProduct->declaration().name();
 		
 		if (productTypeName == "IfcDoor")
 		{

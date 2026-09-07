@@ -114,87 +114,6 @@ std::vector<std::vector<T>> subListScore(const std::vector<T>& inputList, const 
 	return sublists;
 }
 
-bool surfaceGridVisibilityTest(
-	const std::vector<gp_Pnt>& surfaceGridList, 
-	const TopoDS_Face& currentFace, 
-	double searchBuffer, 
-	double voxelSize,
-	const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx,
-	const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIndex
-) {
-	// cast a line from the grid to surrounding voxels
-	for (const gp_Pnt& gridPoint : surfaceGridList)
-	{
-		bg::model::box<BoostPoint3D> pointQuerybox(
-			{ gridPoint.X() - searchBuffer, gridPoint.Y() - searchBuffer, gridPoint.Z() - searchBuffer },
-			{ gridPoint.X() + searchBuffer, gridPoint.Y() + searchBuffer, gridPoint.Z() + searchBuffer }
-		);
-
-		std::vector<std::pair<BoostBox3D, voxel*>> pointQResult;
-		voxelIndex.query(bgi::intersects(pointQuerybox), std::back_inserter(pointQResult));
-		//check if ray castline cleared
-		for (const auto& [voxelBBox, targetVoxel] : pointQResult)
-		{
-			const gp_Pnt& targetPoint = targetVoxel->getOCCTCenterPoint();
-			double distance = targetPoint.Distance(gridPoint);
-			if (distance > searchBuffer + voxelSize / 2) { continue; }
-			bool clearLine = true;
-
-			bg::model::segment<BoostPoint3D> queryRay{
-				{gridPoint.X() ,gridPoint.Y(), gridPoint.Z()},
-				{targetPoint.X() ,targetPoint.Y(), targetPoint.Z()}
-			};
-
-			std::vector<std::pair<BoostBox3D, TopoDS_Face>>faceQResult;
-			faceIdx.query(bgi::intersects(queryRay), std::back_inserter(faceQResult));
-
-			if (faceQResult.empty()) { continue; }
-			std::array<gp_Pnt, 2> castRay = { gridPoint, targetPoint };
-
-			for (const std::pair<BoostBox3D, TopoDS_Face>& facePair : faceQResult)
-			{
-				// get the potential faces
-				const TopoDS_Face& otherFace = facePair.second;
-				if (currentFace.IsEqual(otherFace)) { continue; }
-
-				if (helperFunctions::pointOnFace(otherFace, gridPoint)) { continue; }
-
-				//test for linear intersections
-				TopLoc_Location loc;
-				auto mesh = BRep_Tool::Triangulation(otherFace, loc);
-
-				if (mesh.IsNull()) {
-					//TODO: add error
-					continue;
-				}
-
-				for (int j = 1; j <= mesh.get()->NbTriangles(); j++) //TODO: index this?
-				{
-					const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
-
-					std::array<gp_Pnt, 3> trianglePoints{
-						mesh->Node(theTriangle(1)).Transformed(loc),
-						mesh->Node(theTriangle(2)).Transformed(loc),
-						mesh->Node(theTriangle(3)).Transformed(loc)
-					};
-
-					if (helperFunctions::triangleIntersecting(castRay, trianglePoints))
-					{
-						clearLine = false;
-						break;
-					}
-				}
-				if (!clearLine) { break; }
-			}
-			if (clearLine)
-			{
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
 void CJGeoCreator::garbageCollection()
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
@@ -470,14 +389,14 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<SurfaceGrid
 void CJGeoCreator::simpleRaySurfaceCast(
 	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& outList,
 	const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& surfaceList,
-	const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIndex,
+	const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIndex,
 	const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& surfaceIndx
 )
 {
 	double searchBuffer = SettingsCollection::getInstance().searchBufferLod32();
 	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
-
+	
 	int c = 0;
 	for (const auto& [currentFace, currentProduct] : surfaceList)
 	{
@@ -494,16 +413,16 @@ void CJGeoCreator::simpleRaySurfaceCast(
 				{ currentPoint.X() + searchBuffer, currentPoint.Y() + searchBuffer, currentPoint.Z() + searchBuffer }
 			);
 
-			std::vector<std::pair<BoostBox3D, voxel*>> pointQResult;
+			std::vector<std::pair<BoostBox3D, int>> pointQResult;
 			voxelIndex.query(bgi::intersects(pointQuerybox), std::back_inserter(pointQResult));
 
 			if (pointQResult.empty()) { continue; }
 
 			int score = 0; // the number of clear lines cast from the surface
-			for (const auto& [voxelBbox, voxel] : pointQResult)
+			for (const auto& [voxelBbox, voxelIdx] : pointQResult)
 			{
 				bool clearLine = true;
-				gp_Pnt voxelCore = voxel->getOCCTCenterPoint();
+				gp_Pnt voxelCore =  voxelGrid_->getMidPoint(voxelIdx);
 
 				bg::model::box<BoostPoint3D> productQuerybox(helperFunctions::createBBox(currentPoint, voxelCore, precision));
 				std::vector<std::pair<BoostBox3D, TopoDS_Face>>faceQResult;
@@ -1979,15 +1898,17 @@ std::vector<TopoDS_Shape> CJGeoCreator::beamProjection(DataManager* h)
 		while (true)
 		{
 			const voxel& currentVoxel = voxelGrid_->getVoxel(currentVoxelIdx);
-			const std::vector<Value>& internalValueList = currentVoxel.getInternalProductList();
-
-			if (!internalValueList.empty())
+			if (&currentVoxel != nullptr)
 			{
-				for (const Value& currentValue : internalValueList)
+				const std::vector<Value>& internalValueList = currentVoxel.getInternalProductList();
+				if (!internalValueList.empty())
 				{
-					topValueIdxset.insert(currentValue.second);
+					for (const Value& currentValue : internalValueList)
+					{
+						topValueIdxset.insert(currentValue.second);
+					}
+					break;
 				}
-				break;
 			}
 			currentVoxelIdx = voxelGrid_->getLowerNeighbour(currentVoxelIdx);
 			if (currentVoxelIdx == -1) { break; }
@@ -4397,9 +4318,9 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 		{
 			std::cout << "\tRay casting processing\n";
 
-			bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>> voxelIndex;
+			bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> voxelIndex;
 			// collect and index the voxels to which rays are cast
-			std::vector<voxel*> externalVoxel = voxelGrid_->getExternalVoxels();
+			std::vector<int> externalVoxel = voxelGrid_->getExternalVoxels();
 			populateVoxelIndex(&voxelIndex, externalVoxel);
 
 			std::vector<Value> productLookupValues = h->getIndexedValues();
@@ -4594,14 +4515,14 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel*
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingLoDe1) << std::endl;
 	auto startTime = std::chrono::steady_clock::now();
 
-	bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>> voxelIndex;
+	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> voxelIndex;
 	// collect and index the voxels to which rays are cast
-	std::vector<voxel*> externalVoxel = voxelGrid_->getExternalVoxels();
+	std::vector<int> externalVoxel = voxelGrid_->getExternalVoxels();
 	populateVoxelIndex(&voxelIndex, externalVoxel);
 
 	if (settingsCollection.voxelBasedFiltering())
 	{
-		std::vector<voxel*> intersectingVoxels = voxelGrid_->getOuterIntersectingVoxels();
+		std::vector<int> intersectingVoxels = voxelGrid_->getOuterIntersectingVoxels();
 		std::vector<Value> productLookupValues = getUniqueProductValues(intersectingVoxels);
 		LoDE1Faces_ = getE1Objects<TopoDS_Face>(h, kernel, unitScale, productLookupValues, voxelIndex);
 	}
@@ -4664,9 +4585,9 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	localRotationTrsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
 
 	std::vector< CJT::GeoObject> geoObjectList; // final output collection
-	bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>> voxelIndex;
+	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> voxelIndex;
 	// collect and index the voxels to which rays are cast
-	std::vector<voxel*> externalVoxel = voxelGrid_->getExternalVoxels();	
+	std::vector<int> externalVoxel = voxelGrid_->getExternalVoxels();	
 	populateVoxelIndex(&voxelIndex, externalVoxel);
 
 	// evaluate which surfaces are visible from the exterior
@@ -4679,7 +4600,7 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	{
 		if (settingsCollection.voxelBasedFiltering())
 		{
-			std::vector<voxel*> intersectingVoxels = voxelGrid_->getOuterIntersectingVoxels();
+			std::vector<int> intersectingVoxels = voxelGrid_->getOuterIntersectingVoxels();
 			std::vector<Value> productLookupValues = getUniqueProductValues(intersectingVoxels);
 			outerSurfacePairList = getE1Objects<TopoDS_Face>(h, kernel, unitScale, productLookupValues, voxelIndex);
 		}
@@ -5327,7 +5248,7 @@ std::vector<std::pair<T, IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objects(
 	CJT::Kernel* kernel, 
 	int unitScale, 
 	const std::vector<Value>& productLookupValues,
-	const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIdx)
+	const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIdx)
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
@@ -5369,7 +5290,7 @@ std::vector<std::pair<T, IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objects(
 }
 
 template <typename T>
-void CJGeoCreator::getOuterRayObjects(std::vector<std::pair<T, IfcSchema::IfcProduct*>>& outerSurfacePairList, const std::vector<Value>& totalValueObjectList, const std::vector<int>& scoreList, DataManager* h, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIndex)
+void CJGeoCreator::getOuterRayObjects(std::vector<std::pair<T, IfcSchema::IfcProduct*>>& outerSurfacePairList, const std::vector<Value>& totalValueObjectList, const std::vector<int>& scoreList, DataManager* h, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIndex)
 {
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount();
@@ -5437,7 +5358,7 @@ void CJGeoCreator::getOuterRayObjects(
 	std::mutex& listmutex,
 	DataManager* h,
 	const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx,
-	const bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>& voxelIndex
+	const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIndex
 )
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
@@ -5532,6 +5453,87 @@ void CJGeoCreator::getOuterRayObjects(
 	return;
 }
 
+	bool CJGeoCreator::surfaceGridVisibilityTest(
+		const std::vector<gp_Pnt>& surfaceGridList,
+		const TopoDS_Face& currentFace,
+		double searchBuffer,
+		double voxelSize,
+		const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx,
+		const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIndex
+	) {
+		// cast a line from the grid to surrounding voxels
+		for (const gp_Pnt& gridPoint : surfaceGridList)
+		{
+			bg::model::box<BoostPoint3D> pointQuerybox(
+				{ gridPoint.X() - searchBuffer, gridPoint.Y() - searchBuffer, gridPoint.Z() - searchBuffer },
+				{ gridPoint.X() + searchBuffer, gridPoint.Y() + searchBuffer, gridPoint.Z() + searchBuffer }
+			);
+
+			std::vector<std::pair<BoostBox3D, int>> pointQResult;
+			voxelIndex.query(bgi::intersects(pointQuerybox), std::back_inserter(pointQResult));
+			//check if ray castline cleared
+			for (const auto& [voxelBBox, targetVoxelIdx] : pointQResult)
+			{
+				const gp_Pnt& targetPoint =  voxelGrid_->getMidPoint(targetVoxelIdx);
+				double distance = targetPoint.Distance(gridPoint);
+				if (distance > searchBuffer + voxelSize / 2) { continue; }
+				bool clearLine = true;
+
+				bg::model::segment<BoostPoint3D> queryRay{
+					{gridPoint.X() ,gridPoint.Y(), gridPoint.Z()},
+					{targetPoint.X() ,targetPoint.Y(), targetPoint.Z()}
+				};
+
+				std::vector<std::pair<BoostBox3D, TopoDS_Face>>faceQResult;
+				faceIdx.query(bgi::intersects(queryRay), std::back_inserter(faceQResult));
+
+				if (faceQResult.empty()) { continue; }
+				std::array<gp_Pnt, 2> castRay = { gridPoint, targetPoint };
+
+				for (const std::pair<BoostBox3D, TopoDS_Face>& facePair : faceQResult)
+				{
+					// get the potential faces
+					const TopoDS_Face& otherFace = facePair.second;
+					if (currentFace.IsEqual(otherFace)) { continue; }
+
+					if (helperFunctions::pointOnFace(otherFace, gridPoint)) { continue; }
+
+					//test for linear intersections
+					TopLoc_Location loc;
+					auto mesh = BRep_Tool::Triangulation(otherFace, loc);
+
+					if (mesh.IsNull()) {
+						//TODO: add error
+						continue;
+					}
+
+					for (int j = 1; j <= mesh.get()->NbTriangles(); j++) //TODO: index this?
+					{
+						const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
+
+						std::array<gp_Pnt, 3> trianglePoints{
+							mesh->Node(theTriangle(1)).Transformed(loc),
+							mesh->Node(theTriangle(2)).Transformed(loc),
+							mesh->Node(theTriangle(3)).Transformed(loc)
+						};
+
+						if (helperFunctions::triangleIntersecting(castRay, trianglePoints))
+						{
+							clearLine = false;
+							break;
+						}
+					}
+					if (!clearLine) { break; }
+				}
+				if (clearLine)
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 
 void CJGeoCreator::extractOuterVoxelSummary(CJT::CityObject* shellObject, DataManager* h, double footprintHeight, double geoRot)
 {
@@ -5539,11 +5541,11 @@ void CJGeoCreator::extractOuterVoxelSummary(CJT::CityObject* shellObject, DataMa
 
 	std::map<std::string, double> summaryMap;
 
-	std::vector<voxel*> internalVoxels = voxelGrid_->getInternalVoxels();
+	std::vector<int> internalVoxelsIdx = voxelGrid_->getInternalVoxels();
 
 	double voxelSize = SettingsCollection::getInstance().voxelSize();
 	double voxelVolume = voxelSize * voxelSize * voxelSize;
-	double shellVolume = internalVoxels.size()* voxelVolume;
+	double shellVolume = internalVoxelsIdx.size()* voxelVolume;
 
 	shellObject->addAttribute(CJObjectEnum::getString(CJObjectID::voxelApproxShellVolume), shellVolume);
 
@@ -5558,11 +5560,11 @@ void CJGeoCreator::extractOuterVoxelSummary(CJT::CityObject* shellObject, DataMa
 
 	double windowArea = 0;
 
-	for (size_t i = 0; i < internalVoxels.size(); i++)
+	for (int currentIdx : internalVoxelsIdx)
 	{
-		const voxel& currentVoxel = *internalVoxels[i];
+		const voxel& currentVoxel = voxelGrid_->getVoxel(currentIdx);
+		double zHeight = voxelGrid_->getMidPoint(currentIdx).Z();
 		bool isOuterShell = currentVoxel.getIsShell();
-		double zHeight = currentVoxel.getCenterPoint().get<2>();
 		
 		if (isOuterShell) { shellArea += currentVoxel.numberOfFaces() * voxelArea; }
 
@@ -5630,11 +5632,11 @@ void CJGeoCreator::extractInnerVoxelSummary(CJT::CityObject* shellObject, DataMa
 	double voxelSize =  SettingsCollection::getInstance().voxelSize();
 	double voxelVolume = voxelSize * voxelSize * voxelSize;
 
-	std::vector<voxel*> voxelList = voxelGrid_->getVoxels();
+	std::vector<int> voxelList = voxelGrid_->getVoxels();
 
-	for (auto i = voxelList.begin(); i != voxelList.end(); i++)
+	for (int voxelIdx : voxelList)
 	{
-		const voxel& currentVoxel = **i;
+		const voxel& currentVoxel = voxelGrid_->getVoxel(voxelIdx);
 		if (currentVoxel.getRoomNum() > 0)
 		{
 			totalRoomVolume += voxelVolume;
@@ -6338,17 +6340,20 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h,
 
 
 void CJGeoCreator::populateVoxelIndex(
-	bgi::rtree<std::pair<BoostBox3D, voxel*>, bgi::rstar<25>>* voxelIndex,
-	const std::vector<voxel*> exteriorVoxels
+	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>* voxelIndex,
+	const std::vector<int>& exteriorVoxels
 )
 {
-	for (auto voxelIt = exteriorVoxels.begin(); voxelIt != exteriorVoxels.end(); ++ voxelIt) //TODO: make this smarter by only storing the required external voxels
+	for (int voxelIdx : exteriorVoxels)
 	{
 		// voxels that have no internal products do not have an intersection and are stored as completely external voxels
-		voxel* currentBoxel = *voxelIt;
-		if (currentBoxel->getRoomNum() != 0) { continue; }
-		if (currentBoxel->getIsIntersecting()) { continue; }
-		voxelIndex->insert(std::make_pair(currentBoxel->getVoxelGeo(), currentBoxel));
+		const voxel& currentBoxel = voxelGrid_->getVoxel(voxelIdx); //TODO: filter this to be surrounding the intersecting voxels
+		if (&currentBoxel != nullptr)
+		{
+			if (currentBoxel.getRoomNum() != 0) { continue; }
+			if (currentBoxel.getIsIntersecting()) { continue; }
+		}
+		voxelIndex->insert(std::make_pair(voxelGrid_->getVoxelGeo(voxelIdx), voxelIdx));
 	}
 	return;
 }
@@ -6374,12 +6379,13 @@ std::vector<Value> CJGeoCreator::makeUniqueValueList(const std::vector<Value>& v
 	return valueSet;
 }
 
-std::vector<Value> CJGeoCreator::getUniqueProductValues(const std::vector<voxel*>& voxelList)
+std::vector<Value> CJGeoCreator::getUniqueProductValues(const std::vector<int>& voxelList)
 {
 	std::vector<Value> productLookupValues;
-	for (voxel* voxel : voxelList)
+	for (int voxelIdx : voxelList)
 	{
-		for (const Value& productValue : voxel->getInternalProductList())
+		const voxel& currentVoxel = voxelGrid_->getVoxel(voxelIdx);
+		for (const Value& productValue : currentVoxel.getInternalProductList())
 		{
 			productLookupValues.emplace_back(productValue);
 		}
@@ -6748,8 +6754,7 @@ CJGeoCreator::CJGeoCreator(DataManager* h, double vSize)
 }
 
 void CJGeoCreator::init(DataManager* h, double vSize)
-{
-	// compute generic voxelfield data
+{	
 	try
 	{
 		voxelGrid_ = std::make_unique<VoxelGrid>(h);

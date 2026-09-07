@@ -31,14 +31,6 @@ public:
 
 class voxel {
 private:
-	/// the voxel center point in processing space (not world space)
-	BoostPoint3D center_;
-
-	/// the size of the voxel in the xy plane
-	double sizeXY_;
-	/// the size of the voxel in the z direction 
-	double sizeZ_;
-
 	/// flag signifying if the voxel intersects with ifc product geo
 	bool isIntersecting_ = false;
 	/// flag signifying if the voxel is inside of the building
@@ -147,17 +139,7 @@ private:
 
 public:
 
-	/// greates an axis aligned voxel
-	explicit voxel(const BoostPoint3D& center, double sizeXY, double sizeZ);
-
-	/// returns the lll and urr point of a voxel in axis aligned space
-	bg::model::box<BoostPoint3D> getVoxelGeo() const;
-	/// return the cornerpoints of a voxel based on the angle
-	std::vector<gp_Pnt> getCornerPoints() const;
-	/// return the cornerpoints of a voxel based on the angle
-	gp_Pnt getCornerPoint(int indx) const;
-	/// return the points represeinging the three intersection planes of a voxel based on the angle
-	std::vector<gp_Pnt> getPlanePoints() const;
+	explicit voxel() {};
 
 	/// check the intersection of a triangluted product and a voxel
 	bool checkIntersecting(IfcProductSpatialData& lookup, const std::vector<gp_Pnt>& voxelPoints, const gp_Pnt& centerPoint, int intersectionLogic = 4);
@@ -186,11 +168,6 @@ public:
 	void setOutside(bool b) { isInside_ = !b; }
 	/// returns flag representing if the voxel is part of the interior of a building
 	const bool getIsInside() const { return isInside_; }
-
-	/// returns the centerpoint of a voxel at its virtual location
-	BoostPoint3D getCenterPoint() const { return center_; }
-	/// returns the centerpoint of a voxel at its virtual location in OCCT format
-	gp_Pnt getOCCTCenterPoint() const { return gp_Pnt(center_.get<0>(), center_.get<1>(), center_.get<2>()); }
 
 	/// returns the intersecting flag
 	bool getIsIntersecting() const { return isIntersecting_; }

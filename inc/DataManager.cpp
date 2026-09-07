@@ -467,6 +467,7 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 		shapeList.reserve(collectionItem.getFilePtr()->instances_by_type(typeName)->size()); //TODO: optimize this
 
 		int currentItemNum = 0;
+		fileNum++;
 		do { 
 			IfcGeom::BRepElement* boundaryRepElem = it.get_native();
 			if (!boundaryRepElem) { continue; }
@@ -490,6 +491,8 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 
 
 		int coreUse = settings.threadcount() - 1;
+		if (coreUse == 0) { coreUse = 1; }
+
 		if (shapeList.empty()) { continue; }
 		if (shapeList.size() < coreUse) { coreUse = shapeList.size(); }
 		int splitListSize = static_cast<int>(std::floor(shapeList.size() / coreUse));

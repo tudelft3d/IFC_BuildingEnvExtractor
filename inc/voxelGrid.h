@@ -20,6 +20,8 @@ private:
 	std::mutex voxelGrowthMutex_;
 	int activeThreads_ = 0;
 
+	double voxelsize_ = 0;
+
 	// list for indx to voxel
 	std::vector<std::unique_ptr<voxel>> VoxelLookup_; 
 
@@ -64,17 +66,15 @@ private:
 	/// transform coordinate from 3D to 1D voxelgrid space
 	int relativeToLinear(const BoostPoint3D& i) const;
 	/// transform coordinate from 3D voxelgrid space to 3D processing space
-	BoostPoint3D relPointToWorld(const BoostPoint3D& p);
+	BoostPoint3D relPointToWorld(const BoostPoint3D& p) const;
 	/// transform coordinate from 3D processing space to 3D voxelgrid space
 	BoostPoint3D worldToRelPoint(BoostPoint3D p) const;
 
 	/// get a list of idx representing the dir of the neighbor in -/+ x, y, z dir 
 	std::array<int, 6> getDirNeighbours(int voxelIndx) const;
-	/// get a list of idx representing the dir of the neighbor in -/+ x, y, z dir 
-	std::array<int, 6> getDirNeighbours(const voxel& boxel) const;
 
 	/// grow a void and mark it
-	void growVoid(int startIndx, int roomnum, DataManager* h);
+	void growSpace(int startIndx, int roomnum, DataManager* h);
 	/// grow the exterior voxelized shape
 	void growExterior(DataManager* h);
 	/// grow the interior voxelized shapes
@@ -87,19 +87,21 @@ private:
 
 
 	// returns true if beam casted from voxel intersects with a facade opening
-	bool voxelBeamWindowIntersection(DataManager* h, const voxel& currentVoxel, int indxDir);
+	bool voxelBeamWindowIntersection(DataManager* h, int voxelIdx, int indxDir);
 
 	/// inverts the dirInx for neighbourSearching
 	static int invertDir(int dirIndx);
 
-	void setSemanticVoxelFace(DataManager* h, voxel& voxel, int dirIndx, const std::vector<Value>& intersectingValues);
+	void setSemanticVoxelFace(DataManager* h, int voxelIdx, int dirIndx, const std::vector<Value>& intersectingValues);
 
 public:
 	VoxelGrid(DataManager* h);
 
+	bg::model::box<BoostPoint3D> getVoxelGeo(int voxelIdx) const;
+
 	void computeSurfaceSemantics(DataManager* h);
 
-	int getNeighbour(const voxel& boxel, int dir);
+	int getNeighbour(int voxelIndx, int dir);
 
 	int getLowerNeighbour(int voxelIndx, bool connect6 = false);
 
@@ -112,12 +114,12 @@ public:
 	voxel* getVoxelPtr(int i) { return VoxelLookup_[i].get(); }
 
 	// returns a plate in full x an y but 1 z the closes at the input platelvl 
-	std::vector<voxel*> getVoxelPlate(double platelvl);
-	std::vector<voxel*> getIntersectingVoxels() const;
-	std::vector<voxel*> getOuterIntersectingVoxels() const;
-	std::vector<voxel*> getExternalVoxels() const;
-	std::vector<voxel*> getInternalVoxels() const;
-	std::vector<voxel*> getVoxels() const; 
+	std::vector<int> getVoxelPlate(double platelvl);
+	std::vector<int> getIntersectingVoxels() const;
+	std::vector<int> getOuterIntersectingVoxels() const;
+	std::vector<int> getExternalVoxels() const;
+	std::vector<int> getInternalVoxels() const;
+	std::vector<int> getVoxels() const; 
 
 	gp_Pnt getAnchor() { return anchor_; }
 	double getRotation() { return planeRotation_; }
@@ -125,9 +127,19 @@ public:
 	int getRoomSize() { return roomSize_; }
 	double getRoomArea(int roomNum);
 
+	std::vector<gp_Pnt> getCornerPoints(int voxelIdx) const;
+
+	gp_Pnt getCornerPoint(int voxelIndx, int indx) const;
+
+	gp_Pnt getMidPoint(int voxelIndx) const;
+
+	std::vector<gp_Pnt> getPlanePoints(int indx) const;
+
 	std::vector<std::pair<std::vector<TopoDS_Edge>, CJObjectID>> getDirectionalFaces(int dirIndx, double angle, int roomNum);
 
 	gp_Pnt getPointInRoom(int roomNum);
+
+
 
 };
 

@@ -65,6 +65,7 @@ std::string DebugUtils::faceToString(const TopoDS_Face& currentFace)
 		if (mesh.IsNull())
 		{
 			std::cout << "mesh cannot be printed\n";
+			return "";
 		}
 
 		for (int i = 1; i <= mesh.get()->NbTriangles(); i++)

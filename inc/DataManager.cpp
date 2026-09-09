@@ -640,7 +640,7 @@ std::vector<gp_Pnt> DataManager::getObjectListPoints(const std::string& classTyp
 
 	ifcopenshell::geometry::Settings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(true);
 
-
+	double gridRotation = SettingsCollection::getInstance().gridRotation();
 	std::vector<gp_Pnt> pointList;
 	for (auto& fileObject : datacollection_)
 	{
@@ -660,6 +660,12 @@ std::vector<gp_Pnt> DataManager::getObjectListPoints(const std::string& classTyp
 			if (!occtShape) { throw std::runtime_error("Expected OpenCascadeShape"); }
 
 			TopoDS_Shape shape = occtShape->shape();
+			shape.Move(objectTranslation_);
+
+			gp_Trsf trs;
+			trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), gridRotation);
+			shape.Move(trs);
+
 			std::vector<gp_Pnt> temp = helperFunctions::getPoints(shape);
 
 			for (const auto& point : temp) {

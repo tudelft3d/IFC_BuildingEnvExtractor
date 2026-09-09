@@ -882,6 +882,7 @@ std::vector<int> VoxelGrid::getOuterIntersectingVoxels() const
 	for (size_t i = 0; i < VoxelLookup_.size(); i++)
 	{
 		voxel* currentVoxel = VoxelLookup_[i].get();
+		if (currentVoxel == nullptr) { continue; }
 		if (!currentVoxel->getIsIntersecting()) { continue; }
 		if (currentVoxel->getBuildingNum() == -1) { continue; }
 
@@ -902,21 +903,60 @@ std::vector<int> VoxelGrid::getOuterIntersectingVoxels() const
 }
 
 
-std::vector<int> VoxelGrid::getExternalVoxels() const
+std::vector<int> VoxelGrid::getExternalVoxels(int grow) const
 {
 	std::vector<int> externalVoxels;
 	for (size_t i = 0; i < VoxelLookup_.size(); i++)
 	{
 		voxel* currentVoxel = VoxelLookup_[i].get();
-		if (currentVoxel == nullptr)
-		{
-			externalVoxels.emplace_back(i);
-			continue;
-		}
+		if (currentVoxel == nullptr) { continue; }
 		if (currentVoxel->getIsInside()) { continue; }
 		externalVoxels.emplace_back(i);
 	}
-	return externalVoxels;
+
+	if (grow < 1)
+	{
+		return externalVoxels;
+	}
+
+
+	std::vector<bool> evallist(VoxelLookup_.size(), false);
+
+	for (int voxelIdx : externalVoxels)
+	{
+		evallist[voxelIdx] = true;
+	}
+
+	std::vector<int> extendedList = externalVoxels;
+
+	for (size_t i = 0; i < grow; i++)
+	{
+		std::vector<int> outerRing;
+
+		for (int startIdx : externalVoxels)
+		{
+			std::vector<int> evalIdxList = { startIdx };
+
+			for (int voxelIdx : evalIdxList)
+			{
+				std::array<int, 6> neighbours = getDirNeighbours(voxelIdx);
+				for (auto neighbourIdx : neighbours)
+				{
+					if (neighbourIdx == -1) { continue;  }
+					if (evallist[neighbourIdx] == true) { continue; }
+					evallist[neighbourIdx] = true;
+
+					voxel* currentVoxel = VoxelLookup_[neighbourIdx].get();
+					if (currentVoxel != nullptr) { continue; }
+					extendedList.emplace_back(neighbourIdx);
+					outerRing.emplace_back(neighbourIdx);
+				}
+			}
+		}
+		externalVoxels = outerRing;
+	}
+	return extendedList;
+
 }
 
 std::vector<int> VoxelGrid::getInternalVoxels() const

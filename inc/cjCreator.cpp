@@ -339,11 +339,11 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<SurfaceGrid
 
 	//// group surfaces
 	std::vector<RCollection> mergedRSurfaces;
-	std::vector<int>evalList(mergedfaceList.size());
+	std::vector<bool>evalList(mergedfaceList.size());
 	for (size_t i = 0; i < mergedfaceList.size(); i++)
 	{
-		if (evalList[i] == 1) { continue; }
-		evalList[i] = 1;
+		if (evalList[i] == true) { continue; }
+		evalList[i] = true;
 
 		const TopoDS_Face& currentFace = mergedfaceList[i];
 		std::vector<TopoDS_Face> toBeGroupdSurfaces = {};
@@ -365,14 +365,14 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<SurfaceGrid
 				for (const Value& qValue : qResult)
 				{
 					int potentialNeigbhbourIdx = qValue.second;
-					if (evalList[potentialNeigbhbourIdx] == 1) { continue; }
+					if (evalList[potentialNeigbhbourIdx] == true) { continue; }
 
 					const TopoDS_Face& potentialNeighbourFace = mergedfaceList[potentialNeigbhbourIdx];
 
 					// check if shared edge
 					if (!helperFunctions::shareEdge(evalFace, potentialNeighbourFace)) { continue; }
 					bufferList.emplace_back(potentialNeighbourFace);
-					evalList[potentialNeigbhbourIdx] = 1;
+					evalList[potentialNeigbhbourIdx] = true;
 				}
 			}
 			if (bufferList.size() == 0) { break; }
@@ -1618,7 +1618,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 
 	std::vector<T> cleanedFaceList;
 	std::vector<int> mergedSurfaceIdxList = {0};
-	std::vector<int> evalList(surfaceList.size());
+	std::vector<bool> evalList(surfaceList.size());
 
 	double precision = SettingsCollection::getInstance().linearTolerance();
 	while (true)
@@ -1627,8 +1627,8 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 		for (size_t i = 0; i < mergedSurfaceIdxList.size(); i++)
 		{
 			int currentIdx = mergedSurfaceIdxList[i];
-			if (evalList[currentIdx] == 1) { continue; }
-			evalList[currentIdx] = 1;
+			if (evalList[currentIdx] == true) { continue; }
+			evalList[currentIdx] = true;
 
 			IfcSchema::IfcProduct* currentProduct = getProduct(surfaceList[currentIdx]);
 			std::string currentType = "";
@@ -1652,7 +1652,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 			{
 				int otherFaceIdx = qResult[j].second;
 				if (currentIdx == otherFaceIdx) { continue; }
-				if (evalList[otherFaceIdx] == 1) { continue; }
+				if (evalList[otherFaceIdx] == true) { continue; }
 
 				IfcSchema::IfcProduct* otherProduct = getProduct(surfaceList[otherFaceIdx]);
 				std::string otherType = "";
@@ -1752,7 +1752,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 		bool newSetFound = false;
 		for (size_t i = 0; i < surfaceList.size(); i++)
 		{
-			if (evalList[i] == 0)
+			if (evalList[i] == false)
 			{
 				mergedSurfaceIdxList = { (int)i };
 				newSetFound = true;
@@ -4320,7 +4320,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 
 			bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> voxelIndex;
 			// collect and index the voxels to which rays are cast
-			std::vector<int> externalVoxel = voxelGrid_->getExternalVoxels();
+			std::vector<int> externalVoxel = voxelGrid_->getExternalVoxels(std::ceil(settingsCollection.searchBufferLod32()/settingsCollection.voxelSize()));
 			populateVoxelIndex(&voxelIndex, externalVoxel);
 
 			std::vector<Value> productLookupValues = h->getIndexedValues();
@@ -4517,7 +4517,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel*
 
 	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> voxelIndex;
 	// collect and index the voxels to which rays are cast
-	std::vector<int> externalVoxel = voxelGrid_->getExternalVoxels();
+	std::vector<int> externalVoxel = voxelGrid_->getExternalVoxels(std::ceil(settingsCollection.searchBufferLod32() / settingsCollection.voxelSize()));
 	populateVoxelIndex(&voxelIndex, externalVoxel);
 
 	if (settingsCollection.voxelBasedFiltering())
@@ -4587,7 +4587,7 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	std::vector< CJT::GeoObject> geoObjectList; // final output collection
 	bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>> voxelIndex;
 	// collect and index the voxels to which rays are cast
-	std::vector<int> externalVoxel = voxelGrid_->getExternalVoxels();	
+	std::vector<int> externalVoxel = voxelGrid_->getExternalVoxels(std::ceil(settingsCollection.searchBufferLod32() / settingsCollection.voxelSize()));
 	populateVoxelIndex(&voxelIndex, externalVoxel);
 
 	// evaluate which surfaces are visible from the exterior

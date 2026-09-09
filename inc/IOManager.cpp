@@ -575,62 +575,55 @@ void IOManager::setMetaData(std::shared_ptr<CJT::CityCollection> collection)
 
 void IOManager::setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::CityObject& cityComplexObject, CJT::CityObject& cityOuterShellObject, CJT::CityObject& cityInnerShellObject)
 {
-
 	std::string buildingName = "";
 	nlohmann::json buildingAttributes;
 	CJT::Building_Type rootType = CJT::Building_Type::Building;
 	CJT::Building_Type childType = CJT::Building_Type::BuildingPart;
 
-	//TODO: when updating to newer IfcOpenShell version remove
-	buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
-	buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBuilding>();
+	if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcBuilding>()->size() > 0) // is building
+	{
+		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
+		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBuilding>();
+	} 
 
-	//TODO: when updating to newer IfcOpenShell version uncommend
+#if defined(USE_IFC4x2) || defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
+	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcBridge>()->size() > 0) // is brdige
+	{
+		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBridge>("IfcBridge", false);
+		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBridge>();
+		rootType = CJT::Building_Type::Bridge;
+		childType = CJT::Building_Type::BridgePart;
+	}
+#endif // USE_IFC4x3
 
-//	if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcBuilding>()->size() > 0) // is building
-//	{
-//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
-//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBuilding>();
-//	} 
-//
-//#if defined(USE_IFC4x2) || defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
-//	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcBridge>()->size() > 0) // is brdige
-//	{
-//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBridge>("IfcBridge", false);
-//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBridge>();
-//		rootType = CJT::Building_Type::Bridge;
-//		childType = CJT::Building_Type::BridgePart;
-//	}
-//#endif // USE_IFC4x3
-//
-//#if defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
-//	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcRoad>()->size() > 0) // is road
-//	{
-//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcRoad>("IfcRoad", false);
-//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcRoad>();
-//		rootType = CJT::Building_Type::Road;
-//		childType = CJT::Building_Type::Road;
-//	
-//	}
-//	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcRailway>()->size() > 0) // is railway
-//	{
-//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcRailway>("IfcRailway", false);
-//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcRailway>();
-//		rootType = CJT::Building_Type::Road;
-//		childType = CJT::Building_Type::Road;
-//
-//	}
-//	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcMarineFacility>()->size() > 0) // is marinefacilty
-//	{
-//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcMarineFacility>("IfcMarineFacility", false);
-//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcMarineFacility>();
-//	}
-//#endif
-//	else
-//	{
-//		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
-//		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBuilding>();
-//	}
+#if defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
+	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcRoad>()->size() > 0) // is road
+	{
+		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcRoad>("IfcRoad", false);
+		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcRoad>();
+		rootType = CJT::Building_Type::Road;
+		childType = CJT::Building_Type::Road;
+	
+	}
+	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcRailway>()->size() > 0) // is railway
+	{
+		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcRailway>("IfcRailway", false);
+		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcRailway>();
+		rootType = CJT::Building_Type::Railway;
+		childType = CJT::Building_Type::Railway;
+
+	}
+	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcMarineFacility>()->size() > 0) // is marinefacilty
+	{
+		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcMarineFacility>("IfcMarineFacility", false);
+		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcMarineFacility>();
+	}
+#endif
+	else
+	{
+		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
+		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBuilding>();
+	}
 
 	// Set up objects and their relationships
 	if (buildingName == "") { buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcSite>("IfcSite", false); }

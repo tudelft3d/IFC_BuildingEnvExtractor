@@ -1670,7 +1670,7 @@ std::vector<TopoDS_Face> helperFunctions::mergeFaces(const std::vector<TopoDS_Fa
 		faceCopyList.emplace_back(surfacePair);
 	}
 
-	std::vector<int> evalList(faceNormalList.size(), 0);
+	std::vector<bool> evalList(faceNormalList.size(), false);
 	std::vector<TopoDS_Face> cleanedFaceCollection;
 	bool hasMergedFaces = false;
 
@@ -1682,23 +1682,23 @@ std::vector<TopoDS_Face> helperFunctions::mergeFaces(const std::vector<TopoDS_Fa
 
 	for (size_t i = 0; i < faceNormalList.size(); i++)
 	{
-		if (evalList[i] == 1) { continue; }
+		if (evalList[i] == true) { continue; }
 		std::vector<TopoDS_Face> mergingPairList;
 
 		const TopoDS_Face& currentFace = faceCopyList[i];
 		const gp_Vec& currentNormal = faceNormalList[i];
 		mergingPairList.emplace_back(currentFace);
-		evalList[i] = 1;
+		evalList[i] = true;
 
 		for (size_t j = 0; j < faceNormalList.size(); j++)
 		{
 			if (j == i) { continue; }
-			if (evalList[j] == 1) { continue; }
+			if (evalList[j] == true) { continue; }
 
 			const gp_Vec& otherNormal = faceNormalList[j];
 
 			if (!currentNormal.IsParallel(otherNormal, precision)) { continue; }
-			evalList[j] = 1;
+			evalList[j] = true;
 			mergingPairList.emplace_back(faceCopyList[j]);
 		}
 
@@ -2237,8 +2237,8 @@ std::vector<TopoDS_Wire> helperFunctions::growWires(const std::vector<TopoDS_Edg
 	bool loopFound = false;
 
 	TopoDS_Edge currentEdge = cleanEdgelist[0];
-	std::vector<int> evaluated(cleanEdgelist.size());
-	evaluated[0] = 1;
+	std::vector<bool> evaluated(cleanEdgelist.size());
+	evaluated[0] = true;
 
 	gp_Pnt originPoint = helperFunctions::getFirstPointShape(cleanEdgelist[0]); // the original point of the original edge
 	gp_Pnt extendingPoint = helperFunctions::getLastPointShape(cleanEdgelist[0]); // the point from which will be extended
@@ -2254,7 +2254,7 @@ std::vector<TopoDS_Wire> helperFunctions::growWires(const std::vector<TopoDS_Edg
 
 		for (size_t i = 0; i < cleanEdgelist.size(); i++)
 		{
-			if (evaluated[i] != 0) { continue; } // pass over evaluated edges
+			if (evaluated[i] != false) { continue; } // pass over evaluated edges
 			TopoDS_Edge otherEdge = cleanEdgelist[i];
 
 			gp_Pnt p1 = helperFunctions::getFirstPointShape(otherEdge);
@@ -2263,7 +2263,7 @@ std::vector<TopoDS_Wire> helperFunctions::growWires(const std::vector<TopoDS_Edg
 			if (p1.IsEqual(extendingPoint, precision)) // check if edge is neighbour
 			{
 				extendingPoint = p2;
-				evaluated[i] = 1;
+				evaluated[i] = true;
 				hasStapped = true;
 				if (isReversed) { tempEdgeList.insert(tempEdgeList.begin(), BRepBuilderAPI_MakeEdge(p2, p1).Edge()); }
 				else { tempEdgeList.emplace_back(otherEdge); }
@@ -2272,7 +2272,7 @@ std::vector<TopoDS_Wire> helperFunctions::growWires(const std::vector<TopoDS_Edg
 			else if (p2.IsEqual(extendingPoint, precision)) // check if reversed edge is neighbour 
 			{
 				extendingPoint = p1;
-				evaluated[i] = 1;
+				evaluated[i] = true;
 				hasStapped = true;
 				if (isReversed) { tempEdgeList.insert(tempEdgeList.begin(), otherEdge); }
 				else { tempEdgeList.emplace_back(BRepBuilderAPI_MakeEdge(p2, p1).Edge()); }
@@ -2314,13 +2314,13 @@ std::vector<TopoDS_Wire> helperFunctions::growWires(const std::vector<TopoDS_Edg
 
 		for (size_t i = 0; i < cleanEdgelist.size(); i++) // search next unused edge to create new wire
 		{
-			if (evaluated[i] != 0) { continue; } // pass over evaluated edges
+			if (evaluated[i] != false) { continue; } // pass over evaluated edges
 
 			originPoint = helperFunctions::getFirstPointShape(cleanEdgelist[i]); // the original point of the original edge
 			extendingPoint = helperFunctions::getLastPointShape(cleanEdgelist[i]); // the point from which will be extended
 			tempEdgeList.emplace_back(cleanEdgelist[i]);
 
-			evaluated[i] = 1;
+			evaluated[i] = true;
 			isReversed = false;
 			newRingStarted = true;
 			break;
@@ -2610,9 +2610,6 @@ TopoDS_Face helperFunctions::wireCluster2Faces(const std::vector<TopoDS_Wire>& w
 		orderedAreaList.emplace_back(areaList[evalIdx]);
 		ordered[evalIdx] = 1;
 	}
-
-	std::vector<int> clipped(areaList.size());
-	std::vector<TopoDS_Face> cleanedFaceList;
 
 	TopoDS_Face clippedFace = orderedFootprintList[0];
 	for (size_t i = 1; i < orderedFootprintList.size(); i++)
@@ -3495,13 +3492,13 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 	std::reverse(faceList.begin(), faceList.end());
 
 	std::vector<TopoDS_Face> clippedFaceList;
-	std::vector<int> innerIsUsed(innerWires.size());
+	std::vector<bool> innerIsUsed(innerWires.size(), false);
 	for (const TopoDS_Face& currentFace : faceList)
 	{
 		TopoDS_Face clippedFace = currentFace;
 		for (int i = 0; i < innerWires.size(); i++)
 		{
-			if (innerIsUsed[i] != 0) { continue; }
+			if (innerIsUsed[i] != false) { continue; }
 			const TopoDS_Wire& currentWire = innerWires[i];
 
 			gp_Pnt wirePoint = getFirstPointShape(currentWire);
@@ -3517,7 +3514,7 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 			if (!check.IsValid()) { continue;  }
 
 			clippedFace = localClipperFace;
-			innerIsUsed[i] = 1;
+			innerIsUsed[i] = true;
 		}
 		clippedFaceList.emplace_back(clippedFace);
 	}

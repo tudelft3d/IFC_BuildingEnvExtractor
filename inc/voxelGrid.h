@@ -117,7 +117,7 @@ public:
 	std::vector<int> getVoxelPlate(double platelvl);
 	std::vector<int> getIntersectingVoxels() const;
 	std::vector<int> getOuterIntersectingVoxels() const;
-	std::vector<int> getExternalVoxels() const;
+	std::vector<int> getExternalVoxels(int grow = 0) const;
 	std::vector<int> getInternalVoxels() const;
 	std::vector<int> getVoxels() const; 
 

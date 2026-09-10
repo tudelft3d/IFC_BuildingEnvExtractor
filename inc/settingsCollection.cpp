@@ -247,7 +247,6 @@ void SettingsCollection::generateGeneralSettings()
 {
 	// set ifcGeomsettings
 	ifcopenshell::geometry::Settings iteratorSettings;
-
 	ifcopenshell::geometry::Settings simpleIteratorSettings;
 
 	iteratorSettings.get< ifcopenshell::geometry::settings::UseWorldCoords >().value = true;

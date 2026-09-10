@@ -3455,10 +3455,10 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 			continue;
 		}
 
-		if (computeArea(currentWire) < 1) //TODO: move this to settings
-		{
-			continue;
-		}
+		//if (computeArea(currentWire) < 0.2) //TODO: move this to settings
+		//{
+		//	continue;
+		//}
 		innerWires.emplace_back(currentWire);
 	}
 

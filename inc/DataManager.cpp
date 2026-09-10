@@ -446,7 +446,6 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 
 	std::vector<IfcGeom::filter_t> filterFuncs;
 	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { typeName }));
-
 	int fileNum = 0;
 	for (fileKernelCollection& collectionItem : datacollection_)
 	{

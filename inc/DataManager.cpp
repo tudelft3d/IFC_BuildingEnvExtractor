@@ -1838,65 +1838,38 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 		if (fromMemOnly) { return {}; }
 	}
 
+	std::vector<IfcGeom::filter_t> filters;
+	filters.emplace_back(IfcGeom::instance_id_filter(true, false, { (int)product->id() }));
+	ifcopenshell::geometry::Settings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(isSimple);
+
+	for (size_t i = 0; i < getSourceFileCount(); i++)
+	{
+		auto kernel = std::make_unique<IfcGeom::OpenCascadeKernel>(iteratorSettings);
+
+		IfcGeom::Iterator it(
+			std::move(kernel),
+			iteratorSettings,
+			datacollection_[i].getFilePtr(),
+			filters,
+			SettingsCollection::getInstance().threadcount()
+		);
+		if (!it.initialize()) { continue; }
+
+		do {
+			auto* compound = it.get_native()->geometry().as_compound();
+			auto* occtShape = dynamic_cast<ifcopenshell::geometry::OpenCascadeShape*>(compound);
+			if (!occtShape) { throw std::runtime_error("Expected OpenCascadeShape"); }
+
+			TopoDS_Shape shape = occtShape->shape();
+			if (shape.IsNull()) { continue; }
+
+			shape.Move(objectTranslation_);
+
+			gp_Trsf trs;
+			trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
+			shape.Move(trs);
+			return shape;
+		} while (it.next());		
+	}
 	return {};
-
-	//gp_Trsf trsf;
-
-	//kernelObject->convert_placement(product->ObjectPlacement(), trsf);
-
-	//IfcGeom::IteratorSettings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(isSimple);
-
-
-	//IfcGeom::BRepElement* brep = nullptr;
-	//try
-	//{
-	//	convertMutex_.lock(); //TODO: I want those removed in update
-	//	brep = kernelObject->convert(iteratorSettings, ifc_representation, product);
-	//	convertMutex_.unlock();
-	//}
-	//catch (const std::exception&)
-	//{
-	//	//TODO: add error
-	//}
-
-	//if (brep == nullptr) { 
-	//	//TODO: add error
-	//	return {}; 
-	//}
-
-	//gp_Trsf placement;
-	//gp_Trsf trs;
-	//
-	//trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
-	//kernelObject->convert_placement(ifc_representation, placement);
-
-	//auto shapeCollection = brep->geometry().shapes();
-
-	//int collectionSize = shapeCollection.size();
-
-	//BRep_Builder builder;
-	//TopoDS_Compound collection;
-	//builder.MakeCompound(collection);
-	//for (auto it = shapeCollection.begin(); it != shapeCollection.end(); ++it)
-	//{
-	//	TopoDS_Shape currentShape = (*it).Shape();
-	//	currentShape.Move((*it).Placement().Trsf());
-	//	if (forceSolid && currentShape.ShapeType() == TopAbs_COMPOUND)
-	//	{
-	//		if (!helperFunctions::containsSolid(currentShape))
-	//		{
-	//			currentShape = helperFunctions::addSolidSemantic(currentShape);
-	//		}
-	//	}
-
-	//	helperFunctions::triangulateShape(currentShape);
-
-	//	//if (collectionSize < 2) { return currentShape; }
-	//	builder.Add(collection, currentShape);	
-	//}
-	//collection.Move(trsf * placement); // location in global space
-	//collection.Move(objectTranslation_);
-	//collection.Move(trs);
-
-	//return collection;
 }

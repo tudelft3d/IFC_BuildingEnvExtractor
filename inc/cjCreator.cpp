@@ -6199,8 +6199,13 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* cjtKernel
 			TopoDS_Shape shape = occtShape->shape();
 			auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
 			shapeList.emplace_back(std::make_pair(product, shape));
+			if (currentItemNum % 100 == 0)
+			{
+				std::cout << "\t" << "File " + std::to_string((int)i + 1) << " - Parsing IFC Objects - " << currentItemNum << "\r";
+			}
+			currentItemNum++;
 		} while (it.next());
-
+		std::cout << "\t" << "File " + std::to_string((int)i + 1) << " - Parsing IFC Objects - " << currentItemNum << "\r";
 
 		int coreUse = threadCount;
 		double maxSplit = 300;

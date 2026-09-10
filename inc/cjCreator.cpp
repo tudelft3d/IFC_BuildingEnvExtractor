@@ -4756,6 +4756,7 @@ void CJGeoCreator::makeComplexLoDRooms(DataManager* h, CJT::Kernel* kernel, std:
 
 		// get height values
 		TopoDS_Shape spaceShape = h->getObjectShape(spaceIfcObject, false, false);
+		if (spaceShape.IsNull()) { std::cout << "empty" << std::endl; continue; }
 
 		spaceShape.Move(localRotationTrsf);
 		CJT::GeoObject roomGeoObject = kernel->convertToJSON(spaceShape, "3.2");
@@ -4986,7 +4987,6 @@ std::vector<CJT::CityObject> CJGeoCreator::makeSite(DataManager* h, CJT::Kernel*
 	int geoCount = 0;
 
 	std::vector<TopoDS_Shape> siteShapeList;
-
 	// get the surfaces from the geo or site objects
 	for (int i = 0; i < h->getSourceFileCount(); i++)
 	{

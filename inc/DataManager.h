@@ -156,6 +156,7 @@ private:
 	std::mutex uniqueKeyMutex_;
 
 	std::map <std::string, std::unordered_map < std::string, int >> productIndxLookup_;
+	std::unordered_map<std::string, int> spaceIndxLookup_;
 
 	std::unordered_map<std::string, std::vector<IfcSchema::IfcPropertySet*>> attributeLookup_;
 
@@ -179,7 +180,7 @@ private:
 	/// get the kernel which contains the product with the supplied product guid
 	IfcGeom::OpenCascadeKernel* getKernelObject(const std::string& productGuid);
 	/// gets shapes from memory without checking for correct adjusted boolean
-	int getObjectShapeLocation(IfcSchema::IfcProduct* product);
+	int getObjectShapeLocation(IfcSchema::IfcProduct* product, bool isSpace = false);
 
 	/// get the product representation from the object from the kernel
 	IfcSchema::IfcRepresentation* getProductRepPtr(IfcSchema::IfcProduct* product);

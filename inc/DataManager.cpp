@@ -569,16 +569,26 @@ IfcGeom::OpenCascadeKernel* DataManager::getKernelObject(const std::string& prod
 	return nullptr;
 }
 
-int DataManager::getObjectShapeLocation(IfcSchema::IfcProduct* product)
+int DataManager::getObjectShapeLocation(IfcSchema::IfcProduct* product, bool isSpace)
 {
-	std::string objectType = product->declaration().name();
-	const std::shared_lock<std::shared_mutex> lock(indexMutex_);
-	auto typeSearch = productIndxLookup_.find(objectType);
-	if (typeSearch == productIndxLookup_.end()) { return -1; }
+	if (isSpace)
+	{
+		const std::shared_lock<std::shared_mutex> lock(indexMutex_);
+		auto objectSearch = spaceIndxLookup_.find(product->GlobalId());
+		if (objectSearch == spaceIndxLookup_.end()) { return -1; }
+		return objectSearch->second;
+	}
+	else
+	{
+		std::string objectType = product->declaration().name();
+		const std::shared_lock<std::shared_mutex> lock(indexMutex_);
+		auto typeSearch = productIndxLookup_.find(objectType);
+		if (typeSearch == productIndxLookup_.end()) { return -1; }
 
-	auto objectSearch = typeSearch->second.find(product->GlobalId());
-	if (objectSearch == typeSearch->second.end()) { return -1; }
-	return objectSearch->second;
+		auto objectSearch = typeSearch->second.find(product->GlobalId());
+		if (objectSearch == typeSearch->second.end()) { return -1; }
+		return objectSearch->second;
+	}
 }
 
 
@@ -1243,8 +1253,10 @@ void DataManager::AddBRepElementToIndex(
 		if (isRoom)
 		{
 			std::lock_guard<std::mutex> spaceLock(spaceIndexMutex_);
+			int locationIdx = (int)spaceIndex_.size();
 			spaceIndex_.insert(std::make_pair(box, (int)spaceIndex_.size()));
 			SpaceLookup_.emplace_back(std::move(lookup));
+			spaceIndxLookup_.insert({ product->GlobalId(), locationIdx });
 			continue;
 		}
 
@@ -1764,13 +1776,22 @@ TopoDS_Shape DataManager::getObjectShapeFromMem(IfcSchema::IfcProduct* product, 
 		objectType != "IfcDoor" && objectType != "IfcWindow"
 		) { isSimple = false; }
 
-	int obbjectShapeLocation = getObjectShapeLocation(product);
+	bool isSpace = (objectType == "IfcSpace");
+	int obbjectShapeLocation = getObjectShapeLocation(product, isSpace);
 
 	if (obbjectShapeLocation == -1) { return {}; }
 
 	std::shared_lock<std::shared_mutex> lookupMutex(indexMutex_);
-	const IfcProductSpatialData& currentProductData = *productLookup_[obbjectShapeLocation];
-	return currentProductData.getProductShape();
+	if (isSpace)
+	{
+		const IfcProductSpatialData& currentProductData = *SpaceLookup_[obbjectShapeLocation];
+		return currentProductData.getProductShape();
+	}
+	else
+	{
+		const IfcProductSpatialData& currentProductData = *productLookup_[obbjectShapeLocation];
+		return currentProductData.getProductShape();
+	}	
 }
 
 

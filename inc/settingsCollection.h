@@ -116,6 +116,8 @@ private:
     double horizontalSectionOffset_ = 0; // offset from the storey and footprint sections
     double horizontalSectionBuffer_ = 0.15; // buffer from which mostly horizontal faces are includes as if part of the section
 
+    double minimalInnerWire_ = 0.5; // the minimal size of the allowed inner wires for the roof outline, footprint and simple horizontal sections
+
 	int threadcount_ = 0;
 
     // precision settings
@@ -434,6 +436,8 @@ public:
 
     double horizontalSectionBuffer() const { return horizontalSectionBuffer_; }
     void sethorizontalSectionBuffer(double value) { horizontalSectionBuffer_ = value; }
+
+    double minimalInnerWire() const { return minimalInnerWire_;}
 
     double linearTolerance() const { return linearTolerance_; }
     void setLinearTolerance(double value) { linearTolerance_ = value; }

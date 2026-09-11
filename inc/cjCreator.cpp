@@ -963,6 +963,7 @@ void CJGeoCreator::makeFloorSection(std::vector<TopoDS_Face>& facesOut, DataMana
 	}
 
 	facesOut = helperFunctions::planarFaces2Outline(splitFaceList);
+	facesOut = helperFunctions::cullSmallVoids(facesOut, 1);
 
 	return;
 }
@@ -2052,9 +2053,8 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<Surfa
 	std::vector<HalfEdge> edgeCluster = helperFunctions::planarFaces2EdgeCluster(projectedFaceList);
 	std::vector<HalfEdge> outerEdges = helperFunctions::getTransitionalEdges(edgeCluster, projectedFaceList);
 	std::vector<HalfEdgeLoop> outerLoopList = helperFunctions::planarEdgeCluster2Loops(outerEdges);
-
-	//TODO: remove not required vertex
 	std::vector<TopoDS_Face> clippedFaceList = helperFunctions::outerLoops2Faces(outerLoopList);
+	clippedFaceList = helperFunctions::cullSmallVoids(clippedFaceList, 1);
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return clippedFaceList;

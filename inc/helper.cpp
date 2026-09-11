@@ -3517,6 +3517,58 @@ std::vector<TopoDS_Face> helperFunctions::outerLoops2Faces(const std::vector<Hal
 	return clippedFaceList;
 }
 
+std::vector<TopoDS_Face> helperFunctions::cullSmallVoids(const std::vector<TopoDS_Face>& faceList, double tSize)
+{
+	std::vector<TopoDS_Face> faceListOut;
+	for (const TopoDS_Face& currentFace : faceList)
+	{
+		TopoDS_Wire outerWire = BRepTools::OuterWire(currentFace);
+		std::vector<TopoDS_Wire> wireList = {outerWire};
+
+		bool wireRemoved = false;
+		for (TopExp_Explorer expl(currentFace, TopAbs_WIRE); expl.More(); expl.Next())
+		{
+			TopoDS_Wire currentWire = TopoDS::Wire(expl.Current());
+
+			if (currentWire.IsEqual(outerWire)) { continue; }
+
+			if (computeArea(currentWire) < tSize)
+			{
+				wireRemoved = true;
+				continue;
+			}
+			wireList.emplace_back(currentWire);
+		}
+
+		if (!wireRemoved)
+		{
+			faceListOut.emplace_back(currentFace);
+			continue;
+		}
+
+		gp_Pnt basePoint = getFirstPointShape(currentFace);
+		gp_Vec baseVector = computeFaceNormal(currentFace);
+		gp_Pln basePlane = gp_Pln(basePoint, baseVector);
+		TopoDS_Face cleanedFace = BRepBuilderAPI_MakeFace(basePlane, outerWire);
+
+		for (const TopoDS_Wire& currentWire : wireList)
+		{
+			BRepBuilderAPI_MakeFace merger = BRepBuilderAPI_MakeFace(cleanedFace, currentWire);
+			if (!merger.IsDone()) { continue; }
+
+			TopoDS_Face localClipperFace = merger.Face();
+			if (localClipperFace.IsNull()) { continue; }
+
+			BRepCheck_Analyzer check(localClipperFace);
+			if (!check.IsValid()) { continue; }
+
+			cleanedFace = localClipperFace;
+		}
+		faceListOut.emplace_back(cleanedFace);
+	}
+	return faceListOut;
+}
+
 std::vector<HalfEdge> helperFunctions::splitHalfEdge(const HalfEdge& argument, const std::vector<HalfEdge>& toolList)
 {
 	double precision = SettingsCollection::getInstance().linearTolerance();

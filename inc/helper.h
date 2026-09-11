@@ -419,6 +419,8 @@ struct helperFunctions{
 	static std::vector<HalfEdgeLoop> loops2Outer(const std::vector<HalfEdgeLoop>& planarLoopList, const std::vector<TopoDS_Face>& planarFaces);
 	/// construct planar faces from the outerLoops
 	static std::vector<TopoDS_Face> outerLoops2Faces(const std::vector<HalfEdgeLoop>& outerLoopList);
+	/// removes the inner wires from a planar face that fall below the threshold
+	static std::vector<TopoDS_Face> cullSmallVoids(const std::vector<TopoDS_Face>& faceList, double tSize);
 	/// split HalfEdge in multipleHalfEdges
 	static std::vector<HalfEdge> splitHalfEdge(const HalfEdge& argument, const std::vector<HalfEdge>& toolList);
 	/// split HalfEdge with another HalfEdge

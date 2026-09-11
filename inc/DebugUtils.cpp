@@ -429,3 +429,11 @@ void DebugUtils::WriteToSTEP(const std::vector<std::vector<T>>& shapeList, const
 	}
 	IFSelect_ReturnStatus stat = writer.Write(targetPath.c_str());
 }
+
+void DebugUtils::printIfcClassData(const IfcUtil::IfcBaseClass* baseClass)
+{
+	std::ostringstream oss;
+	baseClass->toString(oss);
+	std::cout << oss.str() << std::endl;
+	return;
+}

@@ -394,7 +394,7 @@ gp_Vec DataManager::computeObjectTranslation()
 gp_Vec DataManager::computeObjectTranslation(const std::string& objectType)
 {
 	std::vector<IfcGeom::filter_t> filterFuncs;
-	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { objectType }));
+	filterFuncs.emplace_back(IfcGeom::entity_filter(true, false, { objectType }));
 
 	ifcopenshell::geometry::Settings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(true);
 
@@ -445,7 +445,7 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 	else if (openingObjects.find(typeName) == openingObjects.end()) { isSimple = false; }
 
 	std::vector<IfcGeom::filter_t> filterFuncs;
-	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { typeName }));
+	filterFuncs.emplace_back(IfcGeom::entity_filter(true, false, { typeName }));
 	int fileNum = 0;
 	for (fileKernelCollection& collectionItem : datacollection_)
 	{
@@ -1547,7 +1547,7 @@ void DataManager::indexGeo()
 		timedAddObjectListToIndex("IfcMember", uniqueKeySet);
 		timedAddObjectListToIndex("IfcWindow", uniqueKeySet);
 		timedAddObjectListToIndex("IfcDoor", uniqueKeySet);
-		//addObjectListToIndex<IfcSchema::IfcCurtainWall>("IfcCurtainWall", addToRoomIndex);
+		timedAddObjectListToIndex("IfcCurtainWall", uniqueKeySet);
 
 		if (settingsCollection.useProxy())
 		{
@@ -1869,7 +1869,7 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 			trs.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), SettingsCollection::getInstance().gridRotation());
 			shape.Move(trs);
 			return shape;
-		} while (it.next());		
+		} while (it.next());
 	}
 	return {};
 }

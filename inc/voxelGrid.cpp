@@ -956,7 +956,6 @@ std::vector<int> VoxelGrid::getExternalVoxels(int grow) const
 		externalVoxels = outerRing;
 	}
 	return extendedList;
-
 }
 
 std::vector<int> VoxelGrid::getInternalVoxels() const

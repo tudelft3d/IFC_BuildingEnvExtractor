@@ -58,6 +58,8 @@ struct DebugUtils {
 	static void outPutShapeType(const TopoDS_Shape& theShape);
 	/// convert shapeEnum to cout
 	static std::string shapeTypeToString(const TopAbs_ShapeEnum& shapeEnum);
+
+	static void printIfcClassData(const IfcUtil::IfcBaseClass* baseClass);
 };
 
 #endif // DEBUGUTILS_DEBUGUTILS_H

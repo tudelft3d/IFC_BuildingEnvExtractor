@@ -2490,8 +2490,13 @@ void CJGeoCreator::setLoD32SurfaceAttributes(
 		std::string productType = product->declaration().name();
 		const TopoDS_Face& currentFace = currentFacePair.first;
 
-		if (productType == "IfcPlate")
+		if (productType == "IfcPlate" || productType == "IfcCurtainWall")
 		{
+			if (helperFunctions::hasGlassMaterial(product))
+			{
+				std::cout << productType << std::endl;
+			}
+
 			std::map<std::string, std::string> windowMap;
 			if (!helperFunctions::hasGlassMaterial(product))
 			{

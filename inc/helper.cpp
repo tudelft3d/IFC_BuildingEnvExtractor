@@ -3647,11 +3647,9 @@ bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 		if (IfcRelAssociates->declaration().name() != "IfcRelAssociatesMaterial") { continue; }
 
 		IfcSchema::IfcRelAssociatesMaterial* MaterialAss = IfcRelAssociates->as<IfcSchema::IfcRelAssociatesMaterial>();
-		//if (MaterialAss->data().type()->name() != "IfcRelAssociatesMaterial") { continue; }
 		if (MaterialAss->declaration().name() != "IfcRelAssociatesMaterial") { continue; }
 
 		IfcSchema::IfcMaterialSelect* relMaterial = MaterialAss->RelatingMaterial();
-		//if (relMaterial->data().type()->name() != "IfcMaterial") { continue; }
 		if (relMaterial->declaration().name() != "IfcMaterial") { continue; }
 
 		IfcSchema::IfcMaterial* ifcMaterial = relMaterial->as<IfcSchema::IfcMaterial>();

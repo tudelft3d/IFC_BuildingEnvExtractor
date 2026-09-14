@@ -37,6 +37,17 @@ template void FileWriter::writeToOBJ<TopoDS_Shell>(const std::vector<std::vector
 template void FileWriter::writeToOBJ<TopoDS_Solid>(const std::vector<std::vector<TopoDS_Solid>>& theShapeList, const std::string& targetPath);
 template void FileWriter::writeToOBJ<TopoDS_Shape>(const std::vector<std::vector<TopoDS_Shape>>& theShapeList, const std::string& targetPath);
 
+template void FileWriter::dumpToCopy<TopoDS_Face>(const TopoDS_Face& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Shell>(const TopoDS_Shell& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Solid>(const TopoDS_Solid& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Shape>(const TopoDS_Shape& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Compound>(const TopoDS_Compound& theShapeList, const FileWriter::FileNameID& targetLoD);
+
+template void FileWriter::dumpToCopy<TopoDS_Face>(const std::vector<TopoDS_Face>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Shell>(const std::vector<TopoDS_Shell>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Solid>(const std::vector<TopoDS_Solid>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Shape>(const std::vector<TopoDS_Shape>& theShapeList, const FileWriter::FileNameID& targetLoD);
+
 struct IntXYZ {
 	int64_t x, y, z;
 
@@ -311,7 +322,122 @@ void FileWriter::writeToDXF(const T& theShape, const std::string& targetPath)
 }
 
 template<typename T>
-void FileWriter::writeToDXF(const std::vector<T>& theShape, const std::string& targetPath)
+void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::string& targetPath)
 {
-	//TODO: implement
+	if (theShapeList.empty()) { return; }
+	double precision = SettingsCollection::getInstance().linearTolerance();
+
+	std::ofstream objFile(targetPath);
+
+	// create the DXF header
+	objFile << "0\n";
+	objFile << "SECTION\n";
+	objFile << "2\n";
+	objFile << "HEADER\n";
+
+	objFile << "9\n";
+	objFile << "$ACADVER\n";
+	objFile << "1\n";
+	objFile << "AC1009\n";
+
+	objFile << "9\n";
+	objFile << "$INSUNITS\n";
+	objFile << "70\n";
+	objFile << "6\n";
+
+	objFile << "0\n";
+	objFile << "ENDSEC\n";
+
+	// create the body
+
+	objFile << "0\n";
+	objFile << "SECTION\n";
+	objFile << "2\n";
+	objFile << "ENTITIES\n";
+
+	for (const T& theShape : theShapeList)
+	{
+		for (TopExp_Explorer exp(theShape, TopAbs_FACE); exp.More(); exp.Next()) {
+			TopoDS_Face face = TopoDS::Face(exp.Current());
+			TopLoc_Location loc;
+
+			auto mesh = BRep_Tool::Triangulation(face, loc);
+
+			if (mesh.IsNull())
+			{
+				helperFunctions::triangulateShape(face);
+				mesh = BRep_Tool::Triangulation(face, loc);
+			}
+			if (mesh.IsNull()) { continue; }
+
+			bool flipTriangle = false;
+			if (face.Orientation() == TopAbs_REVERSED)
+			{
+				flipTriangle = true;
+			}
+
+			for (int j = 1; j <= mesh.get()->NbTriangles(); j++)
+			{
+				const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
+
+				objFile << "0\n";
+				objFile << "3DFACE\n";
+				objFile << "8\n";
+				objFile << "0\n"; //TODO: make this proper layer structure
+
+				for (size_t i = 1; i <= 4; i++)
+				{
+					gp_XYZ xyz;
+					if (i <= 3) { xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord(); }
+					else { xyz = mesh->Node(theTriangle(3)).Transformed(loc).Coord(); }
+					
+					objFile << "1" << i - 1 << "\n";
+					objFile << xyz.X() << "\n";
+					objFile << "2" << i - 1 << "\n";
+					objFile << xyz.Y() << "\n";
+					objFile << "3" << i - 1 << "\n";
+					objFile << xyz.Z() << "\n";
+
+				}
+			}
+		}
+	}
+
+	objFile << "0\n";
+	objFile << "ENDSEC\n";
+	objFile << "0\n";
+	objFile << "EOF";
+	objFile.close();
+	return;
+}
+
+template<typename T>
+void FileWriter::dumpToCopy(const T& theShape, const FileWriter::FileNameID& targetLoD)
+{
+	std::vector<T> shapeList = { theShape };
+	dumpToCopy(shapeList, targetLoD);
+	return;
+}
+
+template<typename T>
+void FileWriter::dumpToCopy(const std::vector<T>& theShapeList, const FileWriter::FileNameID& targetLoD)
+{
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+	std::string basePath = settingsCollection.getOutputBasePath();
+
+	if (settingsCollection.createOBJ())
+	{
+		writeToOBJ(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::OBJ));
+	}
+
+	if (settingsCollection.createSTEP())
+	{
+		writeToSTEP(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::STEP));
+	}
+
+	if (settingsCollection.createDXF())
+	{
+		writeToDXF(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::DXF));
+	}
+	return;
 }

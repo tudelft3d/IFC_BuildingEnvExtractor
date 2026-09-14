@@ -193,6 +193,7 @@ enum class JsonObjectInID {
 	outputFormatJSON,
 	outputFormatOBJ,
 	outputFormatSTEP,
+	outputFormatDXF,
 
 	lodOutput,
 

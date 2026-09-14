@@ -663,6 +663,8 @@ std::string JsonObjectInEnum::getString(JsonObjectInID id)
 		return "OBJ file";
 	case JsonObjectInID::outputFormatSTEP:
 		return "STEP file";
+	case JsonObjectInID::outputFormatDXF:
+		return "DXF file";
 	
 	case JsonObjectInID::lodOutput:
 		return "LoD output";

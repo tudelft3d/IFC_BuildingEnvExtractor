@@ -861,6 +861,25 @@ void SettingsCollection::setCreateOBJ(const nlohmann::json& json)
 	return;
 }
 
+
+void SettingsCollection::setCreateDXF(const nlohmann::json& json)
+{
+	std::string outputFormatOName = JsonObjectInEnum::getString(JsonObjectInID::outputFormatDXF);
+	if (json.contains(outputFormatOName))
+	{
+		try
+		{
+			bool formatBool = getJsonBoolValue(json[outputFormatOName]);
+			setCreateDXF(formatBool);
+		}
+		catch (const ErrorID& exceptionId)
+		{
+			throw std::string(errorWarningStringEnum::getString(exceptionId) + outputFormatOName);
+		}
+	}
+	return;
+}
+
 void SettingsCollection::setUseDefaultDiv(const nlohmann::json& json)
 {
 

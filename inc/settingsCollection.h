@@ -71,6 +71,7 @@ private:
     bool mergeSTEP_ = false;
     bool createOBJ_ = false;
     bool mereOBJ_ = false;
+    bool createDXF_ = false;
 
     bool forceSolid_ = false;
 
@@ -353,6 +354,10 @@ public:
     bool createOBJ() const { return createOBJ_; }
     void setCreateOBJ(bool value) { createOBJ_ = value; }
     void setCreateOBJ(const nlohmann::json& json);
+
+    bool createDXF() const { return createDXF_; }
+    void setCreateDXF(bool value) { createDXF_ = value; }
+    void setCreateDXF(const nlohmann::json& json);
 
     bool forceSolid() const { return forceSolid_; }
 

@@ -191,6 +191,7 @@ void IOManager::printSummary()
 	if (settingsCollection.createJSON()) { formatString += "JSON, "; }
 	if (settingsCollection.createSTEP()) { formatString += "STEP, "; }
 	if (settingsCollection.createOBJ()) { formatString += "OBJ, "; }
+	if (settingsCollection.createDXF()) { formatString += "DXF, "; }
 	formatString.erase(formatString.size() - 2);
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << formatString << "\n\n";
 

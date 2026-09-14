@@ -71,6 +71,14 @@ struct FileWriter {
 
 	/// write shape to DXF
 	template <typename T>
-	static void writeToDXF(const std::vector<T>& theShape, const std::string& targetPath);
+	static void writeToDXF(const std::vector<T>& theShapeList, const std::string& targetPath);
+
+	/// write file to non-cityJSON output files
+	template <typename T>
+	static void dumpToCopy(const T& theShape, const FileWriter::FileNameID& targetLoD);
+
+	/// write file to non-cityJSON output files
+	template <typename T>
+	static void dumpToCopy(const std::vector<T>& theShapeList, const FileWriter::FileNameID& targetLoD);
 };
 #endif // FILEWRITER_FILEWRITER_H

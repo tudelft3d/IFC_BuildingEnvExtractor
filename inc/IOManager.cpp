@@ -538,7 +538,7 @@ void IOManager::internalizeGeo()
 
 void IOManager::setMetaData(std::shared_ptr<CJT::CityCollection> collection)
 {
-	double scale = 0.001;
+	double scale = collection->getPrecision();
 	CJT::ObjectTransformation transformation(scale);
 	CJT::metaDataObject metaData;
 
@@ -558,7 +558,6 @@ void IOManager::setMetaData(std::shared_ptr<CJT::CityCollection> collection)
 	gp_Trsf gridRotation;
 	gridRotation.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
 	TopoDS_Shape bboxGeo = helperFunctions::createBBOXOCCT(lll, urr).Moved(gridRotation);
-	bboxGeo.Move(internalDataManager_->getObjectNormalizedTranslation());
 	bg::model::box <BoostPoint3D> extents = helperFunctions::createBBox(bboxGeo);
 
 	metaData.setExtend(
@@ -569,7 +568,6 @@ void IOManager::setMetaData(std::shared_ptr<CJT::CityCollection> collection)
 	collection->setTransformation(transformation); // set transformation early to avoid geo compression
 	collection->setVersion(CJObjectEnum::getString(CJObjectID::v11));
 	collection->setMetaData(metaData);
-	collection->setPrecision(scale);
 	return;
 }
 
@@ -1047,7 +1045,8 @@ bool IOManager::run()
 	}
 
 	// create the cjt objects
-	std::shared_ptr<CJT::CityCollection> collection = std::make_shared<CJT::CityCollection>();
+	double scale = 0.001;
+	std::shared_ptr<CJT::CityCollection> collection = std::make_shared<CJT::CityCollection>(scale);
 	CJT::CityObject cityBuildingObject; //the overarching city object
 	CJT::CityObject cityOuterShellObject; //container of outer shell geo objects
 	CJT::CityObject cityComplexObject; // container of the ifc conversion objects

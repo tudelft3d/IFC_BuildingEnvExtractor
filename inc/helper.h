@@ -1,4 +1,4 @@
-#define USE_IFC2x3
+#define USE_IFC4x3add2
 #define iterationVersion "0.5.0"
 
 #ifdef USE_IFC2x3
@@ -438,27 +438,6 @@ struct helperFunctions{
 	static nlohmann::json getAttributes(const IfcSchema::IfcProduct* ifcProduct, const std::string& PsetName = "");
 	/// returns all the attributes in json format
 	static nlohmann::json getAttributes(const IfcSchema::IfcPropertySet& pset);
-
-	/// write to file code
-
-	/// write shape to step
-	static void writeToSTEP(const TopoDS_Shape& theShape, const std::string& targetPath);
-	/// write list of shapes to step
-	template <typename T>
-	static void writeToSTEP(const std::vector<T>& theShapeList, const std::string& targetPath);
-	/// write list of shapes to step
-	template <typename T>
-	static void writeToSTEP(const std::vector<std::vector<T>>& theShapeList, const std::string& targetPath);
-	
-	/// write shape to obj
-	template <typename T>
-	static void writeToOBJ(const T& theShape, const std::string& targetPath);
-	/// write list of shapes to obj
-	template <typename T>
-	static void writeToOBJ(const std::vector<T>& theShapeList, const std::string& targetPath);
-	/// write list of shapes to obj
-	template <typename T>
-	static void writeToOBJ(const std::vector<std::vector<T>>& theShapeList, const std::string& targetPath);
 
 	/// triangulation related code
 

@@ -4,6 +4,7 @@
 #include "voxel.h"
 #include "stringManager.h"
 #include "DebugUtils.h"
+#include "fileWriter.h"
 
 #include <nlohmann/json.hpp>
 
@@ -963,7 +964,7 @@ void CJGeoCreator::makeFloorSection(std::vector<TopoDS_Face>& facesOut, DataMana
 	}
 
 	facesOut = helperFunctions::planarFaces2Outline(splitFaceList);
-	facesOut = helperFunctions::cullSmallVoids(facesOut, 1);
+	facesOut = helperFunctions::cullSmallVoids(facesOut, SettingsCollection::getInstance().minimalInnerWire());
 
 	return;
 }
@@ -2054,7 +2055,7 @@ std::vector<TopoDS_Face> CJGeoCreator::createRoofOutline(const std::vector<Surfa
 	std::vector<HalfEdge> outerEdges = helperFunctions::getTransitionalEdges(edgeCluster, projectedFaceList);
 	std::vector<HalfEdgeLoop> outerLoopList = helperFunctions::planarEdgeCluster2Loops(outerEdges);
 	std::vector<TopoDS_Face> clippedFaceList = helperFunctions::outerLoops2Faces(outerLoopList);
-	clippedFaceList = helperFunctions::cullSmallVoids(clippedFaceList, 1);
+	clippedFaceList = helperFunctions::cullSmallVoids(clippedFaceList, SettingsCollection::getInstance().minimalInnerWire());
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	return clippedFaceList;
@@ -2666,12 +2667,12 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD00(DataManager* h, CJT::Kernel
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(faceCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD00));
+		FileWriter::writeToOBJ(faceCopyCollection, settingsCollection.getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD00, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(faceCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD00));
+		FileWriter::writeToSTEP(faceCopyCollection, settingsCollection.getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD00, FileWriter::FileExtensionID::STEP));
 	}
 	
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -2769,12 +2770,12 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD02(DataManager* h, CJT::Kernel
 
 	if (settingCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(faceCopyCollection, settingCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD02));
+		FileWriter::writeToOBJ(faceCopyCollection, settingCollection.getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD02, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(faceCopyCollection, settingCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD02));
+		FileWriter::writeToSTEP(faceCopyCollection, settingCollection.getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD02, FileWriter::FileExtensionID::STEP));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -2872,11 +2873,11 @@ void CJGeoCreator::make2DStoreys(
 	{
 		if (is03)
 		{
-			helperFunctions::writeToSTEP(copyGeoList, SettingsCollection::getInstance().getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD03Interior));
+			FileWriter::writeToSTEP(copyGeoList, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD03, FileWriter::FileExtensionID::STEP, false));
 		}
 		else
 		{
-			helperFunctions::writeToSTEP(copyGeoList, SettingsCollection::getInstance().getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD02Interior));
+			FileWriter::writeToSTEP(copyGeoList, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD02, FileWriter::FileExtensionID::STEP, false));
 		}
 	}
 
@@ -2884,11 +2885,11 @@ void CJGeoCreator::make2DStoreys(
 	{
 		if (is03)
 		{
-			helperFunctions::writeToOBJ(copyGeoList, SettingsCollection::getInstance().getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD03Interior));
+			FileWriter::writeToOBJ(copyGeoList, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD03, FileWriter::FileExtensionID::OBJ, false));
 		}
 		else
 		{
-			helperFunctions::writeToOBJ(copyGeoList, SettingsCollection::getInstance().getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD02Interior));
+			FileWriter::writeToOBJ(copyGeoList, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD02, FileWriter::FileExtensionID::OBJ, false));
 		}
 	}
 
@@ -3256,7 +3257,7 @@ void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::
 	if (settingsCollection.createSTEP())
 	{
 		//helperFunctions::writeToSTEP(copyLoD02GeoList, SettingsCollection::getInstance().getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD02Interior));
-		helperFunctions::writeToSTEP(copyLoD12GeoList, SettingsCollection::getInstance().getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD12Interior));
+		FileWriter::writeToSTEP(copyLoD12GeoList, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD12, FileWriter::FileExtensionID::STEP, false));
 		//helperFunctions::writeToSTEP(copyLoD22GeoList, SettingsCollection::getInstance().getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD22Interior));
 	}
 
@@ -3280,12 +3281,12 @@ CJT::GeoObject CJGeoCreator::makeLoD10(DataManager* h, CJT::Kernel* kernel, int 
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(bbox, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD10));
+		FileWriter::writeToOBJ(bbox, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD10, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(bbox, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD10));
+		FileWriter::writeToSTEP(bbox, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD10, FileWriter::FileExtensionID::STEP));
 	}
 	 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -3422,12 +3423,12 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD03(DataManager* h, CJT::Kernel
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(faceCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD03));
+		FileWriter::writeToOBJ(faceCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD03, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(faceCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD03));
+		FileWriter::writeToSTEP(faceCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD03, FileWriter::FileExtensionID::STEP));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -3516,12 +3517,12 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD04(DataManager* h, CJT::Kernel*
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(faceCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD04));
+		FileWriter::writeToOBJ(faceCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD04, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(faceCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD04));
+		FileWriter::writeToSTEP(faceCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD04, FileWriter::FileExtensionID::STEP));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -3581,12 +3582,12 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD12(DataManager* h, CJT::Kernel
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD12));
+		FileWriter::writeToOBJ(shapeCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD12, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD12));
+		FileWriter::writeToSTEP(shapeCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD12, FileWriter::FileExtensionID::STEP));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -3660,12 +3661,12 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD13(DataManager* h, CJT::Kernel
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(prismList, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD13));
+		FileWriter::writeToOBJ(prismList, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD13, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(prismList, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD13));
+		FileWriter::writeToSTEP(prismList, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD13, FileWriter::FileExtensionID::STEP));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -3740,12 +3741,12 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD22(DataManager* h, CJT::Kernel
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(prismList, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD22));
+		FileWriter::writeToOBJ(prismList, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD22, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(prismList, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD22));
+		FileWriter::writeToSTEP(prismList, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD22, FileWriter::FileExtensionID::STEP));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -3843,12 +3844,12 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDb0(DataManager* h, CJT::Kernel*
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoDb));
+		FileWriter::writeToOBJ(shapeCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoDb, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDb));
+		FileWriter::writeToSTEP(shapeCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoDb, FileWriter::FileExtensionID::STEP));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -3918,12 +3919,12 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDc1(DataManager* h, CJT::Kernel*
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(simplefiedShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoDc1));
+		FileWriter::writeToOBJ(simplefiedShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoDc1, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(simplefiedShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDc1));
+		FileWriter::writeToSTEP(simplefiedShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoDc1, FileWriter::FileExtensionID::STEP));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -4167,12 +4168,12 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDc2(DataManager* h, CJT::Kernel*
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoDb));
+		FileWriter::writeToOBJ(shapeCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoDc2, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDb));
+		FileWriter::writeToSTEP(shapeCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoDc2, FileWriter::FileExtensionID::STEP));
 	}
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
@@ -4273,12 +4274,12 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDd1(DataManager* h, CJT::Kernel*
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoDd1));
+		FileWriter::writeToOBJ(shapeCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoDd1, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(shapeCopyCollection, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDd1));
+		FileWriter::writeToSTEP(shapeCopyCollection, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoDd1, FileWriter::FileExtensionID::STEP));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -4400,12 +4401,12 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 	{
 		if (settingsCollection.createOBJ())
 		{
-			helperFunctions::writeToOBJ(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD40));
+			FileWriter::writeToOBJ(collectionShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD40, FileWriter::FileExtensionID::OBJ));
 		}
 
 		if (settingsCollection.createSTEP())
 		{
-			helperFunctions::writeToSTEP(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD40));
+			FileWriter::writeToSTEP(collectionShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD40, FileWriter::FileExtensionID::STEP));
 		}
 	}
 
@@ -4477,12 +4478,12 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD41));
+		FileWriter::writeToOBJ(collectionShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD41, FileWriter::FileExtensionID::STEP));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD41));
+		FileWriter::writeToSTEP(collectionShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD41, FileWriter::FileExtensionID::STEP));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -4502,12 +4503,12 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD42(DataManager* h, CJT::Kernel*
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD42));
+		FileWriter::writeToOBJ(collectionShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD42, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD42));
+		FileWriter::writeToSTEP(collectionShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD42, FileWriter::FileExtensionID::STEP));
 	}
 
 	garbageCollection();
@@ -4564,12 +4565,12 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel*
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoDe1));
+		FileWriter::writeToOBJ(collectionShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoDe1, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoDe1));
+		FileWriter::writeToSTEP(collectionShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD41, FileWriter::FileExtensionID::STEP));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -4709,12 +4710,12 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 
 	if (settingsCollection.createOBJ())
 	{
-		helperFunctions::writeToOBJ(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD32));
+		FileWriter::writeToOBJ(collectionShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD32, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		helperFunctions::writeToSTEP(collectionShape, settingsCollection.getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD32));
+		FileWriter::writeToSTEP(collectionShape, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD32, FileWriter::FileExtensionID::STEP));
 	}
 
 	geoObjectList.emplace_back(geoObject);
@@ -4869,12 +4870,12 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeV(DataManager* h, CJT::Kernel* ker
 
 			if (SettingsCollection::getInstance().createOBJ())
 			{
-				helperFunctions::writeToOBJ(voxelSolid, SettingsCollection::getInstance().getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD50));
+				FileWriter::writeToOBJ(voxelSolid, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD50, FileWriter::FileExtensionID::OBJ));
 			}
 
 			if (SettingsCollection::getInstance().createSTEP())
 			{
-				helperFunctions::writeToSTEP(voxelSolid, SettingsCollection::getInstance().getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD50));
+				FileWriter::writeToSTEP(voxelSolid, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD50, FileWriter::FileExtensionID::STEP));
 			}
 		}
 		else
@@ -4885,12 +4886,12 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeV(DataManager* h, CJT::Kernel* ker
 
 			if (SettingsCollection::getInstance().createSTEP())
 			{
-				helperFunctions::writeToOBJ(currentShell, SettingsCollection::getInstance().getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::OBJLoD50));
+				FileWriter::writeToOBJ(currentShell, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD50, FileWriter::FileExtensionID::OBJ));
 			}
 
 			if (SettingsCollection::getInstance().createSTEP())
 			{
-				helperFunctions::writeToSTEP(currentShell, SettingsCollection::getInstance().getOutputBasePath() + fileExtensionEnum::getString(fileExtensionID::STEPLoD50));
+				FileWriter::writeToSTEP(currentShell, SettingsCollection::getInstance().getOutputBasePath() + FileWriter::FileNameEnum::getString(FileWriter::FileNameID::LoD50, FileWriter::FileExtensionID::STEP));
 			}
 		}
 

@@ -349,6 +349,8 @@ inc/IOManager.h
 inc/IOManager.cpp
 inc/settingsCollection.h
 inc/settingsCollection.cpp
+inc/fileWriter.h
+inc/fileWriter.cpp
 inc/stringManager.h
 inc/stringManager.cpp
 inc/surfaceCollection.h

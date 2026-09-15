@@ -5,6 +5,7 @@
 #include <BRep_Tool.hxx>
 #include <BRep_Builder.hxx>
 #include <TopExp_Explorer.hxx>
+#include <BRepTools_WireExplorer.hxx>
 
 #include "settingsCollection.h"
 #include "fileWriter.h"
@@ -73,6 +74,40 @@ struct IntXYZ_Equal {
 	}
 };
 
+
+std::string floatToString(double theValue)
+{
+	int floatingPre = 6;
+
+	if (std::abs(theValue) < std::pow(0.1, floatingPre))
+	{
+		theValue = 0;
+	}
+
+	std::stringstream outSteam;
+	outSteam << std::fixed << std::setprecision(floatingPre);
+	outSteam << theValue;
+
+	std::string outStringFloat = outSteam.str();
+	outStringFloat.erase(outStringFloat.find_last_not_of('0') + 1, std::string::npos);
+	if (!outStringFloat.empty() && outStringFloat.back() == '.')
+		outStringFloat += "0";
+	return outStringFloat;
+}
+
+
+template <typename T>
+std::string pointToString(const T& thePoint, int i)
+{
+	std::stringstream outSteam;
+	outSteam << "1" << i << "\n";
+	outSteam << floatToString(thePoint.X()) << "\n";
+	outSteam << "2" << i << "\n";
+	outSteam << floatToString(thePoint.Y()) << "\n";
+	outSteam << "3" << i << "\n";
+	outSteam << floatToString(thePoint.Z()) << "\n";
+	return outSteam.str();
+}
 
 std::string FileWriter::FileExtensionEnum::getString(FileExtensionID id)
 {
@@ -361,6 +396,8 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 			TopoDS_Face face = TopoDS::Face(exp.Current());
 			TopLoc_Location loc;
 
+			std::string layerName = "0\n";  //TODO: make this proper layer structure
+
 			auto mesh = BRep_Tool::Triangulation(face, loc);
 
 			if (mesh.IsNull())
@@ -376,6 +413,31 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 				flipTriangle = true;
 			}
 
+			if (helperFunctions::getPointCount(face) == 4)
+			{
+				objFile << "0\n";
+				objFile << "3DFACE\n";
+				objFile << "8\n";
+				objFile << layerName;
+
+				for (TopExp_Explorer faceExpl(face, TopAbs_WIRE); faceExpl.More(); faceExpl.Next())
+				{
+					TopoDS_Wire wire = TopoDS::Wire(faceExpl.Current());
+					BRepTools_WireExplorer wireExpl(wire);
+
+					int counter = 0;
+					while (wireExpl.More())
+					{
+						TopoDS_Vertex v = wireExpl.CurrentVertex();
+						gp_Pnt p = BRep_Tool::Pnt(v);
+						objFile << pointToString(p, counter);			
+						counter++;
+						wireExpl.Next();
+					}
+				}
+				continue;
+			}
+
 			for (int j = 1; j <= mesh.get()->NbTriangles(); j++)
 			{
 				const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
@@ -383,21 +445,14 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 				objFile << "0\n";
 				objFile << "3DFACE\n";
 				objFile << "8\n";
-				objFile << "0\n"; //TODO: make this proper layer structure
+				objFile << layerName;
 
 				for (size_t i = 1; i <= 4; i++)
 				{
 					gp_XYZ xyz;
 					if (i <= 3) { xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord(); }
-					else { xyz = mesh->Node(theTriangle(3)).Transformed(loc).Coord(); }
-					
-					objFile << "1" << i - 1 << "\n";
-					objFile << xyz.X() << "\n";
-					objFile << "2" << i - 1 << "\n";
-					objFile << xyz.Y() << "\n";
-					objFile << "3" << i - 1 << "\n";
-					objFile << xyz.Z() << "\n";
-
+					else { xyz = mesh->Node(theTriangle(3)).Transformed(loc).Coord(); }			
+					objFile << pointToString(xyz, i - 1);
 				}
 			}
 		}

@@ -214,6 +214,7 @@ void SettingsCollection::setFormatRelatedSettings(const nlohmann::json& json)
 		//setCreateJSON(outputDataJson);
 		setCreateOBJ(outputDataJson);
 		setCreateSTEP(outputDataJson);
+		setCreateDXF(outputDataJson);
 	}
 	catch (const std::string& errorString)
 	{

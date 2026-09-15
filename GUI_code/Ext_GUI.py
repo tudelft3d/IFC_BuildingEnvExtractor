@@ -304,6 +304,7 @@ frame_format_settings = tkinter.Frame(frame_lod_settings_gen)
 
 toggle_make_obj = ttk.Checkbutton(frame_format_settings, text=".OBJ", variable=settings.other.make_obj)
 toggle_make_step = ttk.Checkbutton(frame_format_settings, text=".STEP", variable=settings.other.make_step)
+toggle_make_dxf = ttk.Checkbutton(frame_format_settings, text=".DXF", variable=settings.other.make_dxf)
 
 if not is_simple:
     text_lod_settings = tkinter.Label(frame_lod_settings_gen, text="Desired LoD generation:")
@@ -333,6 +334,7 @@ if not is_simple:
     frame_format_settings.pack()
     toggle_make_obj.pack(side=tkinter.LEFT, padx=5)
     toggle_make_step.pack(side=tkinter.LEFT, padx=5)
+    toggle_make_dxf.pack(side=tkinter.LEFT, padx=5)
 
 # makeSplit
 frame_lod_settings_sep = ttk.Separator(frame_lod_settings_complete, orient=tkinter.VERTICAL)
@@ -516,6 +518,7 @@ IExtension.Tooltip(frame_lod_settings4, desired_lod_tooltip_txt)
 
 IExtension.Tooltip(toggle_make_obj, "If active output is copied to wavefront .OBJ file(s)")
 IExtension.Tooltip(toggle_make_step, "If active output is copied to .STEP (ISO 10303) file(s)")
+IExtension.Tooltip(toggle_make_dxf, "If active output is copied to .dxf (AC1009) file(s)")
 
 IExtension.Tooltip(toggle_makefootprint, "If active a footprint will be created at the footprint elevation (lod0.0, 0.2, 0.3 and 0.4 only)")
 IExtension.Tooltip(toggle_makeroofprint, "If active a roof outline will be created (lod0.0, 0.2, 0.3 and 0.4 only)")

@@ -143,6 +143,7 @@ class OtherSettings(SettingsBase):
         "make_report": (tkinter.IntVar, 1),
         "make_obj": (tkinter.IntVar, 0),
         "make_step": (tkinter.IntVar, 0),
+        "make_dxf": (tkinter.IntVar, 0),
         "highTol_toggle": (tkinter.IntVar, 1)
     }
 
@@ -315,6 +316,7 @@ class GuiSettings:
         json_dictionary["Output format"] = {}
         json_dictionary["Output format"]["STEP file"] = other_settings.make_step.get()
         json_dictionary["Output format"]["OBJ file"] = other_settings.make_obj.get()
+        json_dictionary["Output format"]["DXF file"] = other_settings.make_dxf.get()
 
         lod_list = []
         if (lod_settings.lod00.get()):
@@ -629,6 +631,16 @@ class GuiSettings:
 
                 if gen_obj_val == True or gen_obj_val == 1:
                     self.other.make_obj.set(True)
+
+            if "DXF file" in json_data_format:
+                gen_dxf_val = json_data_format["DXF file"]
+
+                if not self.is_bool(gen_dxf_val):
+                    self.throw_error_window("Output format DXF file")
+                    return False
+
+                if gen_dxf_val == True or gen_dxf_val == 1:
+                    self.other.make_dxf.set(True)
         return True
 
     def set_lod_from_json(self, json_data):

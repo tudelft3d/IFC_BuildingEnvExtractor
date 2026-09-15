@@ -77,18 +77,21 @@ struct IntXYZ_Equal {
 
 std::string floatToString(double theValue)
 {
-	int floatingPre = 6;
+	int floatingPre = 4;
 
+	std::string outStringFloat = "";
 	if (std::abs(theValue) < std::pow(0.1, floatingPre))
 	{
-		theValue = 0;
+		outStringFloat = "0.0";
+	}
+	else
+	{
+		std::stringstream outSteam;
+		outSteam << std::fixed << std::setprecision(floatingPre);
+		outSteam << theValue;
+		outStringFloat = outSteam.str();
 	}
 
-	std::stringstream outSteam;
-	outSteam << std::fixed << std::setprecision(floatingPre);
-	outSteam << theValue;
-
-	std::string outStringFloat = outSteam.str();
 	outStringFloat.erase(outStringFloat.find_last_not_of('0') + 1, std::string::npos);
 	if (!outStringFloat.empty() && outStringFloat.back() == '.')
 		outStringFloat += "0";
@@ -291,7 +294,7 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 							continue;
 						}
 
-						objFile << "v " << xyz.X() << " " << xyz.Y() << " " << xyz.Z() << "\n";
+						objFile << "v " << floatToString(xyz.X()) << " " << floatToString(xyz.Y()) << " " << floatToString(xyz.Z()) << "\n";
 						triangleIndx.emplace_back(vertIdxOffset);
 						vertMap.try_emplace(intXyz, vertIdxOffset);
 						vertIdxOffset++;
@@ -310,7 +313,7 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 							continue;
 						}
 
-						objFile << "v " << xyz.X() << " " << xyz.Y() << " " << xyz.Z() << "\n";
+						objFile << "v " << floatToString(xyz.X()) << " " << floatToString(xyz.Y()) << " " << floatToString(xyz.Z()) << "\n";
 						triangleIndx.emplace_back(vertIdxOffset);
 						vertMap.try_emplace(intXyz, vertIdxOffset);
 						vertIdxOffset++;
@@ -362,33 +365,33 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 	if (theShapeList.empty()) { return; }
 	double precision = SettingsCollection::getInstance().linearTolerance();
 
-	std::ofstream objFile(targetPath);
+	std::ofstream dxfFile(targetPath);
 
 	// create the DXF header
-	objFile << "0\n";
-	objFile << "SECTION\n";
-	objFile << "2\n";
-	objFile << "HEADER\n";
+	dxfFile << "0\n";
+	dxfFile << "SECTION\n";
+	dxfFile << "2\n";
+	dxfFile << "HEADER\n";
 
-	objFile << "9\n";
-	objFile << "$ACADVER\n";
-	objFile << "1\n";
-	objFile << "AC1009\n";
+	dxfFile << "9\n";
+	dxfFile << "$ACADVER\n";
+	dxfFile << "1\n";
+	dxfFile << "AC1009\n";
 
-	objFile << "9\n";
-	objFile << "$INSUNITS\n";
-	objFile << "70\n";
-	objFile << "6\n";
+	dxfFile << "9\n";
+	dxfFile << "$INSUNITS\n";
+	dxfFile << "70\n";
+	dxfFile << "6\n";
 
-	objFile << "0\n";
-	objFile << "ENDSEC\n";
+	dxfFile << "0\n";
+	dxfFile << "ENDSEC\n";
 
 	// create the body
 
-	objFile << "0\n";
-	objFile << "SECTION\n";
-	objFile << "2\n";
-	objFile << "ENTITIES\n";
+	dxfFile << "0\n";
+	dxfFile << "SECTION\n";
+	dxfFile << "2\n";
+	dxfFile << "ENTITIES\n";
 
 	for (const T& theShape : theShapeList)
 	{
@@ -415,10 +418,10 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 
 			if (helperFunctions::getPointCount(face) == 4)
 			{
-				objFile << "0\n";
-				objFile << "3DFACE\n";
-				objFile << "8\n";
-				objFile << layerName;
+				dxfFile << "0\n";
+				dxfFile << "3DFACE\n";
+				dxfFile << "8\n";
+				dxfFile << layerName;
 
 				for (TopExp_Explorer faceExpl(face, TopAbs_WIRE); faceExpl.More(); faceExpl.Next())
 				{
@@ -430,7 +433,7 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 					{
 						TopoDS_Vertex v = wireExpl.CurrentVertex();
 						gp_Pnt p = BRep_Tool::Pnt(v);
-						objFile << pointToString(p, counter);			
+						dxfFile << pointToString(p, counter);			
 						counter++;
 						wireExpl.Next();
 					}
@@ -442,27 +445,27 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 			{
 				const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
 
-				objFile << "0\n";
-				objFile << "3DFACE\n";
-				objFile << "8\n";
-				objFile << layerName;
+				dxfFile << "0\n";
+				dxfFile << "3DFACE\n";
+				dxfFile << "8\n";
+				dxfFile << layerName;
 
 				for (size_t i = 1; i <= 4; i++)
 				{
 					gp_XYZ xyz;
 					if (i <= 3) { xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord(); }
 					else { xyz = mesh->Node(theTriangle(3)).Transformed(loc).Coord(); }			
-					objFile << pointToString(xyz, i - 1);
+					dxfFile << pointToString(xyz, i - 1);
 				}
 			}
 		}
 	}
 
-	objFile << "0\n";
-	objFile << "ENDSEC\n";
-	objFile << "0\n";
-	objFile << "EOF";
-	objFile.close();
+	dxfFile << "0\n";
+	dxfFile << "ENDSEC\n";
+	dxfFile << "0\n";
+	dxfFile << "EOF";
+	dxfFile.close();
 	return;
 }
 

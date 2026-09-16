@@ -90,7 +90,7 @@ private:
 	// list collects the lode1 surfaces and their product ptr
 	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> LoDE1Faces_;
 	// list collects the storey city Pointers
-	std::vector<std::shared_ptr<CJT::CityObject>> storeyObjects_;
+	std::vector<CJT::CityObject> storeyObjects_;
 	// list collects the objects that are external according to the raycasting process
 	std::vector<Value> externalValueList_;
 	// check if the surfaces that are stored can be discarded.
@@ -164,7 +164,7 @@ private:
 	// storey generation code
 
 	/// adds a storey object to the city object
-	void make2DStorey(std::mutex& storeyMutex, DataManager* h, CJT::Kernel* kernel, const std::shared_ptr<CJT::CityObject>& storeyCityObject, std::vector<TopoDS_Shape>& copyGeoList, std::map<std::string, int>& progressMap, int unitScale, bool is03);
+	void make2DStorey(std::mutex& storeyMutex, DataManager* h, CJT::Kernel* kernel, CJT::CityObject& storeyCityObject, std::vector<TopoDS_Shape>& copyGeoList, std::map<std::string, int>& progressMap, int unitScale, bool is03);
 	/// give user updates about the state of storey creation
 	void monitorStoreys(std::mutex& storeyMutex, std::map<std::string, int>& progressMap, int totalProcesses);
 
@@ -241,8 +241,8 @@ private:
 	void makeVRoom(
 		DataManager* h, 
 		CJT::Kernel* kernel, 
-		std::vector<std::shared_ptr<CJT::CityObject>>& storeyCityObjects, 
-		std::vector<std::shared_ptr<CJT::CityObject>>& roomCityObjects, 
+		std::vector<CJT::CityObject>& storeyCityObjects, 
+		std::vector<CJT::CityObject>& roomCityObjects, 
 		int startIdx,
 		int endIdx,
 		std::mutex& roomListMutex,
@@ -327,14 +327,14 @@ private:
 	// binds the semantic surface data for the input geo data shape and cjt geo object
 	void populateSurfaceData(CJT::GeoObject* geoObject, const std::vector<int>& SurfaceIndxDataList, bool isExterior = true);
 	// generates default CJ object that represents a room, used for voxel rooms if no room objects are present
-	std::shared_ptr<CJT::CityObject> createDefaultRoomObject(std::vector<std::shared_ptr<CJT::CityObject>>& storeyCityObjects, int roomNum, double lowestZ);
+	CJT::CityObject createDefaultRoomObject(std::vector<CJT::CityObject>& storeyCityObjects, int roomNum, double lowestZ);
 
 	// other code
 
 	std::vector<IfcSchema::IfcBuildingStorey*> fetchStoreyObjects(DataManager* h, const std::vector<std::string>& storeyGuidList);
 
 	// fetches the room related data from the ifc model
-	std::vector < std::shared_ptr<CJT::CityObject >> fetchRoomObject(DataManager* h, const std::vector<std::shared_ptr<CJT::CityObject>>& roomCityObjects, int roomNum);
+	std::vector<CJT::CityObject*> fetchRoomObject(DataManager* h, std::vector<CJT::CityObject>& roomCityObjects, int roomNum);
 
 	// extruded storey code
 	void extrudeStoreyGeometry(
@@ -414,17 +414,17 @@ public:
 	void makeFootprint(DataManager* h);
 
 	/// generates the empty storey objects for the ifc storeys in a file
-	std::vector<std::shared_ptr<CJT::CityObject>> makeStoreyObjects(DataManager* h);
+	std::vector<CJT::CityObject> makeStoreyObjects(DataManager* h);
 	/// returns the storey objects that are stored in the creator
 	std::vector<std::shared_ptr<CJT::CityObject>> getStoreyObjects(DataManager* h);
 
 	/// generates the empty room objects for the ifc storeys in a file
-	std::vector<std::shared_ptr<CJT::CityObject>> makeRoomObjects(DataManager* h, const std::vector<std::shared_ptr<CJT::CityObject>>& cityStoreyObjects);
+	std::vector<CJT::CityObject> makeRoomObjects(DataManager* h, std::vector<CJT::CityObject>& cityStoreyObjects);
 	/// generates a list of cityobjects with LoD0.2/1.2/2.2 faces if required by the input settings 
-	void makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::vector<std::shared_ptr<CJT::CityObject>>& roomCityObjects, int unitScale);
+	void makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::vector<CJT::CityObject>& roomCityObjects, int unitScale);
 	
 	/// adds a storey object to the city object
-	void make2DStoreys(DataManager* h, CJT::Kernel* kernel, std::vector<std::shared_ptr<CJT::CityObject>>& storeyCityObjects, int unitScale, bool is03, bool output = true);
+	void make2DStoreys(DataManager* h, CJT::Kernel* kernel, std::vector<CJT::CityObject>& storeyCityObjects, int unitScale, bool is03, bool output = true);
 
 	/// generates an LoD0.0 object
 	std::vector< CJT::GeoObject> makeLoD00(DataManager* h, CJT::Kernel* kernel, int unitScale);
@@ -464,10 +464,10 @@ public:
 	std::vector< CJT::GeoObject> makeLoDe1(DataManager* h, CJT::Kernel* kernel, int unitScale);
 	/// generates a list of LoD3.2 objects
 	std::vector< CJT::GeoObject> makeLoD32(DataManager* h, CJT::Kernel* kernel, int unitScale);
-	void makeComplexLoDRooms(DataManager* h, CJT::Kernel* kernel, std::vector<std::shared_ptr<CJT::CityObject>>& roomCityObjects, int unitScale);
+	void makeComplexLoDRooms(DataManager* h, CJT::Kernel* kernel, std::vector<CJT::CityObject>& roomCityObjects, int unitScale);
 	/// generates a list of voxelized objects
 	std::vector< CJT::GeoObject> makeV(DataManager* h, CJT::Kernel* kernel, int unitScale);
-	void makeVRooms(DataManager* h, CJT::Kernel* kernel, std::vector<std::shared_ptr<CJT::CityObject>>& storeyCityObjects, std::vector<std::shared_ptr<CJT::CityObject>>& roomCityObjects, int unitScale);
+	void makeVRooms(DataManager* h, CJT::Kernel* kernel, std::vector<CJT::CityObject>& storeyCityObjects, std::vector<CJT::CityObject>& roomCityObjects, int unitScale);
 	/// generates a list of the site and its outline
 	std::vector<CJT::CityObject> makeSite(DataManager* h, CJT::Kernel* kernel, int unitScale);
 

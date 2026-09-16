@@ -704,7 +704,7 @@ void DataManager::updateShapeMemory(IfcSchema::IfcProduct* product, TopoDS_Shape
 	if (productIndxLookup_.find(objectType) == productIndxLookup_.end()) { return; }
 	if (productIndxLookup_[objectType].find(product->GlobalId()) == productIndxLookup_[objectType].end()) { return; }
 
-	IfcProductSpatialData& currentLookupvalue = *productLookup_[productIndxLookup_[objectType][product->GlobalId()]];
+	IfcProductSpatialData& currentLookupvalue = productLookup_[productIndxLookup_[objectType][product->GlobalId()]];
 	currentLookupvalue.setProductShape(shape);
 	return;
 }
@@ -1239,7 +1239,7 @@ void DataManager::AddBRepElementToIndex(
 			const TopoDS_Face& currentFace = TopoDS::Face(expl.Current());
 			helperFunctions::triangulateShape(currentFace);
 		}
-		std::unique_ptr<IfcProductSpatialData> lookup = std::make_unique<IfcProductSpatialData>(product, shape);
+		IfcProductSpatialData lookup = IfcProductSpatialData(product, shape);
 
 		if (helperFunctions::getFaceCount(shape) > 500)
 		{
@@ -1254,7 +1254,7 @@ void DataManager::AddBRepElementToIndex(
 			std::lock_guard<std::mutex> spaceLock(spaceIndexMutex_);
 			int locationIdx = (int)spaceIndex_.size();
 			spaceIndex_.insert(std::make_pair(box, (int)spaceIndex_.size()));
-			SpaceLookup_.emplace_back(std::move(lookup));
+			SpaceLookup_.emplace_back(lookup);
 			spaceIndxLookup_.insert({ product->GlobalId(), locationIdx });
 			continue;
 		}
@@ -1267,7 +1267,7 @@ void DataManager::AddBRepElementToIndex(
 			updateBoudingData(box);
 		}
 
-		productLookup_.emplace_back(std::move(lookup));
+		productLookup_.emplace_back(lookup);
 
 		auto typeSearch = productIndxLookup_.find(productType);
 		if (typeSearch == productIndxLookup_.end())
@@ -1783,12 +1783,12 @@ TopoDS_Shape DataManager::getObjectShapeFromMem(IfcSchema::IfcProduct* product, 
 	std::shared_lock<std::shared_mutex> lookupMutex(indexMutex_);
 	if (isSpace)
 	{
-		const IfcProductSpatialData& currentProductData = *SpaceLookup_[obbjectShapeLocation];
+		const IfcProductSpatialData& currentProductData = SpaceLookup_[obbjectShapeLocation];
 		return currentProductData.getProductShape();
 	}
 	else
 	{
-		const IfcProductSpatialData& currentProductData = *productLookup_[obbjectShapeLocation];
+		const IfcProductSpatialData& currentProductData = productLookup_[obbjectShapeLocation];
 		return currentProductData.getProductShape();
 	}	
 }

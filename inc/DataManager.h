@@ -145,11 +145,11 @@ private:
 	
 	std::shared_mutex indexMutex_;
 	bgi::rtree<Value, bgi::rstar<treeDepth>> index_;
-	std::vector<std::unique_ptr<IfcProductSpatialData>> productLookup_;
+	std::vector<IfcProductSpatialData> productLookup_;
 
 	std::mutex spaceIndexMutex_;
 	bgi::rtree<Value, bgi::rstar<treeDepth>> spaceIndex_;
-	std::vector<std::unique_ptr<IfcProductSpatialData>> SpaceLookup_;
+	std::vector<IfcProductSpatialData> SpaceLookup_;
 
 	std::mutex convertMutex_;
 	std::mutex solidSemanticMutex_;
@@ -257,11 +257,11 @@ public:
 	/// get the pointer to the space objects index
 	const bgi::rtree<Value, bgi::rstar<treeDepth>>* getSpaceIndexPointer() { return &spaceIndex_; }
 	/// get the spatial/product data related to the space dividing objects index
-	const std::vector<std::unique_ptr<IfcProductSpatialData>>& getLookup() { return productLookup_; }
+	const std::vector<IfcProductSpatialData>& getLookup() { return productLookup_; }
 	/// get the spatial/product data related to the space dividing objects index
-	const IfcProductSpatialData& getLookup(int i) { return *productLookup_.at(i); }
+	const IfcProductSpatialData& getLookup(int i) { return productLookup_.at(i); }
 	/// get the spatial/product data related to the space dividing objects index
-	IfcProductSpatialData* getLookupPtr(int i) { return productLookup_.at(i).get(); }
+	IfcProductSpatialData* getLookupPtr(int i) { return &productLookup_.at(i); }
 	/// get all indexed object shapes
 	std::vector<TopoDS_Shape> getIndexedShapes();
 	/// get all interior BVO shapes
@@ -270,9 +270,9 @@ public:
 	std::vector<Value> getIndexedValues();
 
 	/// get the spatial/product data related to the space objects index
-	const IfcProductSpatialData& getSpaceLookup(int i) { return *SpaceLookup_.at(i); }
+	const IfcProductSpatialData& getSpaceLookup(int i) { return SpaceLookup_.at(i); }
 	/// get the spatial/product data related to the space objects index
-	IfcProductSpatialData* getSpaceLookupPtr(int i) { return SpaceLookup_.at(i).get(); }
+	IfcProductSpatialData* getSpaceLookupPtr(int i) { return &SpaceLookup_.at(i); }
 
 	// internalises the geometry while approximating a smallest bbox around the geometry
 	void internalizeGeo();

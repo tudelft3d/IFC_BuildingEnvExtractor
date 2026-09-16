@@ -364,6 +364,7 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 {
 	if (theShapeList.empty()) { return; }
 	double precision = SettingsCollection::getInstance().linearTolerance();
+	std::string layerName = "0\n";  //TODO: make this proper layer structure
 
 	std::ofstream dxfFile(targetPath);
 
@@ -395,11 +396,19 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 
 	for (const T& theShape : theShapeList)
 	{
+		dxfFile << "0\n";
+		dxfFile << "POLYLINE\n";
+		dxfFile << "8\n";
+		dxfFile << layerName;
+		dxfFile << "66\n";
+		dxfFile << "1\n";
+		dxfFile << "70\n";
+		dxfFile << "64\n";
+
+		int counter = 0;
 		for (TopExp_Explorer exp(theShape, TopAbs_FACE); exp.More(); exp.Next()) {
 			TopoDS_Face face = TopoDS::Face(exp.Current());
 			TopLoc_Location loc;
-
-			std::string layerName = "0\n";  //TODO: make this proper layer structure
 
 			auto mesh = BRep_Tool::Triangulation(face, loc);
 
@@ -416,49 +425,74 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 				flipTriangle = true;
 			}
 
-			if (helperFunctions::getPointCount(face) == 4)
-			{
-				dxfFile << "0\n";
-				dxfFile << "3DFACE\n";
-				dxfFile << "8\n";
-				dxfFile << layerName;
-
-				for (TopExp_Explorer faceExpl(face, TopAbs_WIRE); faceExpl.More(); faceExpl.Next())
-				{
-					TopoDS_Wire wire = TopoDS::Wire(faceExpl.Current());
-					BRepTools_WireExplorer wireExpl(wire);
-
-					int counter = 0;
-					while (wireExpl.More())
-					{
-						TopoDS_Vertex v = wireExpl.CurrentVertex();
-						gp_Pnt p = BRep_Tool::Pnt(v);
-						dxfFile << pointToString(p, counter);			
-						counter++;
-						wireExpl.Next();
-					}
-				}
-				continue;
-			}
 
 			for (int j = 1; j <= mesh.get()->NbTriangles(); j++)
 			{
 				const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
 
-				dxfFile << "0\n";
-				dxfFile << "3DFACE\n";
-				dxfFile << "8\n";
-				dxfFile << layerName;
-
-				for (size_t i = 1; i <= 4; i++)
+				if (flipTriangle)
 				{
-					gp_XYZ xyz;
-					if (i <= 3) { xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord(); }
-					else { xyz = mesh->Node(theTriangle(3)).Transformed(loc).Coord(); }			
-					dxfFile << pointToString(xyz, i - 1);
+					for (size_t i = 3; i >= 1; i--)
+					{
+						dxfFile << "0\n";
+						dxfFile << "VERTEX\n";
+						dxfFile << "8\n";
+						dxfFile << layerName;
+
+						gp_XYZ xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord();
+						dxfFile << pointToString(xyz, 0);
+
+						dxfFile << "70\n";
+						dxfFile << "192\n";
+					}
 				}
+				else
+				{
+					for (size_t i = 1; i < 4; i++)
+					{
+						dxfFile << "0\n";
+						dxfFile << "VERTEX\n";
+						dxfFile << "8\n";
+						dxfFile << layerName;
+
+						gp_XYZ xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord();
+						dxfFile << pointToString(xyz, 0);
+
+						dxfFile << "70\n";
+						dxfFile << "192\n";
+					}
+				}
+
+				
+				counter++;
 			}
+			
 		}
+
+		for (size_t i = 0; i < counter; i++)
+		{
+			int j = 3 * i;
+
+			dxfFile << "0\n";
+			dxfFile << "VERTEX\n";
+			dxfFile << "8\n";
+			dxfFile << layerName;
+
+			dxfFile << "71" << "\n";
+			dxfFile << j + 1 << "\n";
+			dxfFile << "72" << "\n";
+			dxfFile << j + 2 << "\n";
+			dxfFile << "73" << "\n";
+			dxfFile << j + 3 << "\n";
+
+			dxfFile << "70\n";
+			dxfFile << "128\n";
+		}
+
+		dxfFile << "0\n";
+		dxfFile << "SEQEND\n";
+		dxfFile << "8\n";
+		dxfFile << layerName;
 	}
 
 	dxfFile << "0\n";

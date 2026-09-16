@@ -202,7 +202,7 @@ void CJGeoCreator::garbageCollection()
 
 	if (!requireStoreyObjects && !storeyObjects_.empty())
 	{
-		std::vector<std::shared_ptr<CJT::CityObject>>().swap(storeyObjects_);
+		std::vector<CJT::CityObject>().swap(storeyObjects_);
 	}
 
 	if (!settingsCollection.make40() || finishedLoD40_)
@@ -669,8 +669,9 @@ void CJGeoCreator::SplitInAndOuterHFaces(const std::vector<TopoDS_Face>& inputFa
 			// get closest upper voxel
 			facePoint.SetZ(facePoint.Z() + SettingsCollection::getInstance().voxelSize() / 0.66);
 			int voxelIndx = voxelGrid_->getCloseByVoxel(facePoint);
-			voxel boxel = voxelGrid_->getVoxel(voxelIndx);
-			if (!boxel.getIsIntersecting() && !boxel.getIsInside())
+			voxel* boxel = voxelGrid_->getVoxelPtr(voxelIndx);
+
+			if (boxel == nullptr || !boxel->getIsIntersecting() && !boxel->getIsInside())
 			{
 				outerFaces.emplace_back(currentFace);
 				isFound = true;
@@ -2282,9 +2283,9 @@ std::vector<SurfaceGridPair> CJGeoCreator::getObjectTopSurfaces(const TopoDS_Sha
 }
 
 
-std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeStoreyObjects(DataManager* h)
+std::vector<CJT::CityObject> CJGeoCreator::makeStoreyObjects(DataManager* h)
 {
-	std::vector<std::shared_ptr<CJT::CityObject>> cityStoreyObjects;
+	std::vector<CJT::CityObject> cityStoreyObjects;
 	std::vector<double> elevList;
 
 	double precision = SettingsCollection::getInstance().linearTolerance();
@@ -2304,10 +2305,10 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeStoreyObjects(Da
 				if (abs(storeyElevation - otherStoreyElevation) > precision) { continue; }
 
 				// if already made merge the data
-				std::vector<std::string> guidList = cityStoreyObjects[i]->getAttributes()[CJObjectEnum::getString(CJObjectID::ifcGuid)].get<std::vector<std::string>>(); ;
+				std::vector<std::string> guidList = cityStoreyObjects[i].getAttributes()[CJObjectEnum::getString(CJObjectID::ifcGuid)].get<std::vector<std::string>>(); ;
 				guidList.emplace_back(storeyObject->GlobalId());
-				cityStoreyObjects[i]->removeAttribute(CJObjectEnum::getString(CJObjectID::ifcGuid));
-				cityStoreyObjects[i]->addAttribute<std::vector<std::string>>(CJObjectEnum::getString(CJObjectID::ifcGuid), { guidList });
+				cityStoreyObjects[i].removeAttribute(CJObjectEnum::getString(CJObjectID::ifcGuid));
+				cityStoreyObjects[i].addAttribute<std::vector<std::string>>(CJObjectEnum::getString(CJObjectID::ifcGuid), { guidList });
 				isDub = true;
 				break;
 			}
@@ -2328,7 +2329,7 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeStoreyObjects(Da
 			}
 			cityStoreyObject.addAttribute<std::vector<std::string>>(CJObjectEnum::getString(CJObjectID::ifcGuid), { storeyObject->GlobalId() });
 			cityStoreyObject.addAttribute(CJObjectEnum::getString(CJObjectID::ifcElevation), storeyObject->Elevation().get());
-			cityStoreyObjects.emplace_back(std::make_shared< CJT::CityObject>(cityStoreyObject));
+			cityStoreyObjects.emplace_back(cityStoreyObject);
 			elevList.emplace_back(storeyElevation);
 		}
 	}
@@ -2337,9 +2338,9 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeStoreyObjects(Da
 	return cityStoreyObjects;
 }
 
-std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeRoomObjects(DataManager* h, const std::vector<std::shared_ptr<CJT::CityObject>>& cityStoreyObjects)
+std::vector<CJT::CityObject> CJGeoCreator::makeRoomObjects(DataManager* h, std::vector<CJT::CityObject>& cityStoreyObjects)
 {
-	std::vector<std::shared_ptr<CJT::CityObject>> cityRoomObjects;
+	std::vector<CJT::CityObject> cityRoomObjects;
 
 	std::vector<std::pair<int, IfcSchema::IfcSpace*>> spacePairList;
 	for (size_t i = 0; i < h->getSourceFileCount(); i++)
@@ -2360,14 +2361,14 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeRoomObjects(Data
 		// check if proper kind of room object
 		if (spaceObject->CompositionType() == IfcSchema::IfcElementCompositionEnum::IfcElementComposition_ELEMENT)
 		{
-			std::shared_ptr<CJT::CityObject> cjRoomObject = std::make_unique<CJT::CityObject>();
+			CJT::CityObject cjRoomObject;
 
 			std::string roomName = CJObjectEnum::getString(CJObjectID::CJTypeNone);
 			// store generic data
 			if (spaceObject->Name().has_value())
 			{
 				roomName = *spaceObject->Name();
-				cjRoomObject->addAttribute(CJObjectEnum::getString(CJObjectID::ifcName), spaceObject->Name().get());
+				cjRoomObject.addAttribute(CJObjectEnum::getString(CJObjectID::ifcName), spaceObject->Name().get());
 			}
 
 			bool isFound = false;
@@ -2376,9 +2377,9 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeRoomObjects(Data
 
 			while (true)
 			{
-				for (const std::shared_ptr<CJT::CityObject>& otherSpace : cityRoomObjects)
+				for (const CJT::CityObject& otherSpace : cityRoomObjects)
 				{
-					if (roomName + addition != otherSpace->getName()) { continue; }
+					if (roomName + addition != otherSpace.getName()) { continue; }
 					isFound = true;
 					break;
 				}
@@ -2394,20 +2395,20 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeRoomObjects(Data
 			}
 	
 			roomName += addition;
-			cjRoomObject->setName(roomName);
+			cjRoomObject.setName(roomName);
 
 			if (spaceObject->LongName().has_value())
 			{
-				cjRoomObject->addAttribute(CJObjectEnum::getString(CJObjectID::ifcLongName), spaceObject->LongName().get());
+				cjRoomObject.addAttribute(CJObjectEnum::getString(CJObjectID::ifcLongName), spaceObject->LongName().get());
 			}
 
-			cjRoomObject->addAttribute(CJObjectEnum::getString(CJObjectID::ifcGuid), spaceObject->GlobalId());
-			cjRoomObject->setType(CJT::Building_Type::BuildingRoom);
+			cjRoomObject.addAttribute(CJObjectEnum::getString(CJObjectID::ifcGuid), spaceObject->GlobalId());
+			cjRoomObject.setType(CJT::Building_Type::BuildingRoom);
 
 			//store added data
 			nlohmann::json attributeList = helperFunctions::getAttributes(spaceObject);
 			for (auto jsonObIt = attributeList.begin(); jsonObIt != attributeList.end(); ++jsonObIt) {
-				cjRoomObject->addAttribute(jsonObIt.key(), jsonObIt.value());
+				cjRoomObject.addAttribute(jsonObIt.key(), jsonObIt.value());
 			}
 			// get rooms storey
 			bool storeyFound = false;
@@ -2433,14 +2434,14 @@ std::vector<std::shared_ptr<CJT::CityObject>> CJGeoCreator::makeRoomObjects(Data
 				}
 				std::string targetStoreyGuid = potentialStorey->GlobalId();
 
-				for (std::shared_ptr<CJT::CityObject> cjtStorey : cityStoreyObjects)
+				for (CJT::CityObject& cjtStorey : cityStoreyObjects)
 				{
-					std::vector<std::string> test = cjtStorey->getAttributes()[CJObjectEnum::getString(CJObjectID::ifcGuid)];
+					std::vector<std::string> test = cjtStorey.getAttributes()[CJObjectEnum::getString(CJObjectID::ifcGuid)];
 					for (const std::string& storeyGUI : test)
 					{
 						if (storeyGUI == targetStoreyGuid)
 						{
-							cjtStorey->addChild(cjRoomObject);
+							cjtStorey.addChild(&cjRoomObject);
 							storeyFound = true;
 							break;
 						}
@@ -2806,7 +2807,7 @@ void CJGeoCreator::monitorStoreys(std::mutex& storeyMutex, std::map<std::string,
 void CJGeoCreator::make2DStoreys(
 	DataManager* h,
 	CJT::Kernel* kernel,
-	std::vector<std::shared_ptr<CJT::CityObject>>& storeyCityObjects,
+	std::vector<CJT::CityObject>& storeyCityObjects,
 	int unitScale,
 	bool is03,
 	bool output
@@ -2837,7 +2838,7 @@ void CJGeoCreator::make2DStoreys(
 	std::map<std::string, int> storyProgressList;
 
 	std::vector<TopoDS_Shape> copyGeoList;
-	for (const std::shared_ptr<CJT::CityObject>& storeyCityObject : storeyObjects_)
+	for (CJT::CityObject& storeyCityObject : storeyObjects_)
 	{
 		//make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03);
 		threadList.emplace_back([&]() {make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03); });
@@ -2871,7 +2872,7 @@ void CJGeoCreator::make2DStorey(
 	std::mutex& storeyMutex,
 	DataManager* h,
 	CJT::Kernel* kernel,
-	const std::shared_ptr<CJT::CityObject>& storeyCityObject,
+	CJT::CityObject& storeyCityObject,
 	std::vector<TopoDS_Shape>& copyGeoList,
 	std::map<std::string, int>& progressMap,
 	int unitScale,
@@ -2888,7 +2889,7 @@ void CJGeoCreator::make2DStorey(
 	gp_Trsf trsf;
 	trsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
 
-	std::vector<std::string> storeyGuidList = storeyCityObject->getAttributes()["IFC Guid"];
+	std::vector<std::string> storeyGuidList = storeyCityObject.getAttributes()["IFC Guid"];
 	std::vector< IfcSchema::IfcBuildingStorey*> ifcStoreyList = fetchStoreyObjects(h, storeyGuidList);
 
 	IfcSchema::IfcBuildingStorey* ifcStorey = ifcStoreyList[0];
@@ -3045,16 +3046,16 @@ void CJGeoCreator::make2DStorey(
 		geoObject.appendSurfaceData(semanticStoreyData);
 		geoObject.appendSurfaceData(semanticExternalStoreyData);
 		geoObject.setSurfaceTypeValues(typeValueList);
-		storeyCityObject->addGeoObject(geoObject);
+		storeyCityObject.addGeoObject(geoObject);
 	}
-	storeyCityObject->addAttribute(CJObjectEnum::getString(CJObjectID::EnvLoDfloorArea) + LoDString, totalArea);
+	storeyCityObject.addAttribute(CJObjectEnum::getString(CJObjectID::EnvLoDfloorArea) + LoDString, totalArea);
 	storeyMutex.lock();
 	progressMap[storeyKey] = 1;
 	storeyMutex.unlock();
 	return;
 }
 
-void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::vector<std::shared_ptr<CJT::CityObject>>& roomCityObjects, int unitScale) {
+void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::vector<CJT::CityObject>& roomCityObjects, int unitScale) {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	gp_Trsf trsf;
@@ -3084,13 +3085,13 @@ void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::
 		IfcSchema::IfcSpace* spaceIfcObject = *spaceIt;
 		std::string spaceGuid = spaceIfcObject->GlobalId();
 		bool spaceFound = false;
-		std::shared_ptr<CJT::CityObject> matchingCityRoomObject;
-		for (std::shared_ptr<CJT::CityObject> roomCityObject : roomCityObjects)
+		CJT::CityObject* matchingCityRoomObject = nullptr;;
+		for (CJT::CityObject& roomCityObject : roomCityObjects)
 		{
-			if (spaceGuid == roomCityObject->getAttributes()[CJObjectEnum::getString(CJObjectID::ifcGuid)])
+			if (spaceGuid == roomCityObject.getAttributes()[CJObjectEnum::getString(CJObjectID::ifcGuid)])
 			{
 				spaceFound = true;
-				matchingCityRoomObject = roomCityObject;
+				matchingCityRoomObject = &roomCityObject;
 				break;
 			}
 		}
@@ -4313,15 +4314,15 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 	}
 	coreUse -= 1;
 
-	const std::vector<std::unique_ptr<IfcProductSpatialData>>& allSpatialObjects = h->getLookup();
+	const std::vector<IfcProductSpatialData>& allSpatialObjects = h->getLookup();
 
 	std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>> shapeProductList;
 	std::vector<int> scoreList;
 	int totalScore = 0;
-	for (const std::unique_ptr<IfcProductSpatialData>& spatialObjects : allSpatialObjects)
+	for (const IfcProductSpatialData& spatialObjects : allSpatialObjects)
 	{
-		TopoDS_Shape currentShape = spatialObjects->getProductShape();
-		IfcSchema::IfcProduct* currentProduct = spatialObjects->getProductPtr();
+		TopoDS_Shape currentShape = spatialObjects.getProductShape();
+		IfcSchema::IfcProduct* currentProduct = spatialObjects.getProductPtr();
 		shapeProductList.emplace_back(std::make_pair(currentShape, currentProduct));
 
 		int localScore = helperFunctions::getPointCount(currentShape);
@@ -4566,7 +4567,7 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 }
 
 
-void CJGeoCreator::makeComplexLoDRooms(DataManager* h, CJT::Kernel* kernel, std::vector<std::shared_ptr<CJT::CityObject>>& roomCityObjects, int unitScale) {	
+void CJGeoCreator::makeComplexLoDRooms(DataManager* h, CJT::Kernel* kernel, std::vector<CJT::CityObject>& roomCityObjects, int unitScale) {	
 	gp_Trsf localRotationTrsf;
 	localRotationTrsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -SettingsCollection::getInstance().gridRotation());
 
@@ -4589,13 +4590,13 @@ void CJGeoCreator::makeComplexLoDRooms(DataManager* h, CJT::Kernel* kernel, std:
 		std::string spaceGuid = spaceIfcObject->GlobalId();
 
 		bool spaceFound = false;
-		std::shared_ptr<CJT::CityObject> matchingCityRoomObject;
-		for (std::shared_ptr<CJT::CityObject> roomCityObject : roomCityObjects)
+		CJT::CityObject* matchingCityRoomObject = nullptr;
+		for (CJT::CityObject& roomCityObject : roomCityObjects)
 		{
-			if (spaceGuid == roomCityObject->getAttributes()[CJObjectEnum::getString(CJObjectID::ifcGuid)])
+			if (spaceGuid == roomCityObject.getAttributes()[CJObjectEnum::getString(CJObjectID::ifcGuid)])
 			{
 				spaceFound = true;
-				matchingCityRoomObject = roomCityObject;
+				matchingCityRoomObject = &roomCityObject;
 				break;
 			}
 		}
@@ -4763,7 +4764,7 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeV(DataManager* h, CJT::Kernel* ker
 	return geoObjectList;
 }
 
-void CJGeoCreator::makeVRooms(DataManager* h, CJT::Kernel* kernel, std::vector<std::shared_ptr<CJT::CityObject>>& storeyCityObjects, std::vector<std::shared_ptr<CJT::CityObject>>& roomCityObjects, int unitScale)
+void CJGeoCreator::makeVRooms(DataManager* h, CJT::Kernel* kernel, std::vector<CJT::CityObject>& storeyCityObjects, std::vector<CJT::CityObject>& roomCityObjects, int unitScale)
 {
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingLoD50Rooms) << std::endl;
 
@@ -4995,7 +4996,7 @@ void CJGeoCreator::processDirectionalFaces(int direction, int roomNum, std::mute
 	return;
 }
 
-void CJGeoCreator::makeVRoom(DataManager* h, CJT::Kernel* kernel, std::vector<std::shared_ptr<CJT::CityObject>>& storeyCityObjects, std::vector<std::shared_ptr<CJT::CityObject>>& roomCityObjects, int startIdx, int endIdx, std::mutex& roomListMutex, int unitScale)
+void CJGeoCreator::makeVRoom(DataManager* h, CJT::Kernel* kernel, std::vector<CJT::CityObject>& storeyCityObjects, std::vector<CJT::CityObject>& roomCityObjects, int startIdx, int endIdx, std::mutex& roomListMutex, int unitScale)
 {
 	bool genData = false;
 	if (!h->getSpaceIndexPointer()->size()) { genData = true; }
@@ -5010,7 +5011,7 @@ void CJGeoCreator::makeVRoom(DataManager* h, CJT::Kernel* kernel, std::vector<st
 		localRotationTrsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -SettingsCollection::getInstance().gridRotation());
 		sewedShape.Move(localRotationTrsf);
 
-		std::vector< std::shared_ptr<CJT::CityObject>> potentialRoomCityObjectList;
+		std::vector<CJT::CityObject*> potentialRoomCityObjectList;
 		if (!genData) { potentialRoomCityObjectList = fetchRoomObject(h, roomCityObjects, i); }
 
 		if (sewedShape.ShapeType() == TopAbs_COMPOUND)
@@ -5023,9 +5024,9 @@ void CJGeoCreator::makeVRoom(DataManager* h, CJT::Kernel* kernel, std::vector<st
 			if (!potentialRoomCityObjectList.size() || genData)
 			{
 				double lowestZ = helperFunctions::getLowestZ(sewedShape);
-				std::shared_ptr<CJT::CityObject> cjRoomObject = createDefaultRoomObject(storeyCityObjects, i, lowestZ);
-				if (!cjRoomObject->getParents().size()) { continue; }
-				cjRoomObject->addGeoObject(geoObject);
+				CJT::CityObject cjRoomObject = createDefaultRoomObject(storeyCityObjects, i, lowestZ);
+				if (!cjRoomObject.getParents().size()) { continue; }
+				cjRoomObject.addGeoObject(geoObject);
 				roomListMutex.lock();
 				roomCityObjects.emplace_back(cjRoomObject);
 				roomListMutex.unlock();
@@ -5054,10 +5055,10 @@ void CJGeoCreator::makeVRoom(DataManager* h, CJT::Kernel* kernel, std::vector<st
 		if (!potentialRoomCityObjectList.size() || genData)
 		{
 			double lowestZ = helperFunctions::getLowestZ(sewedShape);
-			std::shared_ptr<CJT::CityObject> cjRoomObject = createDefaultRoomObject(storeyCityObjects, i, lowestZ);
+			CJT::CityObject cjRoomObject = createDefaultRoomObject(storeyCityObjects, i, lowestZ);
 
-			if (!cjRoomObject->getParents().size()) { continue; }
-			cjRoomObject->addGeoObject(geoObject);
+			if (!cjRoomObject.getParents().size()) { continue; }
+			cjRoomObject.addGeoObject(geoObject);
 			roomListMutex.lock();
 			roomCityObjects.emplace_back(cjRoomObject);
 			roomListMutex.unlock();
@@ -5479,7 +5480,7 @@ void CJGeoCreator::extractInnerVoxelSummary(CJT::CityObject* shellObject, DataMa
 
 }
 
-std::vector < std::shared_ptr<CJT::CityObject >> CJGeoCreator::fetchRoomObject(DataManager* h, const std::vector<std::shared_ptr<CJT::CityObject>>& roomCityObjects, int roomNum)
+std::vector<CJT::CityObject*> CJGeoCreator::fetchRoomObject(DataManager* h, std::vector<CJT::CityObject>& roomCityObjects, int roomNum)
 {
 	gp_Pnt roomPoint = helperFunctions::rotatePointWorld(voxelGrid_->getPointInRoom(roomNum), 0); //TODO: update this to find all the room objects?
 	std::vector<Value> qResult;
@@ -5494,7 +5495,7 @@ std::vector < std::shared_ptr<CJT::CityObject >> CJGeoCreator::fetchRoomObject(D
 		std::back_inserter(qResult)
 	);
 
-	std::vector<std::shared_ptr<CJT::CityObject>> roomObjects;
+	std::vector<CJT::CityObject*> roomObjects;
 	for (size_t k = 0; k < qResult.size(); k++)
 	{
 		// find the room that point is located in
@@ -5512,11 +5513,11 @@ std::vector < std::shared_ptr<CJT::CityObject >> CJGeoCreator::fetchRoomObject(D
 
 		std::string guid = product->GlobalId();
 
-		for (std::shared_ptr<CJT::CityObject > roomCityObject : roomCityObjects)
+		for (CJT::CityObject& roomCityObject : roomCityObjects)
 		{
-			if (guid == roomCityObject->getAttributes()[CJObjectEnum::getString(CJObjectID::ifcGuid)])
+			if (guid == roomCityObject.getAttributes()[CJObjectEnum::getString(CJObjectID::ifcGuid)])
 			{
-				roomObjects.emplace_back(roomCityObject);
+				roomObjects.emplace_back(&roomCityObject);
 				break;
 			}
 		}
@@ -6230,17 +6231,17 @@ std::vector<Value> CJGeoCreator::getUniqueProductValues(const std::vector<int>& 
 }
 
 
-std::shared_ptr<CJT::CityObject> CJGeoCreator::createDefaultRoomObject(std::vector<std::shared_ptr<CJT::CityObject>>& storeyCityObjects, int roomNum, double lowestZ)
+CJT::CityObject CJGeoCreator::createDefaultRoomObject(std::vector<CJT::CityObject>& storeyCityObjects, int roomNum, double lowestZ)
 {
-	std::shared_ptr<CJT::CityObject> cjRoomObject = std::make_unique<CJT::CityObject>();
-	cjRoomObject->setName("generic " + std::to_string(roomNum));
-	cjRoomObject->setType(CJT::Building_Type::BuildingRoom);
+	CJT::CityObject cjRoomObject;
+	cjRoomObject.setName("generic " + std::to_string(roomNum));
+	cjRoomObject.setType(CJT::Building_Type::BuildingRoom);
 
 	double smallestZDistance = 999999;
 	int storeyIndx = -1;
 	for (int j = 0; j < storeyCityObjects.size(); j++)
 	{
-		nlohmann::json jsonElev = storeyCityObjects[j]->getAttributes()[CJObjectEnum::getString(CJObjectID::ifcElevation)];
+		nlohmann::json jsonElev = storeyCityObjects[j].getAttributes()[CJObjectEnum::getString(CJObjectID::ifcElevation)];
 		double zDistance = abs(static_cast<double>(jsonElev) - lowestZ);
 
 		if (smallestZDistance > zDistance)
@@ -6255,7 +6256,7 @@ std::shared_ptr<CJT::CityObject> CJGeoCreator::createDefaultRoomObject(std::vect
 		return cjRoomObject;
 	}
 
-	cjRoomObject->addParent(storeyCityObjects[storeyIndx]);
+	cjRoomObject.addParent(&storeyCityObjects[storeyIndx]);
 
 	return cjRoomObject;
 }

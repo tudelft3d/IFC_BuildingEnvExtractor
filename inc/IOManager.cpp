@@ -936,8 +936,8 @@ void IOManager::processInteriorLod(CJGeoCreator* geoCreator, std::shared_ptr<CJT
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	// get storey semantic objects
-	std::vector<std::shared_ptr<CJT::CityObject>> storeyObjects = geoCreator->makeStoreyObjects(internalDataManager_.get());
-	std::vector<std::shared_ptr<CJT::CityObject>> roomObjects = {};
+	std::vector<CJT::CityObject> storeyObjects = geoCreator->makeStoreyObjects(internalDataManager_.get());
+	std::vector<CJT::CityObject> roomObjects = {};
 
 	if (settingsCollection.make02() || settingsCollection.make12() || 
 		settingsCollection.make22() || settingsCollection.make32() ||
@@ -973,13 +973,13 @@ void IOManager::processInteriorLod(CJGeoCreator* geoCreator, std::shared_ptr<CJT
 
 	for (size_t i = 0; i < storeyObjects.size(); i++)
 	{
-		storeyObjects[i]->addParent(cityInnerShellObject);
-		collection->addCityObject(*storeyObjects[i].get());
+		storeyObjects[i].addParent(cityInnerShellObject);
+		collection->addCityObject(storeyObjects[i]);
 	}
 
 	for (size_t i = 0; i < roomObjects.size(); i++)
 	{
-		collection->addCityObject(*roomObjects[i].get());
+		collection->addCityObject(roomObjects[i]);
 	}
 	std::cout << "\n";
 	return;

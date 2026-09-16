@@ -334,8 +334,9 @@ The configuration json has a very simple structure. An example can be found belo
         "Merge semantic objects": 1,
     },
     "Output format" : {
-        "STEP file" : 1,
-        "OBJ file" : 1
+        "STEP file" : 0,
+        "OBJ file" : 0,
+        "DXF file" : 0
     },
     "Tolerances" : {
       "Linear tolerance" : 1e-6,
@@ -480,6 +481,10 @@ Optional:
 * :white_check_mark: "Output format" "OBJ file" :white_check_mark:
   * Boolean
   * Toggles the copying of the output shaped to a .obj file.
+  * Default value = false
+* :white_check_mark: "Output format" "DXF file" :white_check_mark:
+  * Boolean
+  * Toggles the copying of the output shaped to a .dxf file.
   * Default value = false
 * :ballot_box_with_check: "Tolerances" "Linear tolerance" :ballot_box_with_check:
   * Float/double

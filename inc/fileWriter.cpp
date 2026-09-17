@@ -100,7 +100,7 @@ std::string floatToString(double theValue)
 
 
 template <typename T>
-std::string pointToString(const T& thePoint, int i)
+std::string pointToDXFString(const T& thePoint, int i)
 {
 	std::stringstream outSteam;
 	outSteam << "1" << i << "\n";
@@ -109,6 +109,14 @@ std::string pointToString(const T& thePoint, int i)
 	outSteam << floatToString(thePoint.Y()) << "\n";
 	outSteam << "3" << i << "\n";
 	outSteam << floatToString(thePoint.Z()) << "\n";
+	return outSteam.str();
+}
+
+template <typename T>
+std::string pointToOBJString(const T& thePoint)
+{
+	std::stringstream outSteam;
+	outSteam << "v " << floatToString(thePoint.X()) << " " << floatToString(thePoint.Y()) << " " << floatToString(thePoint.Z()) << "\n";
 	return outSteam.str();
 }
 
@@ -248,14 +256,16 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 
 	double precision = SettingsCollection::getInstance().linearTolerance();
 
+	std::stringstream faceStringStream;
 	std::ofstream objFile(targetPath);
 	int vertIdxOffset = 1;
-	std::vector<std::vector<int>> nestedTriangleIndx;
 	std::unordered_map<IntXYZ, int, IntXYZ_Hash, IntXYZ_Equal> vertMap;
 
 	int counter = 0;
 	for (const T& theShape : theShapeList)
 	{
+		faceStringStream << "o " << counter <<"\n";
+
 		for (TopExp_Explorer exp(theShape, TopAbs_FACE); exp.More(); exp.Next()) {
 			TopoDS_Face face = TopoDS::Face(exp.Current());
 			TopLoc_Location loc;
@@ -278,9 +288,7 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 			for (int j = 1; j <= mesh.get()->NbTriangles(); j++)
 			{
 				const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
-
-				std::vector<int> triangleIndx = {};
-
+				faceStringStream << "f ";
 				if (flipTriangle)
 				{
 					for (size_t i = 3; i >= 1; i--)
@@ -290,12 +298,12 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 
 						if (vertMap.find(intXyz) != vertMap.end())
 						{
-							triangleIndx.emplace_back(vertMap[intXyz]);
+							faceStringStream << vertMap[intXyz] << " ";
 							continue;
 						}
 
-						objFile << "v " << floatToString(xyz.X()) << " " << floatToString(xyz.Y()) << " " << floatToString(xyz.Z()) << "\n";
-						triangleIndx.emplace_back(vertIdxOffset);
+						objFile << pointToOBJString(xyz);
+						faceStringStream << vertIdxOffset << " ";
 						vertMap.try_emplace(intXyz, vertIdxOffset);
 						vertIdxOffset++;
 					}
@@ -309,29 +317,22 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 
 						if (vertMap.find(intXyz) != vertMap.end())
 						{
-							triangleIndx.emplace_back(vertMap[intXyz]);
+							faceStringStream << vertMap[intXyz] << " ";
 							continue;
 						}
 
-						objFile << "v " << floatToString(xyz.X()) << " " << floatToString(xyz.Y()) << " " << floatToString(xyz.Z()) << "\n";
-						triangleIndx.emplace_back(vertIdxOffset);
+						objFile << pointToOBJString(xyz);
+						faceStringStream << vertIdxOffset << " ";
 						vertMap.try_emplace(intXyz, vertIdxOffset);
 						vertIdxOffset++;
 					}
 				}
-				nestedTriangleIndx.emplace_back(triangleIndx);
+				faceStringStream << "\n";
 			}
 		}
+		counter++;
 	}
-	for (const auto& triangleList : nestedTriangleIndx)
-	{
-		objFile << "f";
-		for (int indx : triangleList)
-		{
-			objFile << " " << indx;
-		}
-		objFile << "\n";
-	}
+	objFile << faceStringStream.str();
 	objFile.close();
 	return;
 }
@@ -440,7 +441,7 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 						dxfFile << layerName;
 
 						gp_XYZ xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord();
-						dxfFile << pointToString(xyz, 0);
+						dxfFile << pointToDXFString(xyz, 0);
 
 						dxfFile << "70\n";
 						dxfFile << "192\n";
@@ -456,7 +457,7 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 						dxfFile << layerName;
 
 						gp_XYZ xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord();
-						dxfFile << pointToString(xyz, 0);
+						dxfFile << pointToDXFString(xyz, 0);
 
 						dxfFile << "70\n";
 						dxfFile << "192\n";

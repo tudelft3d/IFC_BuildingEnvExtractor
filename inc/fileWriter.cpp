@@ -100,15 +100,48 @@ std::string floatToString(double theValue)
 
 
 template <typename T>
-std::string pointToDXFString(const T& thePoint, int i)
+std::string pointToDXFString(const T& thePoint, const std::string& layerName)
 {
 	std::stringstream outSteam;
-	outSteam << "1" << i << "\n";
+
+	outSteam << "0\n";
+	outSteam << "VERTEX\n";
+	outSteam << "8\n";
+	outSteam << layerName;
+
+	outSteam << "10" << "\n";
 	outSteam << floatToString(thePoint.X()) << "\n";
-	outSteam << "2" << i << "\n";
+	outSteam << "20" << "\n";
 	outSteam << floatToString(thePoint.Y()) << "\n";
-	outSteam << "3" << i << "\n";
+	outSteam << "30" << "\n";
 	outSteam << floatToString(thePoint.Z()) << "\n";
+
+	outSteam << "70\n";
+	outSteam << "192\n";
+
+	return outSteam.str();
+}
+
+
+std::string triangleToDXFString(int triangleIdx, const std::string& layerName) {
+
+	std::stringstream outSteam;
+
+	outSteam << "0\n";
+	outSteam << "VERTEX\n";
+	outSteam << "8\n";
+	outSteam << layerName;
+
+	outSteam << "71" << "\n";
+	outSteam << triangleIdx + 1 << "\n";
+	outSteam << "72" << "\n";
+	outSteam << triangleIdx + 2 << "\n";
+	outSteam << "73" << "\n";
+	outSteam << triangleIdx + 3 << "\n";
+
+	outSteam << "70\n";
+	outSteam << "128\n";
+
 	return outSteam.str();
 }
 
@@ -289,43 +322,23 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 			{
 				const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
 				faceStringStream << "f ";
-				if (flipTriangle)
+
+				for (int i = 1; i <= 3; ++i)
 				{
-					for (size_t i = 3; i >= 1; i--)
+					const int index = flipTriangle ? 4 - i : i;
+					gp_XYZ xyz = mesh->Node(theTriangle(index)).Transformed(loc).Coord();
+					IntXYZ intXyz = IntXYZ(xyz, 1 / precision);
+
+					if (vertMap.find(intXyz) != vertMap.end())
 					{
-						gp_XYZ xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord();
-						IntXYZ intXyz = IntXYZ(xyz, 1 / precision);
-
-						if (vertMap.find(intXyz) != vertMap.end())
-						{
-							faceStringStream << vertMap[intXyz] << " ";
-							continue;
-						}
-
-						objFile << pointToOBJString(xyz);
-						faceStringStream << vertIdxOffset << " ";
-						vertMap.try_emplace(intXyz, vertIdxOffset);
-						vertIdxOffset++;
+						faceStringStream << vertMap[intXyz] << " ";
+						continue;
 					}
-				}
-				else
-				{
-					for (size_t i = 1; i <= 3; i++)
-					{
-						gp_XYZ xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord();
-						IntXYZ intXyz = IntXYZ(xyz, 1 / precision);
 
-						if (vertMap.find(intXyz) != vertMap.end())
-						{
-							faceStringStream << vertMap[intXyz] << " ";
-							continue;
-						}
-
-						objFile << pointToOBJString(xyz);
-						faceStringStream << vertIdxOffset << " ";
-						vertMap.try_emplace(intXyz, vertIdxOffset);
-						vertIdxOffset++;
-					}
+					objFile << pointToOBJString(xyz);
+					faceStringStream << vertIdxOffset << " ";
+					vertMap.try_emplace(intXyz, vertIdxOffset);
+					vertIdxOffset++;
 				}
 				faceStringStream << "\n";
 			}
@@ -426,68 +439,23 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 				flipTriangle = true;
 			}
 
-
 			for (int j = 1; j <= mesh.get()->NbTriangles(); j++)
 			{
 				const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
 
-				if (flipTriangle)
+				for (int i = 1; i <= 3; ++i)
 				{
-					for (size_t i = 3; i >= 1; i--)
-					{
-						dxfFile << "0\n";
-						dxfFile << "VERTEX\n";
-						dxfFile << "8\n";
-						dxfFile << layerName;
-
-						gp_XYZ xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord();
-						dxfFile << pointToDXFString(xyz, 0);
-
-						dxfFile << "70\n";
-						dxfFile << "192\n";
-					}
+					const int index = flipTriangle ? 4 - i : i;
+					gp_XYZ xyz = mesh->Node(theTriangle(index)).Transformed(loc).Coord();
+					dxfFile << pointToDXFString(xyz, layerName);
 				}
-				else
-				{
-					for (size_t i = 1; i < 4; i++)
-					{
-						dxfFile << "0\n";
-						dxfFile << "VERTEX\n";
-						dxfFile << "8\n";
-						dxfFile << layerName;
-
-						gp_XYZ xyz = mesh->Node(theTriangle(i)).Transformed(loc).Coord();
-						dxfFile << pointToDXFString(xyz, 0);
-
-						dxfFile << "70\n";
-						dxfFile << "192\n";
-					}
-				}
-
-				
 				counter++;
-			}
-			
+			}			
 		}
 
 		for (size_t i = 0; i < counter; i++)
 		{
-			int j = 3 * i;
-
-			dxfFile << "0\n";
-			dxfFile << "VERTEX\n";
-			dxfFile << "8\n";
-			dxfFile << layerName;
-
-			dxfFile << "71" << "\n";
-			dxfFile << j + 1 << "\n";
-			dxfFile << "72" << "\n";
-			dxfFile << j + 2 << "\n";
-			dxfFile << "73" << "\n";
-			dxfFile << j + 3 << "\n";
-
-			dxfFile << "70\n";
-			dxfFile << "128\n";
+			dxfFile << triangleToDXFString(3 * i, layerName);
 		}
 
 		dxfFile << "0\n";

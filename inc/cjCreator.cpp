@@ -2838,11 +2838,13 @@ void CJGeoCreator::make2DStoreys(
 	std::map<std::string, int> storyProgressList;
 
 	std::vector<TopoDS_Shape> copyGeoList;
-	for (CJT::CityObject& storeyCityObject : storeyObjects_)
+	for (CJT::CityObject& storeyCityObject : storeyCityObjects)
 	{
 		//make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03);
 		threadList.emplace_back([&]() {make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03); });
 	}
+
+	
 
 	threadList.emplace_back([&] {monitorStoreys(storeyMutex, storyProgressList, storeyCityObjects.size()); });
 
@@ -2853,14 +2855,13 @@ void CJGeoCreator::make2DStoreys(
 	}
 
 	if (!output) { return; }
-
 	if (is03)
 	{
-		FileWriter::dumpToCopy(copyGeoList, FileWriter::FileNameID::LoD03);
+		FileWriter::dumpToCopy(copyGeoList, FileWriter::FileNameID::LoD03, false);
 	}
 	else
 	{
-		FileWriter::dumpToCopy(copyGeoList, FileWriter::FileNameID::LoD02);
+		FileWriter::dumpToCopy(copyGeoList, FileWriter::FileNameID::LoD02, false);
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -3041,7 +3042,6 @@ void CJGeoCreator::make2DStorey(
 		}
 
 		if (typeValueList.empty()) { continue; }
-
 		CJT::GeoObject geoObject = kernel->convertToJSON(collectionShape, LoDString, false, true);
 		geoObject.appendSurfaceData(semanticStoreyData);
 		geoObject.appendSurfaceData(semanticExternalStoreyData);

@@ -79,6 +79,6 @@ struct FileWriter {
 
 	/// write file to non-cityJSON output files
 	template <typename T>
-	static void dumpToCopy(const std::vector<T>& theShapeList, const FileWriter::FileNameID& targetLoD);
+	static void dumpToCopy(const std::vector<T>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior = true);
 };
 #endif // FILEWRITER_FILEWRITER_H

@@ -44,10 +44,10 @@ template void FileWriter::dumpToCopy<TopoDS_Solid>(const TopoDS_Solid& theShapeL
 template void FileWriter::dumpToCopy<TopoDS_Shape>(const TopoDS_Shape& theShapeList, const FileWriter::FileNameID& targetLoD);
 template void FileWriter::dumpToCopy<TopoDS_Compound>(const TopoDS_Compound& theShapeList, const FileWriter::FileNameID& targetLoD);
 
-template void FileWriter::dumpToCopy<TopoDS_Face>(const std::vector<TopoDS_Face>& theShapeList, const FileWriter::FileNameID& targetLoD);
-template void FileWriter::dumpToCopy<TopoDS_Shell>(const std::vector<TopoDS_Shell>& theShapeList, const FileWriter::FileNameID& targetLoD);
-template void FileWriter::dumpToCopy<TopoDS_Solid>(const std::vector<TopoDS_Solid>& theShapeList, const FileWriter::FileNameID& targetLoD);
-template void FileWriter::dumpToCopy<TopoDS_Shape>(const std::vector<TopoDS_Shape>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Face>(const std::vector<TopoDS_Face>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
+template void FileWriter::dumpToCopy<TopoDS_Shell>(const std::vector<TopoDS_Shell>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
+template void FileWriter::dumpToCopy<TopoDS_Solid>(const std::vector<TopoDS_Solid>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
+template void FileWriter::dumpToCopy<TopoDS_Shape>(const std::vector<TopoDS_Shape>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
 
 struct IntXYZ {
 	int64_t x, y, z;
@@ -481,24 +481,24 @@ void FileWriter::dumpToCopy(const T& theShape, const FileWriter::FileNameID& tar
 }
 
 template<typename T>
-void FileWriter::dumpToCopy(const std::vector<T>& theShapeList, const FileWriter::FileNameID& targetLoD)
+void FileWriter::dumpToCopy(const std::vector<T>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior)
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	std::string basePath = settingsCollection.getOutputBasePath();
 
 	if (settingsCollection.createOBJ())
 	{
-		writeToOBJ(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::OBJ));
+		writeToOBJ(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::OBJ, isExterior));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		writeToSTEP(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::STEP));
+		writeToSTEP(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::STEP, isExterior));
 	}
 
 	if (settingsCollection.createDXF())
 	{
-		writeToDXF(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::DXF));
+		writeToDXF(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::DXF, isExterior));
 	}
 	return;
 }

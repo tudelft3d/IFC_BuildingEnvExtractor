@@ -57,6 +57,12 @@ struct IntXYZ {
 		y = static_cast<int64_t>(std::floor(p.Y() * invTol + 0.5));
 		z = static_cast<int64_t>(std::floor(p.Z() * invTol + 0.5));
 	}
+	IntXYZ(const gp_Vec& p, double invTol) {
+		x = static_cast<int64_t>(std::floor(p.X() * invTol + 0.5));
+		y = static_cast<int64_t>(std::floor(p.Y() * invTol + 0.5));
+		z = static_cast<int64_t>(std::floor(p.Z() * invTol + 0.5));
+	}
+
 };
 
 struct IntXYZ_Hash {
@@ -290,9 +296,12 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 	double precision = SettingsCollection::getInstance().linearTolerance();
 
 	std::stringstream faceStringStream;
+	std::stringstream vertexNormalStream;
 	std::ofstream objFile(targetPath);
 	int vertIdxOffset = 1;
+	int normalIdxOffset = 1;
 	std::unordered_map<IntXYZ, int, IntXYZ_Hash, IntXYZ_Equal> vertMap;
+	std::unordered_map<IntXYZ, int, IntXYZ_Hash, IntXYZ_Equal> normalMap;
 
 	int counter = 0;
 	for (const T& theShape : theShapeList)
@@ -302,6 +311,8 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 		for (TopExp_Explorer exp(theShape, TopAbs_FACE); exp.More(); exp.Next()) {
 			TopoDS_Face face = TopoDS::Face(exp.Current());
 			TopLoc_Location loc;
+
+			gp_Vec currentNormal = helperFunctions::computeFaceNormal(face);
 
 			auto mesh = BRep_Tool::Triangulation(face, loc);
 
@@ -321,30 +332,51 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 			for (int j = 1; j <= mesh.get()->NbTriangles(); j++)
 			{
 				const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
-				faceStringStream << "f ";
+				faceStringStream << "f";
 
 				for (int i = 1; i <= 3; ++i)
 				{
+					// store the face vert indx
 					const int index = flipTriangle ? 4 - i : i;
 					gp_XYZ xyz = mesh->Node(theTriangle(index)).Transformed(loc).Coord();
 					IntXYZ intXyz = IntXYZ(xyz, 1 / precision);
-
 					if (vertMap.find(intXyz) != vertMap.end())
 					{
-						faceStringStream << vertMap[intXyz] << " ";
-						continue;
+						faceStringStream << " " << vertMap[intXyz];
+					}
+					else
+					{
+						faceStringStream << " " << vertIdxOffset;
+
+						// store the vert
+						objFile << pointToOBJString(xyz);
+						vertMap.try_emplace(intXyz, vertIdxOffset);
+						vertIdxOffset++;
 					}
 
-					objFile << pointToOBJString(xyz);
-					faceStringStream << vertIdxOffset << " ";
-					vertMap.try_emplace(intXyz, vertIdxOffset);
-					vertIdxOffset++;
+					// store the face vert normal
+
+					IntXYZ intNormal = IntXYZ(currentNormal, 1 / precision);
+					if (normalMap.find(intNormal) != normalMap.end())
+					{
+						faceStringStream << "//" << normalMap[intNormal];
+					}
+					else
+					{
+						faceStringStream << "//" << normalIdxOffset;
+
+						vertexNormalStream << "vn " << floatToString(currentNormal.X()) << " " << floatToString(currentNormal.Y()) << " " << floatToString(currentNormal.Z()) << "\n";
+						normalMap.try_emplace(intNormal, normalIdxOffset);
+						normalIdxOffset++;
+					}
 				}
 				faceStringStream << "\n";
 			}
 		}
 		counter++;
 	}
+
+	objFile << vertexNormalStream.str();
 	objFile << faceStringStream.str();
 	objFile.close();
 	return;

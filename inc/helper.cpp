@@ -3475,9 +3475,7 @@ std::vector<TopoDS_Face> helperFunctions::cullSmallVoids(const std::vector<TopoD
 		for (TopExp_Explorer expl(currentFace, TopAbs_WIRE); expl.More(); expl.Next())
 		{
 			TopoDS_Wire currentWire = TopoDS::Wire(expl.Current());
-
 			if (currentWire.IsEqual(outerWire)) { continue; }
-
 			if (computeArea(currentWire) < tSize)
 			{
 				wireRemoved = true;
@@ -4140,6 +4138,7 @@ double helperFunctions::computeArea(const TopoDS_Wire& wire)
 				throw std::string("surface is not flat");
 			}
 		}
+		points.emplace_back(currentPoint);
 	}
 
 	if (points.size() < 3)

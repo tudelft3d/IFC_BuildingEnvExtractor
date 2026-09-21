@@ -4256,7 +4256,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 
 	std::vector<std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>>> sublists = subListScore(shapeProductList, scoreList, targetScore);
 	std::vector< CJT::GeoObject> geoObjectList; // final output collection
-	std::vector<TopoDS_Shape> collectionShape;
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> collectionShape;
 	int counter = 0;
 	std::vector<std::thread> threadList;
 	std::mutex countMutex;
@@ -4331,7 +4331,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 
 	std::vector<std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>>> sublists = subListScore(shapeProductList, scoreList, targetScore);
 	std::vector< CJT::GeoObject> geoObjectList; // final output collection
-	std::vector<TopoDS_Shape> collectionShape;
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> collectionShape;
 	int counter = 0;
 	std::vector<std::thread> threadList;
 	std::mutex countMutex;
@@ -4363,7 +4363,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD42(DataManager* h, CJT::Kernel*
 	finishedLoD42_ = true;
 
 	std::vector< CJT::GeoObject> geoObjectList; // final output collection
-	std::vector<TopoDS_Shape> collectionShape;
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> collectionShape;
 	brepIFcElemToGeoObject(h, kernel, geoObjectList, collectionShape);
 	
 	FileWriter::dumpToCopy(collectionShape, FileWriter::FileNameID::LoD42);
@@ -4400,18 +4400,44 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel*
 	localRotationTrsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
 
 	BRep_Builder builder;
+
 	TopoDS_Compound collectionShape;
 	builder.MakeCompound(collectionShape);
 
 	std::vector<nlohmann::json> SurfaceTypeCollection;
 	std::vector<int> typeValueList;
 	setLoD32SurfaceAttributes(SurfaceTypeCollection, typeValueList, LoDE1Faces_, h);
+
+	std::map< IfcSchema::IfcProduct*, TopoDS_Compound> compoundMap;
 	for (const std::pair<TopoDS_Face, IfcSchema::IfcProduct*>& currentFacePair : LoDE1Faces_)
 	{
-		const TopoDS_Face& currentFace = currentFacePair.first;
+		IfcSchema::IfcProduct* currentProductPtr = currentFacePair.second;
+
+		TopoDS_Face currentFace = currentFacePair.first;
+		currentFace.Move(localRotationTrsf);
+
 		builder.Add(collectionShape, currentFace);
+
+		if (compoundMap.find(currentProductPtr) != compoundMap.end())
+		{
+			TopoDS_Compound& matchedComp = compoundMap[currentProductPtr];
+			builder.Add(matchedComp, currentFace);
+			continue;
+		}
+
+		TopoDS_Compound newComp;
+		builder.MakeCompound(newComp);
+		builder.Add(newComp, currentFace);
+		compoundMap[currentProductPtr] = newComp;
 	}
-	collectionShape.Move(localRotationTrsf);
+
+	std::vector<TopoDS_Compound> compoundShape;
+	compoundShape.reserve(compoundMap.size());
+	for (const std::pair<IfcSchema::IfcProduct*, TopoDS_Compound>& currentFacePair : compoundMap)
+	{
+		compoundShape.emplace_back(currentFacePair.second);
+	}
+
 
 	CJT::GeoObject geoObject = kernel->convertToJSON(collectionShape, "e.1");
 	geoObject.setSurfaceTypeValues(typeValueList);
@@ -4419,7 +4445,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel*
 	geoObject.setSurfaceData(SurfaceTypeCollection);
 	geoObjectList.emplace_back(geoObject);
 
-	FileWriter::dumpToCopy(collectionShape, FileWriter::FileNameID::LoDe1);
+	FileWriter::dumpToCopy(compoundShape, FileWriter::FileNameID::LoDe1);
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
@@ -5892,7 +5918,7 @@ void CJGeoCreator::valueToGeoObject(
 	std::mutex& countMutex,
 	int& totalObjectsProcessed, 
 	std::vector<CJT::GeoObject>& geoObjectListOut, 
-	std::vector<TopoDS_Shape>& collectionShapeOut,
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& collectionShapeOut,
 	const int num
 )
 {
@@ -5935,14 +5961,20 @@ void CJGeoCreator::valueToGeoObject(
 		geoObject.setSurfaceTypeValues(TypeValueList);
 		geoObject.appendSurfaceData(attributeMap);
 
+		FileWriter::storageObject storageItem;
+		storageItem.guid = currentProduct->GlobalId();
+		storageItem.objectType = currentProduct->declaration().name();
+
+		std::pair<TopoDS_Shape, FileWriter::storageObject> collectionPair = std::make_pair(cleanShape, storageItem);
+
 		std::lock_guard<std::mutex> listGuard(listMutex);
 		geoObjectListOut.emplace_back(geoObject);
-		collectionShapeOut.emplace_back(cleanShape);
+		collectionShapeOut.emplace_back(collectionPair);
 	}
 	return;
 }
 
-void CJGeoCreator::productToGeoObject(DataManager* h, CJT::Kernel* kernel, const std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>>& shapeProductPairList, const gp_Trsf& localTrans, bool filterIsExternal, std::mutex& listMutex, std::mutex& countMutex, int& totalObjectsProcessed, std::vector<CJT::GeoObject>& geoObjectListOut, std::vector<TopoDS_Shape>& collectionShapeOut, const int num)
+void CJGeoCreator::productToGeoObject(DataManager* h, CJT::Kernel* kernel, const std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>>& shapeProductPairList, const gp_Trsf& localTrans, bool filterIsExternal, std::mutex& listMutex, std::mutex& countMutex, int& totalObjectsProcessed, std::vector<CJT::GeoObject>& geoObjectListOut, std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& collectionShapeOut, const int num)
 {
 	std::string lodNum = "4.1";
 	if (filterIsExternal) { lodNum = "4.0"; }
@@ -5982,14 +6014,20 @@ void CJGeoCreator::productToGeoObject(DataManager* h, CJT::Kernel* kernel, const
 		geoObject.setSurfaceTypeValues(TypeValueList);
 		geoObject.appendSurfaceData(attributeMap);
 
+		FileWriter::storageObject storageItem;
+		storageItem.guid = currentProduct->GlobalId();
+		storageItem.objectType = currentProduct->declaration().name();
+
+		std::pair<TopoDS_Shape, FileWriter::storageObject> collectionPair = std::make_pair(cleanShape, storageItem);
+
 		std::lock_guard<std::mutex> listGuard(listMutex);
 		geoObjectListOut.emplace_back(geoObject);
-		collectionShapeOut.emplace_back(cleanShape);
+		collectionShapeOut.emplace_back(collectionPair);
 	}
 	return;
 }
 
-void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* cjtKernel, std::vector<CJT::GeoObject>& geoObjectList, std::vector<TopoDS_Shape>& collectionShape)
+void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* cjtKernel, std::vector<CJT::GeoObject>& geoObjectList, std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& collectionShape)
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
@@ -6100,7 +6138,7 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h,
 	const std::string& LoDnr, 
 	std::set<std::string>& uniqueKeySet,
 	std::vector< CJT::GeoObject>& geoObjectListOut, 
-	std::vector<TopoDS_Shape>& collectionShapeOut
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& collectionShapeOut
 )
 {
 	gp_Trsf objectTranslation = h->getObjectTranslation();
@@ -6161,9 +6199,15 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h,
 			geoObject.setSurfaceTypeValues(TypeValueList);
 			geoObject.appendSurfaceData(attributeMap);
 
+			FileWriter::storageObject storageItem;
+			storageItem.guid = productGuid;
+			storageItem.objectType = productType;
+
+			std::pair<TopoDS_Shape, FileWriter::storageObject> collectionPair = std::make_pair(cleanShape, storageItem);
+
 			std::lock_guard<std::mutex> listGuard(listMutex);
 			geoObjectListOut.emplace_back(geoObject);
-			collectionShapeOut.emplace_back(cleanShape);
+			collectionShapeOut.emplace_back(collectionPair);
 		}
 		catch (const std::exception&)
 		{

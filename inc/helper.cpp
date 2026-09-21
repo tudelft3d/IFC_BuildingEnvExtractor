@@ -3908,8 +3908,7 @@ nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcProduct* ifcPr
 			
 		
 		if (auto* ifcSpace = ifcProduct->as<IfcSchema::IfcSpace>())
-		{
-			
+		{			
 			boost::optional<std::string> optonalLongName = ifcSpace->LongName();
 			if (optionalType.has_value()) { attributesList["LongName"] = optonalLongName.get(); }
 			else { attributesList["LongName"] = "None"; }
@@ -3928,7 +3927,6 @@ nlohmann::json helperFunctions::getAttributes(const IfcSchema::IfcProduct* ifcPr
 			if (optionalType.has_value()) { attributesList["LongName"] = optonalLongName.get(); }
 			else { attributesList["LongName"] = "None"; }
 		}
-
 	}
 
 	// get pset data

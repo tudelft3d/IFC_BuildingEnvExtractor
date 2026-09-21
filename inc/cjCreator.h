@@ -3,6 +3,7 @@
 #include "settingsCollection.h"
 #include "voxel.h"
 #include "voxelGrid.h"
+#include "fileWriter.h"
 
 #include <chrono>
 #include <CJToKernel.h>
@@ -369,7 +370,7 @@ private:
 		std::mutex& countMutex,
 		int& totalObjectsProcessed, 
 		std::vector<CJT::GeoObject>& geoObjectListOut, 
-		std::vector<TopoDS_Shape>& collectionShapeOut,
+		std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& collectionShapeOut,
 		const int num);
 
 	void productToGeoObject(
@@ -382,10 +383,10 @@ private:
 		std::mutex& countMutex,
 		int& totalObjectsProcessed,
 		std::vector<CJT::GeoObject>& geoObjectListOut,
-		std::vector<TopoDS_Shape>& collectionShapeOut,
+		std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& collectionShapeOut,
 		const int num);
 
-	void brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* cjtKernel, std::vector< CJT::GeoObject>& geoObjectList, std::vector<TopoDS_Shape>& collectionShape);
+	void brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* cjtKernel, std::vector< CJT::GeoObject>& geoObjectList, std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& collectionShape);
 
 	void brepIFcElemToGeoObject(
 		DataManager* h, 
@@ -398,7 +399,7 @@ private:
 		const std::string& LoDnr,
 		std::set<std::string>& uniqueKeySet,
 		std::vector< CJT::GeoObject>& geoObjectList,
-		std::vector<TopoDS_Shape>& collectionShape
+		std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& collectionShape
 	);
 
 public:

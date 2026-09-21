@@ -11,33 +11,6 @@
 #include "fileWriter.h"
 #include "helper.h"
 
-template void FileWriter::writeToSTEP<TopoDS_Face>(const std::vector<TopoDS_Face>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToSTEP<TopoDS_Shell>(const std::vector<TopoDS_Shell>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToSTEP<TopoDS_Solid>(const std::vector<TopoDS_Solid>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToSTEP<TopoDS_Shape>(const std::vector<TopoDS_Shape>& theShapeList, const std::string& targetPath);
-
-template void FileWriter::writeToSTEP<TopoDS_Face>(const std::vector<std::vector<TopoDS_Face>>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToSTEP<TopoDS_Shell>(const std::vector<std::vector<TopoDS_Shell>>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToSTEP<TopoDS_Solid>(const std::vector<std::vector<TopoDS_Solid>>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToSTEP<TopoDS_Shape>(const std::vector<std::vector<TopoDS_Shape>>& theShapeList, const std::string& targetPath);
-
-template void FileWriter::writeToOBJ<TopoDS_Face>(const TopoDS_Face& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToOBJ<TopoDS_Shell>(const TopoDS_Shell& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToOBJ<TopoDS_Solid>(const TopoDS_Solid& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToOBJ<TopoDS_Shape>(const TopoDS_Shape& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToOBJ<TopoDS_Compound>(const TopoDS_Compound& theShapeList, const std::string& targetPath);
-
-template void FileWriter::writeToOBJ<TopoDS_Face>(const std::vector<TopoDS_Face>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToOBJ<TopoDS_Shell>(const std::vector<TopoDS_Shell>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToOBJ<TopoDS_Solid>(const std::vector<TopoDS_Solid>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToOBJ<TopoDS_Shape>(const std::vector<TopoDS_Shape>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToOBJ<TopoDS_Compound>(const std::vector<TopoDS_Compound>& theShapeList, const std::string& targetPath);
-
-template void FileWriter::writeToOBJ<TopoDS_Face>(const std::vector<std::vector<TopoDS_Face>>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToOBJ<TopoDS_Shell>(const std::vector<std::vector<TopoDS_Shell>>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToOBJ<TopoDS_Solid>(const std::vector<std::vector<TopoDS_Solid>>& theShapeList, const std::string& targetPath);
-template void FileWriter::writeToOBJ<TopoDS_Shape>(const std::vector<std::vector<TopoDS_Shape>>& theShapeList, const std::string& targetPath);
-
 template void FileWriter::dumpToCopy<TopoDS_Face>(const TopoDS_Face& theShapeList, const FileWriter::FileNameID& targetLoD);
 template void FileWriter::dumpToCopy<TopoDS_Shell>(const TopoDS_Shell& theShapeList, const FileWriter::FileNameID& targetLoD);
 template void FileWriter::dumpToCopy<TopoDS_Solid>(const TopoDS_Solid& theShapeList, const FileWriter::FileNameID& targetLoD);
@@ -48,6 +21,13 @@ template void FileWriter::dumpToCopy<TopoDS_Face>(const std::vector<TopoDS_Face>
 template void FileWriter::dumpToCopy<TopoDS_Shell>(const std::vector<TopoDS_Shell>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
 template void FileWriter::dumpToCopy<TopoDS_Solid>(const std::vector<TopoDS_Solid>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
 template void FileWriter::dumpToCopy<TopoDS_Shape>(const std::vector<TopoDS_Shape>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
+template void FileWriter::dumpToCopy<TopoDS_Compound>(const std::vector<TopoDS_Compound>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
+
+template void FileWriter::dumpToCopy<TopoDS_Face>(const std::vector<std::pair<TopoDS_Face, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
+template void FileWriter::dumpToCopy<TopoDS_Shell>(const std::vector<std::pair<TopoDS_Shell, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
+template void FileWriter::dumpToCopy<TopoDS_Solid>(const std::vector<std::pair<TopoDS_Solid, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
+template void FileWriter::dumpToCopy<TopoDS_Shape>(const std::vector<std::pair<TopoDS_Shape, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
+template void FileWriter::dumpToCopy<TopoDS_Compound>(const std::vector<std::pair<TopoDS_Compound, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
 
 struct IntXYZ {
 	int64_t x, y, z;
@@ -113,7 +93,7 @@ std::string pointToDXFString(const T& thePoint, const std::string& layerName)
 	outSteam << "0\n";
 	outSteam << "VERTEX\n";
 	outSteam << "8\n";
-	outSteam << layerName;
+	outSteam << layerName << "\n";
 
 	outSteam << "10" << "\n";
 	outSteam << floatToString(thePoint.X()) << "\n";
@@ -136,7 +116,7 @@ std::string triangleToDXFString(int triangleIdx, const std::string& layerName) {
 	outSteam << "0\n";
 	outSteam << "VERTEX\n";
 	outSteam << "8\n";
-	outSteam << layerName;
+	outSteam << layerName << "\n";
 
 	outSteam << "71" << "\n";
 	outSteam << triangleIdx + 1 << "\n";
@@ -159,6 +139,14 @@ std::string pointToOBJString(const T& thePoint)
 	return outSteam.str();
 }
 
+template <typename T>
+std::string normalToOBJString(const T& thePoint)
+{
+	std::stringstream outSteam;
+	outSteam << "vn " << floatToString(thePoint.X()) << " " << floatToString(thePoint.Y()) << " " << floatToString(thePoint.Z()) << "\n";
+	return outSteam.str();
+}
+
 std::string FileWriter::FileExtensionEnum::getString(FileExtensionID id)
 {
 	switch (id) {
@@ -170,7 +158,6 @@ std::string FileWriter::FileExtensionEnum::getString(FileExtensionID id)
 		return ".step";
 	case FileExtensionID::DXF:
 		return ".dxf";
-
 	default:
 		return "";
 	}
@@ -220,28 +207,13 @@ std::string FileWriter::FileNameEnum::getString(FileNameID name, FileExtensionID
 		return dash + locationTag + "LoD32" + fileExternsion;
 	case FileNameID::LoD50:
 		return dash + locationTag + "LoD50" + fileExternsion;
-
 	default:
 		return "";
 	}
 }
 
-
-void FileWriter::writeToSTEP(const TopoDS_Shape& theShape, const std::string& targetPath)
-{
-	std::stringstream buffer;
-	std::streambuf* originalBuffer = std::cout.rdbuf(buffer.rdbuf());
-
-	STEPControl_Writer writer;
-	writer.Transfer(theShape, STEPControl_AsIs);
-	IFSelect_ReturnStatus stat = writer.Write(targetPath.c_str());
-
-	std::cout.rdbuf(originalBuffer);
-	return;
-}
-
 template <typename T>
-void FileWriter::writeToSTEP(const std::vector<T>& theShapeList, const std::string& targetPath)
+void FileWriter::writeToSTEP(const std::vector<std::pair<T, storageObject>>& theShapeList, const std::string& targetPath)
 {
 	std::stringstream buffer;
 	std::streambuf* originalBuffer = std::cout.rdbuf(buffer.rdbuf());
@@ -249,9 +221,9 @@ void FileWriter::writeToSTEP(const std::vector<T>& theShapeList, const std::stri
 	TopoDS_Compound compound;
 	BRep_Builder builder;
 	builder.MakeCompound(compound);
-	for (const T& shape : theShapeList)
+	for (const auto& shape : theShapeList)
 	{
-		builder.Add(compound, shape);
+		builder.Add(compound, shape.first);
 	}
 
 	STEPControl_Writer writer;
@@ -263,33 +235,7 @@ void FileWriter::writeToSTEP(const std::vector<T>& theShapeList, const std::stri
 }
 
 template <typename T>
-void FileWriter::writeToSTEP(const std::vector<std::vector<T>>& theShapeList, const std::string& targetPath)
-{
-	std::stringstream buffer;
-	std::streambuf* originalBuffer = std::cout.rdbuf(buffer.rdbuf());
-
-	STEPControl_Writer writer;
-	for (const auto& nestedList : theShapeList)
-	{
-		for (const T& shape : nestedList) { writer.Transfer(shape, STEPControl_AsIs); }
-	}
-
-	IFSelect_ReturnStatus stat = writer.Write(targetPath.c_str());
-
-	std::cout.rdbuf(originalBuffer);
-	return;
-}
-
-template <typename T>
-void FileWriter::writeToOBJ(const T& theShape, const std::string& targetPath)
-{
-	std::vector<T> shapeList = { theShape };
-	writeToOBJ(shapeList, targetPath);
-	return;
-}
-
-template <typename T>
-void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::string& targetPath)
+void FileWriter::writeToOBJ(const std::vector<std::pair<T, storageObject>>& theShapeList, const std::string& targetPath)
 {
 	if (theShapeList.empty()) { return; }
 
@@ -304,11 +250,19 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 	std::unordered_map<IntXYZ, int, IntXYZ_Hash, IntXYZ_Equal> normalMap;
 
 	int counter = 0;
-	for (const T& theShape : theShapeList)
+	for (const auto& theShapePair : theShapeList)
 	{
-		faceStringStream << "o " << counter <<"\n";
+		storageObject currentShapeData = theShapePair.second;
+		if (currentShapeData.isNull())
+		{
+			faceStringStream << "g " << counter << "\n";
+		}
+		else
+		{
+			faceStringStream << "g " << currentShapeData.objectType << " " << currentShapeData.guid << "\n";
+		}
 
-		for (TopExp_Explorer exp(theShape, TopAbs_FACE); exp.More(); exp.Next()) {
+		for (TopExp_Explorer exp(theShapePair.first, TopAbs_FACE); exp.More(); exp.Next()) {
 			TopoDS_Face face = TopoDS::Face(exp.Current());
 			TopLoc_Location loc;
 
@@ -365,7 +319,7 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 					{
 						faceStringStream << "//" << normalIdxOffset;
 
-						vertexNormalStream << "vn " << floatToString(currentNormal.X()) << " " << floatToString(currentNormal.Y()) << " " << floatToString(currentNormal.Z()) << "\n";
+						vertexNormalStream << normalToOBJString(currentNormal);
 						normalMap.try_emplace(intNormal, normalIdxOffset);
 						normalIdxOffset++;
 					}
@@ -382,35 +336,11 @@ void FileWriter::writeToOBJ(const std::vector<T>& theShapeList, const std::strin
 	return;
 }
 
-template <typename T>
-void FileWriter::writeToOBJ(const std::vector<std::vector<T>>& theShapeList, const std::string& targetPath)
-{
-	std::vector<T> flattenedSurfList;
-	for (const auto& surfList : theShapeList)
-	{
-		for (const auto& theSurf : surfList)
-		{
-			flattenedSurfList.emplace_back(theSurf);
-		}
-	}
-	writeToOBJ(flattenedSurfList, targetPath);
-	return;
-}
-
 template<typename T>
-void FileWriter::writeToDXF(const T& theShape, const std::string& targetPath)
-{
-	std::vector<T> shapeList = { theShape };
-	writeToDXF(shapeList, targetPath);
-	return;
-}
-
-template<typename T>
-void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::string& targetPath)
+void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theShapeList, const std::string& targetPath)
 {
 	if (theShapeList.empty()) { return; }
 	double precision = SettingsCollection::getInstance().linearTolerance();
-	std::string layerName = "0\n";  //TODO: make this proper layer structure
 
 	std::ofstream dxfFile(targetPath);
 
@@ -440,19 +370,38 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 	dxfFile << "2\n";
 	dxfFile << "ENTITIES\n";
 
-	for (const T& theShape : theShapeList)
+	for (const auto& theShapePair : theShapeList)
 	{
+		storageObject currentShapeData = theShapePair.second;
+		std::string layerName = currentShapeData.isNull() ? "0" : currentShapeData.objectType;
+
 		dxfFile << "0\n";
 		dxfFile << "POLYLINE\n";
 		dxfFile << "8\n";
-		dxfFile << layerName;
+		dxfFile << layerName << "\n";
+
+		if (!currentShapeData.isNull())
+		{
+			if (currentShapeData.objectType == "IfcWindow")
+			{
+				dxfFile << "62\n";
+				dxfFile << "5\n";
+			}
+			else if (currentShapeData.objectType == "IfcDoor")
+			{
+				dxfFile << "62\n";
+				dxfFile << "34\n";
+			}
+		}
+
+		
 		dxfFile << "66\n";
 		dxfFile << "1\n";
 		dxfFile << "70\n";
 		dxfFile << "64\n";
 
 		int counter = 0;
-		for (TopExp_Explorer exp(theShape, TopAbs_FACE); exp.More(); exp.Next()) {
+		for (TopExp_Explorer exp(theShapePair.first, TopAbs_FACE); exp.More(); exp.Next()) {
 			TopoDS_Face face = TopoDS::Face(exp.Current());
 			TopLoc_Location loc;
 
@@ -493,7 +442,7 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 		dxfFile << "0\n";
 		dxfFile << "SEQEND\n";
 		dxfFile << "8\n";
-		dxfFile << layerName;
+		dxfFile << layerName << "\n";
 	}
 
 	dxfFile << "0\n";
@@ -507,13 +456,26 @@ void FileWriter::writeToDXF(const std::vector<T>& theShapeList, const std::strin
 template<typename T>
 void FileWriter::dumpToCopy(const T& theShape, const FileWriter::FileNameID& targetLoD)
 {
-	std::vector<T> shapeList = { theShape };
+	std::vector<std::pair<T, storageObject > >shapeList = { std::make_pair(theShape, storageObject()) };
 	dumpToCopy(shapeList, targetLoD);
 	return;
 }
 
 template<typename T>
 void FileWriter::dumpToCopy(const std::vector<T>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior)
+{
+	std::vector<std::pair<T, storageObject>> copyList;
+
+	for (const T& theShape : theShapeList)
+	{
+		copyList.emplace_back(std::make_pair(theShape, storageObject()));
+	}
+	dumpToCopy(copyList, targetLoD, isExterior);
+}
+
+
+template<typename T>
+void FileWriter::dumpToCopy(const std::vector<std::pair<T, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior)
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	std::string basePath = settingsCollection.getOutputBasePath();

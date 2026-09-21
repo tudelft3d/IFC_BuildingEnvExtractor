@@ -46,32 +46,27 @@ struct FileWriter {
 		static std::string getString(FileNameID name, FileExtensionID id, bool isExterior = true);
 	};
 
-	/// write shape to step
-	static void writeToSTEP(const TopoDS_Shape& theShape, const std::string& targetPath);
-	/// write list of shapes to step
-	template <typename T>
-	static void writeToSTEP(const std::vector<T>& theShapeList, const std::string& targetPath);
-	/// write list of shapes to step
-	template <typename T>
-	static void writeToSTEP(const std::vector<std::vector<T>>& theShapeList, const std::string& targetPath);
+	struct storageObject {
+		std::string guid = "";
+		std::string storeyName = "";
+		std::string objectType = "";
 
-	/// write shape to obj
+		bool isNull() {
+			return (guid.size() + storeyName.size() + objectType.size()) == 0;
+		}
+	};
+
+	/// write list of shapes to step
 	template <typename T>
-	static void writeToOBJ(const T& theShape, const std::string& targetPath);
+	static void writeToSTEP(const std::vector<std::pair<T, storageObject>>& theShapeList, const std::string& targetPath);
+
 	/// write list of shapes to obj
 	template <typename T>
-	static void writeToOBJ(const std::vector<T>& theShapeList, const std::string& targetPath);
-	/// write list of shapes to obj
-	template <typename T>
-	static void writeToOBJ(const std::vector<std::vector<T>>& theShapeList, const std::string& targetPath);
+	static void writeToOBJ(const std::vector<std::pair<T, storageObject>>& theShapeList, const std::string& targetPath);
 
 	/// write shape to DXF
 	template <typename T>
-	static void writeToDXF(const T& theShape, const std::string& targetPath);
-
-	/// write shape to DXF
-	template <typename T>
-	static void writeToDXF(const std::vector<T>& theShapeList, const std::string& targetPath);
+	static void writeToDXF(const std::vector<std::pair<T, storageObject>>& theShapeList, const std::string& targetPath);
 
 	/// write file to non-cityJSON output files
 	template <typename T>
@@ -80,5 +75,9 @@ struct FileWriter {
 	/// write file to non-cityJSON output files
 	template <typename T>
 	static void dumpToCopy(const std::vector<T>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior = true);
+
+	/// write file to non-cityJSON output files
+	template <typename T>
+	static void dumpToCopy(const std::vector<std::pair<T, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior = true);
 };
 #endif // FILEWRITER_FILEWRITER_H

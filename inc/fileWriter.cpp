@@ -147,6 +147,81 @@ std::string triangleToDXFString(int triangleIdx, const std::string& layerName) {
 }
 
 template <typename T>
+std::string meshToDXFString(const T& theShape, const std::string& layerName) {
+
+	std::stringstream outSteam;
+
+	int counter = 0;
+	for (TopExp_Explorer exp(theShape, TopAbs_FACE); exp.More(); exp.Next()) {
+		TopoDS_Face face = TopoDS::Face(exp.Current());
+		TopLoc_Location loc;
+
+		auto mesh = BRep_Tool::Triangulation(face, loc);
+
+		if (mesh.IsNull())
+		{
+			helperFunctions::triangulateShape(face);
+			mesh = BRep_Tool::Triangulation(face, loc);
+		}
+		if (mesh.IsNull()) { continue; }
+
+		bool flipTriangle = (face.Orientation() == TopAbs_REVERSED);
+
+		for (int j = 1; j <= mesh.get()->NbTriangles(); j++)
+		{
+			const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
+
+			for (int i = 1; i <= 3; ++i)
+			{
+				const int index = flipTriangle ? 4 - i : i;
+				gp_XYZ xyz = mesh->Node(theTriangle(index)).Transformed(loc).Coord();
+				outSteam << pointToDXFString(xyz, layerName);
+			}
+			counter++;
+		}
+	}
+
+	for (size_t i = 0; i < counter; i++)
+	{
+		outSteam << triangleToDXFString(3 * i, layerName);
+	}
+
+	return outSteam.str();
+}
+
+std::string writeDXFGroups(int objectIdx, const std::map<std::string, std::vector<int>>& storeyGroupMap)
+{
+	std::stringstream outSteam;
+
+	for (const std::pair<std::string, std::vector<int>>& currentStorey : storeyGroupMap)
+	{
+		objectIdx++;
+		outSteam << "0\n";
+		outSteam << "GROUP\n";
+		outSteam << "5\n";
+		outSteam << objectIdx << "\n";
+
+		outSteam << "100\n";
+		outSteam << "AcDbGroup\n";
+		outSteam << "300\n";
+		outSteam << currentStorey.first << "\n";
+
+		outSteam << "70\n";
+		outSteam << "0\n";
+		outSteam << "71\n";
+		outSteam << currentStorey.second.size() << "\n";
+
+
+		for (int currentId : currentStorey.second)
+		{
+			outSteam << "340\n";
+			outSteam << currentId << "\n";
+		}
+	}
+	return outSteam.str();
+}
+
+template <typename T>
 std::string pointToOBJString(const T& thePoint)
 {
 	std::stringstream outSteam;
@@ -292,11 +367,7 @@ void FileWriter::writeToOBJ(const std::vector<std::pair<T, storageObject>>& theS
 			}
 			if (mesh.IsNull()) { continue; }
 
-			bool flipTriangle = false;
-			if (face.Orientation() == TopAbs_REVERSED)
-			{
-				flipTriangle = true;
-			}
+			bool flipTriangle = (face.Orientation() == TopAbs_REVERSED);
 
 			for (int j = 1; j <= mesh.get()->NbTriangles(); j++)
 			{
@@ -437,44 +508,7 @@ void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theS
 		dxfFile << "70\n";
 		dxfFile << "64\n";
 
-		int counter = 0;
-		for (TopExp_Explorer exp(theShapePair.first, TopAbs_FACE); exp.More(); exp.Next()) {
-			TopoDS_Face face = TopoDS::Face(exp.Current());
-			TopLoc_Location loc;
-
-			auto mesh = BRep_Tool::Triangulation(face, loc);
-
-			if (mesh.IsNull())
-			{
-				helperFunctions::triangulateShape(face);
-				mesh = BRep_Tool::Triangulation(face, loc);
-			}
-			if (mesh.IsNull()) { continue; }
-
-			bool flipTriangle = false;
-			if (face.Orientation() == TopAbs_REVERSED)
-			{
-				flipTriangle = true;
-			}
-
-			for (int j = 1; j <= mesh.get()->NbTriangles(); j++)
-			{
-				const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
-
-				for (int i = 1; i <= 3; ++i)
-				{
-					const int index = flipTriangle ? 4 - i : i;
-					gp_XYZ xyz = mesh->Node(theTriangle(index)).Transformed(loc).Coord();
-					dxfFile << pointToDXFString(xyz, layerName);
-				}
-				counter++;
-			}			
-		}
-
-		for (size_t i = 0; i < counter; i++)
-		{
-			dxfFile << triangleToDXFString(3 * i, layerName);
-		}
+		dxfFile << meshToDXFString(theShapePair.first, layerName);
 
 		dxfFile << "0\n";
 		dxfFile << "SEQEND\n";
@@ -482,32 +516,8 @@ void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theS
 		dxfFile << layerName << "\n";
 	}
 
-	for (const std::pair<std::string, std::vector<int>>& currentStorey : storeyGroupMap)
-	{
-		objectCounter++;
-		dxfFile << "0\n";
-		dxfFile << "GROUP\n";
-		dxfFile << "5\n";
-		dxfFile << objectCounter << "\n";
-
-		dxfFile << "100\n";
-		dxfFile << "AcDbGroup\n";
-		dxfFile << "300\n";
-		dxfFile << currentStorey.first << "\n";
-
-		dxfFile << "70\n";
-		dxfFile << "0\n";
-		dxfFile << "71\n";
-		dxfFile << currentStorey.second.size() << "\n";
-
-
-		for (int currentId : currentStorey.second)
-		{
-			dxfFile << "340\n";
-			dxfFile << currentId << "\n";
-		}
-	}
-
+	dxfFile << writeDXFGroups(objectCounter, storeyGroupMap);
+	
 	dxfFile << "0\n";
 	dxfFile << "ENDSEC\n";
 	dxfFile << "0\n";

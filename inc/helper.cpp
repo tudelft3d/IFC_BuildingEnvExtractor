@@ -3639,9 +3639,11 @@ IfcSchema::IfcBuildingStorey* helperFunctions::getBuildingStorey(const IfcSchema
 		auto* currentContainedInStructureItem = (*containedInStructureIt)->as<IfcSchema::IfcRelContainedInSpatialStructure>();
 
 		if (currentContainedInStructureItem == nullptr) { continue; }
-
+#if defined(USE_IFC2x3) 
+		IfcSchema::IfcSpatialStructureElement* potentialStoreyObject = currentContainedInStructureItem->RelatingStructure();
+#else
 		IfcSchema::IfcSpatialElement* potentialStoreyObject = currentContainedInStructureItem->RelatingStructure();
-
+#endif
 		if (potentialStoreyObject->declaration().name() != "IfcBuildingStorey")
 		{
 			continue;

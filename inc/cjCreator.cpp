@@ -6018,6 +6018,12 @@ void CJGeoCreator::productToGeoObject(DataManager* h, CJT::Kernel* kernel, const
 		storageItem.guid = currentProduct->GlobalId();
 		storageItem.objectType = currentProduct->declaration().name();
 
+		const IfcSchema::IfcBuildingStorey* currentStorey = helperFunctions::getBuildingStorey(currentProduct);
+		if (currentStorey != nullptr && currentStorey->Name() != boost::none)
+		{
+			storageItem.storeyName = *currentStorey->Name();
+		}
+
 		std::pair<TopoDS_Shape, FileWriter::storageObject> collectionPair = std::make_pair(cleanShape, storageItem);
 
 		std::lock_guard<std::mutex> listGuard(listMutex);
@@ -6202,6 +6208,12 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h,
 			FileWriter::storageObject storageItem;
 			storageItem.guid = productGuid;
 			storageItem.objectType = productType;
+
+			const IfcSchema::IfcBuildingStorey* currentStorey = helperFunctions::getBuildingStorey(product);
+			if (currentStorey != nullptr && currentStorey->Name() != boost::none)
+			{
+				storageItem.storeyName = *currentStorey->Name();
+			}
 
 			std::pair<TopoDS_Shape, FileWriter::storageObject> collectionPair = std::make_pair(cleanShape, storageItem);
 

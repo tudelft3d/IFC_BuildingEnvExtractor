@@ -3631,6 +3631,33 @@ double helperFunctions::getObjectZOffset(IfcSchema::IfcObjectPlacement* objectPl
 	return offset + getObjectZOffset(localObjectPlacement, deepOnly);
 }
 
+IfcSchema::IfcBuildingStorey* helperFunctions::getBuildingStorey(const IfcSchema::IfcProduct* currentProduct)
+{
+	auto containedStructureList = currentProduct->get_inverse("ContainedInStructure");
+	for (auto containedInStructureIt = containedStructureList->begin(); containedInStructureIt != containedStructureList->end(); ++containedInStructureIt)
+	{
+		auto* currentContainedInStructureItem = (*containedInStructureIt)->as<IfcSchema::IfcRelContainedInSpatialStructure>();
+
+		if (currentContainedInStructureItem == nullptr) { continue; }
+
+		IfcSchema::IfcSpatialElement* potentialStoreyObject = currentContainedInStructureItem->RelatingStructure();
+
+		if (potentialStoreyObject->declaration().name() != "IfcBuildingStorey")
+		{
+			continue;
+		}
+
+		IfcSchema::IfcBuildingStorey* storeyObject = potentialStoreyObject->as<IfcSchema::IfcBuildingStorey>();
+
+		if (storeyObject == nullptr)
+		{
+			continue;
+		}
+		return storeyObject;
+	}
+	return nullptr;
+}
+
 bool helperFunctions::hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct)
 {
 	IfcSchema::IfcRelAssociates::list::ptr associations = ifcProduct->HasAssociations();

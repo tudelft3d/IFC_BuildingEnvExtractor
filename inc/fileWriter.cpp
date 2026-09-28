@@ -342,6 +342,8 @@ void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theS
 	if (theShapeList.empty()) { return; }
 	double precision = SettingsCollection::getInstance().linearTolerance();
 
+	std::map<std::string, std::vector<int>> storeyGroupMap;
+
 	std::ofstream dxfFile(targetPath);
 
 	// create the DXF header
@@ -370,13 +372,34 @@ void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theS
 	dxfFile << "2\n";
 	dxfFile << "ENTITIES\n";
 
+	int objectCounter = 0;
 	for (const auto& theShapePair : theShapeList)
 	{
+		objectCounter++;
+
 		storageObject currentShapeData = theShapePair.second;
-		std::string layerName = currentShapeData.isNull() ? "0" : currentShapeData.objectType;
+		std::string layerName = currentShapeData.isNull() ? "Default" : currentShapeData.objectType;
+
+		if (!currentShapeData.isNull())
+		{
+			if (storeyGroupMap.find(currentShapeData.storeyName) == storeyGroupMap.end())
+			{
+				storeyGroupMap[currentShapeData.storeyName] = { objectCounter };
+			}
+			else
+			{
+				storeyGroupMap.at(currentShapeData.storeyName).emplace_back(objectCounter);
+			}
+		}
 
 		dxfFile << "0\n";
 		dxfFile << "POLYLINE\n";
+		if (!currentShapeData.isNull())
+		{
+			dxfFile << "5\n";
+			dxfFile << objectCounter << "\n";
+		}
+
 		dxfFile << "8\n";
 		dxfFile << layerName << "\n";
 
@@ -393,7 +416,6 @@ void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theS
 				dxfFile << "34\n";
 			}
 		}
-
 		
 		dxfFile << "66\n";
 		dxfFile << "1\n";
@@ -443,6 +465,32 @@ void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theS
 		dxfFile << "SEQEND\n";
 		dxfFile << "8\n";
 		dxfFile << layerName << "\n";
+	}
+
+	for (const std::pair<std::string, std::vector<int>>& currentStorey : storeyGroupMap)
+	{
+		objectCounter++;
+		dxfFile << "0\n";
+		dxfFile << "GROUP\n";
+		dxfFile << "5\n";
+		dxfFile << objectCounter << "\n";
+
+		dxfFile << "100\n";
+		dxfFile << "AcDbGroup\n";
+		dxfFile << "300\n";
+		dxfFile << currentStorey.first << "\n";
+
+		dxfFile << "70\n";
+		dxfFile << "0\n";
+		dxfFile << "71\n";
+		dxfFile << currentStorey.second.size() << "\n";
+
+
+		for (int currentId : currentStorey.second)
+		{
+			dxfFile << "340\n";
+			dxfFile << currentId << "\n";
+		}
 	}
 
 	dxfFile << "0\n";

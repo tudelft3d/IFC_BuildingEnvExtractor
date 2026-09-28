@@ -430,6 +430,8 @@ struct helperFunctions{
 
 	/// get the z value stored in the IfcObjectPlacement 
 	static double getObjectZOffset(IfcSchema::IfcObjectPlacement* objectPlacement, bool deepOnly);
+	/// get buildingstorey at which a product is located
+	static IfcSchema::IfcBuildingStorey* getBuildingStorey(const IfcSchema::IfcProduct* currentProduct);
 	/// evaluates if product has glass material related to it
 	static bool hasGlassMaterial(const IfcSchema::IfcProduct* ifcProduct);
 	/// evaluates if product has the IsExternal attribute set to true

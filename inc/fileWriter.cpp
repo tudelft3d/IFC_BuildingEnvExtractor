@@ -124,7 +124,7 @@ std::string pointToDXFString(const T& thePoint, const std::string& layerName)
 }
 
 
-std::string triangleToDXFString(int triangleIdx, const std::string& layerName) {
+std::string triangleToDXFString(const std::array<int, 3>& triangleArray, const std::string& layerName) {
 
 	std::stringstream outSteam;
 
@@ -134,11 +134,11 @@ std::string triangleToDXFString(int triangleIdx, const std::string& layerName) {
 	outSteam << layerName << "\n";
 
 	outSteam << "71" << "\n";
-	outSteam << triangleIdx + 1 << "\n";
+	outSteam << triangleArray[0] << "\n";
 	outSteam << "72" << "\n";
-	outSteam << triangleIdx + 2 << "\n";
+	outSteam << triangleArray[1] << "\n";
 	outSteam << "73" << "\n";
-	outSteam << triangleIdx + 3 << "\n";
+	outSteam << triangleArray[2] << "\n";
 
 	outSteam << "70\n";
 	outSteam << "128\n";
@@ -149,7 +149,13 @@ std::string triangleToDXFString(int triangleIdx, const std::string& layerName) {
 template <typename T>
 std::string meshToDXFString(const T& theShape, const std::string& layerName) {
 
-	std::stringstream outSteam;
+	double precision = SettingsCollection::getInstance().linearTolerance();
+
+	std::stringstream vertStream;
+	std::stringstream triangleStream;
+
+	int vertIdxOffset = 1;
+	std::unordered_map<IntXYZ, int, IntXYZ_Hash, IntXYZ_Equal> vertMap;
 
 	int counter = 0;
 	for (TopExp_Explorer exp(theShape, TopAbs_FACE); exp.More(); exp.Next()) {
@@ -171,22 +177,35 @@ std::string meshToDXFString(const T& theShape, const std::string& layerName) {
 		{
 			const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
 
-			for (int i = 1; i <= 3; ++i)
+			std::array<int, 3> triangleIdx;
+
+			for (int i = 0; i < 3; ++i)
 			{
-				const int index = flipTriangle ? 4 - i : i;
+				const int index = flipTriangle ? 3 - i : i + 1;
 				gp_XYZ xyz = mesh->Node(theTriangle(index)).Transformed(loc).Coord();
-				outSteam << pointToDXFString(xyz, layerName);
+				IntXYZ intXyz = IntXYZ(xyz, 1 / precision);
+
+				if (vertMap.find(intXyz) != vertMap.end())
+				{
+					triangleIdx[i] = vertMap[intXyz];
+				}
+				else
+				{
+					vertStream << pointToDXFString(xyz, layerName);
+					vertMap.try_emplace(intXyz, vertIdxOffset);
+					
+					triangleIdx[i] = vertIdxOffset;
+					vertIdxOffset++;
+				}
 			}
+
+			triangleStream << triangleToDXFString(triangleIdx, layerName);
 			counter++;
 		}
 	}
 
-	for (size_t i = 0; i < counter; i++)
-	{
-		outSteam << triangleToDXFString(3 * i, layerName);
-	}
-
-	return outSteam.str();
+	vertStream << triangleStream.str();
+	return vertStream.str();
 }
 
 std::string writeDXFGroups(int objectIdx, const std::map<std::string, std::vector<int>>& storeyGroupMap)

@@ -259,7 +259,7 @@ void FileWriter::writeToOBJ(const std::vector<std::pair<T, storageObject>>& theS
 		}
 		else
 		{
-			faceStringStream << "g " << currentShapeData.objectType << " " << currentShapeData.guid << "\n";
+			faceStringStream << "g " << currentShapeData.storeyName << " " << currentShapeData.objectType << " " << currentShapeData.guid << "\n";
 		}
 
 		for (TopExp_Explorer exp(theShapePair.first, TopAbs_FACE); exp.More(); exp.Next()) {

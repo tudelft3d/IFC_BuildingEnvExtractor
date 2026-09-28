@@ -60,6 +60,21 @@ struct IntXYZ_Equal {
 	}
 };
 
+std::string replaceSpace(const std::string& inputString) {
+
+	std::string outputString;
+	for (const char& currentChar : inputString)
+	{
+		if (currentChar == ' ')
+		{
+			outputString += "_";
+			continue;
+		}
+		outputString += currentChar;
+	}
+	return outputString;
+}
+
 
 std::string floatToString(double theValue)
 {
@@ -259,7 +274,7 @@ void FileWriter::writeToOBJ(const std::vector<std::pair<T, storageObject>>& theS
 		}
 		else
 		{
-			faceStringStream << "g " << currentShapeData.storeyName << " " << currentShapeData.objectType << " " << currentShapeData.guid << "\n";
+			faceStringStream << "g " << replaceSpace(currentShapeData.storeyName) << " " << currentShapeData.objectType << " " << currentShapeData.guid << "\n";
 		}
 
 		for (TopExp_Explorer exp(theShapePair.first, TopAbs_FACE); exp.More(); exp.Next()) {

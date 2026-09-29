@@ -54,6 +54,24 @@ struct FileWriter {
 		bool isNull() {
 			return (guid.size() + storeyName.size() + objectType.size()) == 0;
 		}
+
+		bool hasGuidData() {
+			return !guid.empty();
+		}
+
+		bool hasStoreyData() {
+			return !storeyName.empty();
+		}
+
+		bool hasObjectType() {
+			return !objectType.empty();
+		}
+
+		storageObject() {};
+		storageObject(const std::string& objectId) { guid = objectId; };
+
+		std::string getOBJString();
+
 	};
 
 	/// write list of shapes to step
@@ -70,11 +88,7 @@ struct FileWriter {
 
 	/// write file to non-cityJSON output files
 	template <typename T>
-	static void dumpToCopy(const T& theShape, const FileWriter::FileNameID& targetLoD);
-
-	/// write file to non-cityJSON output files
-	template <typename T>
-	static void dumpToCopy(const std::vector<T>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior = true);
+	static void dumpToCopy(const std::pair<T, storageObject>& theShape, const FileWriter::FileNameID& targetLoD);
 
 	/// write file to non-cityJSON output files
 	template <typename T>

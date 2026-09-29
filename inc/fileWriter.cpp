@@ -11,17 +11,11 @@
 #include "fileWriter.h"
 #include "helper.h"
 
-template void FileWriter::dumpToCopy<TopoDS_Face>(const TopoDS_Face& theShapeList, const FileWriter::FileNameID& targetLoD);
-template void FileWriter::dumpToCopy<TopoDS_Shell>(const TopoDS_Shell& theShapeList, const FileWriter::FileNameID& targetLoD);
-template void FileWriter::dumpToCopy<TopoDS_Solid>(const TopoDS_Solid& theShapeList, const FileWriter::FileNameID& targetLoD);
-template void FileWriter::dumpToCopy<TopoDS_Shape>(const TopoDS_Shape& theShapeList, const FileWriter::FileNameID& targetLoD);
-template void FileWriter::dumpToCopy<TopoDS_Compound>(const TopoDS_Compound& theShapeList, const FileWriter::FileNameID& targetLoD);
-
-template void FileWriter::dumpToCopy<TopoDS_Face>(const std::vector<TopoDS_Face>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
-template void FileWriter::dumpToCopy<TopoDS_Shell>(const std::vector<TopoDS_Shell>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
-template void FileWriter::dumpToCopy<TopoDS_Solid>(const std::vector<TopoDS_Solid>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
-template void FileWriter::dumpToCopy<TopoDS_Shape>(const std::vector<TopoDS_Shape>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
-template void FileWriter::dumpToCopy<TopoDS_Compound>(const std::vector<TopoDS_Compound>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExerior);
+template void FileWriter::dumpToCopy<TopoDS_Face>(const std::pair<TopoDS_Face, storageObject>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Shell>(const std::pair<TopoDS_Shell, storageObject>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Solid>(const std::pair<TopoDS_Solid, storageObject>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Shape>(const std::pair<TopoDS_Shape, storageObject>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Compound>(const std::pair<TopoDS_Compound, storageObject>& theShapeList, const FileWriter::FileNameID& targetLoD);
 
 template void FileWriter::dumpToCopy<TopoDS_Face>(const std::vector<std::pair<TopoDS_Face, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
 template void FileWriter::dumpToCopy<TopoDS_Shell>(const std::vector<std::pair<TopoDS_Shell, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
@@ -368,7 +362,7 @@ void FileWriter::writeToOBJ(const std::vector<std::pair<T, storageObject>>& theS
 		}
 		else
 		{
-			faceStringStream << "g " << replaceSpace(currentShapeData.storeyName) << " " << currentShapeData.objectType << " " << currentShapeData.guid << "\n";
+			faceStringStream << currentShapeData.getOBJString() << "\n";
 		}
 
 		for (TopExp_Explorer exp(theShapePair.first, TopAbs_FACE); exp.More(); exp.Next()) {
@@ -483,9 +477,13 @@ void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theS
 		objectCounter++;
 
 		storageObject currentShapeData = theShapePair.second;
-		std::string layerName = currentShapeData.isNull() ? "Default" : currentShapeData.objectType;
 
-		if (!currentShapeData.isNull())
+		std::string layerName = "Default";
+		if (currentShapeData.hasObjectType()) { layerName = currentShapeData.objectType; }
+		else if (currentShapeData.hasGuidData()) { layerName = currentShapeData.guid; }
+			
+
+		if (!currentShapeData.hasStoreyData())
 		{
 			if (storeyGroupMap.find(currentShapeData.storeyName) == storeyGroupMap.end())
 			{
@@ -499,7 +497,7 @@ void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theS
 
 		dxfFile << "0\n";
 		dxfFile << "POLYLINE\n";
-		if (!currentShapeData.isNull())
+		if (!currentShapeData.hasStoreyData())
 		{
 			dxfFile << "5\n";
 			dxfFile << objectCounter << "\n";
@@ -508,7 +506,7 @@ void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theS
 		dxfFile << "8\n";
 		dxfFile << layerName << "\n";
 
-		if (!currentShapeData.isNull())
+		if (!currentShapeData.hasObjectType())
 		{
 			if (currentShapeData.objectType == "IfcWindow")
 			{
@@ -546,23 +544,11 @@ void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theS
 }
 
 template<typename T>
-void FileWriter::dumpToCopy(const T& theShape, const FileWriter::FileNameID& targetLoD)
+void FileWriter::dumpToCopy(const std::pair<T, storageObject>& theShape, const FileWriter::FileNameID& targetLoD)
 {
-	std::vector<std::pair<T, storageObject > >shapeList = { std::make_pair(theShape, storageObject()) };
-	dumpToCopy(shapeList, targetLoD);
+	std::vector<std::pair<T, storageObject>> theShapeList = { theShape };
+	dumpToCopy(theShapeList, targetLoD, false);
 	return;
-}
-
-template<typename T>
-void FileWriter::dumpToCopy(const std::vector<T>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior)
-{
-	std::vector<std::pair<T, storageObject>> copyList;
-
-	for (const T& theShape : theShapeList)
-	{
-		copyList.emplace_back(std::make_pair(theShape, storageObject()));
-	}
-	dumpToCopy(copyList, targetLoD, isExterior);
 }
 
 
@@ -587,4 +573,22 @@ void FileWriter::dumpToCopy(const std::vector<std::pair<T, storageObject>>& theS
 		writeToDXF(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::DXF, isExterior));
 	}
 	return;
+}
+
+std::string FileWriter::storageObject::getOBJString()
+{
+	std::string outString = "g";
+	if (!guid.empty())
+	{
+		outString += " " + replaceSpace(guid);
+	}
+	if (!storeyName.empty())
+	{
+		outString += " " + replaceSpace(storeyName);
+	}
+	if (!storeyName.empty())
+	{
+		outString += " " + replaceSpace(objectType);
+	}
+	return outString;
 }

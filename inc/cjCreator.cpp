@@ -4515,7 +4515,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel*
 	compoundShape.reserve(compoundMap.size());
 	for (const std::pair<IfcSchema::IfcProduct*, TopoDS_Compound>& currentFacePair : compoundMap)
 	{
-		FileWriter::storageObject storageObject(currentFacePair.first->declaration().name());
+		FileWriter::storageObject storageObject(currentFacePair.first->GlobalId(), *helperFunctions::getBuildingStorey(currentFacePair.first)->Name(),  currentFacePair.first->declaration().name());
 		compoundShape.emplace_back(std::pair(currentFacePair.second, storageObject));
 	}
 

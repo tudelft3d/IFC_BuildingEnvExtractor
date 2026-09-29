@@ -3,11 +3,11 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD034 -->
 
-The IfcEnvelopeExtractor enables users to automatically abstract BIM models (IFC) to format compliant GIS models (CityJSON, STEP, and OBJ). Automating this process allows designs/BIM models to be quickly and easily placed into a GIS environment without the need of a lengthy manual conversion or without the need of surveying data. This can be used to evaluate BIM models with GIS scale analysis methods without compromise but it can also be used to update GIS scale models faster and with more detail (such as overhang and facade/roof openings) than is currently possible. The converter builds on the LoD framework developed by the TU Delft [(Biljecki et al., 2016)](#2). The software can create CityJSON models with overhang (LoD3/3.2) and interior spaces and/or storeys (LoD0.2, 0.3, 1.2, 2.2, 3.2). The capabilities of the application has been expanded by experimental LoD that fall outside of this framework that utilize the data of BIM.
+The IfcEnvelopeExtractor enables users to automatically abstract BIM models (IFC) to format compliant GIS models (CityJSON, STEP, DXF, and OBJ). Automating this process allows designs/BIM models to quickly and easily be placed into a GIS environment without the need of a lengthy manual conversion or without the need of surveying data. This can be used to evaluate BIM models with GIS scale analysis methods without compromise but it can also be used to update GIS scale models faster and with more detail (such as overhang and facade/roof openings) than is currently possible. The converter builds and expands on the LoD framework developed by the TU Delft [(Biljecki et al., 2016)](#2). The software can create CityJSON models with overhang (LoD3/3.2, LoDV, and LoDe) and interior spaces and/or storeys (LoD0.2, 0.3, 1.2, 2.2, and 3.2). The capabilities of the application has been expanded by experimental LoD that fall outside of this framework that utilize the data of BIM.
 
 The development of this conversion process is one of the steps required to close the gap between architecture/BIM and GIS/city scale models.
 
-**Development of this tool is funded up until the end of August 2026.**
+**Development of this tool is funded up until the end of November 2026.**
 
 ![Output of the IfcEnvelopeExtractor](https://raw.githubusercontent.com/jaspervdv/IFC_BuildingEnvExtractor/master/Images/EnvExtractorExample.gif "An example of the created LoD envelopes based on an input file")
 
@@ -66,6 +66,11 @@ This application and the related research has been funded by multiple parties:
 * [Geonovum](https://www.geonovum.nl/) (2025)
 * [VNG](https://vng.nl/) (2026)
 * [Municipality of Eindhoven](https://www.eindhoven.nl/) (2026)
+
+The software is currently maintained and developed by [GISmantike](https://gismantike.nl/)/Jasper van der Vaart.
+<a href="https://gismantike.nl/">
+  <img src="./Images/gismantikeLogo.svg" width="47%">
+</a>
 
 ## Table of Content
 
@@ -127,7 +132,7 @@ Please note that [CJT](https://github.com/jaspervdv/CJT) is developed in tandem 
 
 ## GUI
 
-IfcEnvelopeExtractor can also be operated via an GUI. This GUI enables the user to easily access a subset of the settings. The goal of the GUI is making the tool more accessible for non-expert users. The GUI is a python based front that automatically generates the configuration JSON and calls the suitable extractor executable. [More information about the GUI can be found here](./Documentation/1_Gui.md).
+IfcEnvelopeExtractor can be operated via an GUI. This GUI enables the user to easily access a subset of the settings. The goal of the GUI is making the tool more accessible for non-expert users. The GUI is a python based front that automatically generates the configuration JSON and calls the suitable extractor executable. [More information about the GUI can be found here](./Documentation/1_Gui.md).
 
 The GUI can be accessed via two routes:
 
@@ -173,7 +178,7 @@ Interior geometric dependent abstraction (LoD0.2, 1.2, 2.2 and 3.2 spaces):
 * *IfcSpace* objects present in the model
 * Correct IfcSpace use for space and apartment creation (both semantically and geometrically)<sup>5</sup>
 
-Performance of the tool is depending on the complexity of the input model. The tool has proven to function well on simple models in the current state but can struggle on more complex shapes.
+Performance of the tool is depending on the complexity of the input model. The tool has proven to function well on simple models in the current state but can struggle on large complex shapes.
 
 <sup>1</sup> Default behavior of the tool is using the room bounding objects presented by [Vaart et al., (2022)](#1) as space dividing objects. These objects are _IfcWall, IfcCurtainWall, IfcWallStandardCase, IfcRoof, IfcSlab, IfcWindow, IfcColumn, IfcBeam, IfcDoor, IfcCovering, IfcMember_ and _IfcPlate_. If default settings are used it is recommended to have these object correctly classified in the file. Additionally added types would require the additional type to be correctly classified as well.
 
@@ -188,6 +193,8 @@ Performance of the tool is depending on the complexity of the input model. The t
 [Back to top](#table-of-content)
 
 ## Output file structure
+
+### CityJSON files
 
 The output files are CityJSON format compliant but might follow a different structure than is usually encountered. Every object that represents a building is split up in 2 building parts: The "Outer Shell" and the "Inner Shell". The "Outer Shell" follows the regular structure that is often seen in established city scale models. It is populated with the different exterior LoD shells. The "Inner Shell" is, depending on the process settings and input file quality, split further over storeys, apartments and rooms. If LoD4 is converted the objects will be placed under the "Complex" sub-group.
 
@@ -206,6 +213,18 @@ CityJSON File
 *Object that does not directly store any geometry.
 
 **Depending on the quality of the input, the nature of the input and the user settings these objects can occur many times.
+
+### OBJ files
+
+The meshes stored in the OBJ files are grouped to make manipulation of the geometry easy. If the mesh represents a single IfcEntity (such as a storey or a room in a traditional LoD or an object in a complex shape) the mesh will be grouped in three groups: guid, storey location and object type. If the mesh represents a shell encompassing multiple IfcEntities the mesh will be grouped only as inner or outer shell.
+
+### DXF files
+
+The meshes stored in an DXF file follow a less complex structure compared to the OBJ files. Every mesh is placed in a layer based on their type. If the mesh represents a single IfcEntity (such as a storey or a room in a traditional LoD or an object in a complex shape) the mesh will also be placed in a group representing the storey from which this object originates.
+
+### STEP files
+
+Currently the STEP output has no semantic grouping or naming.
 
 [Back to top](#table-of-content)
 

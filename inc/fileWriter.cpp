@@ -481,7 +481,7 @@ void FileWriter::writeToDXF(const std::vector<std::pair<T, storageObject>>& theS
 		else if (currentShapeData.hasGuidData()) { layerName = currentShapeData.guid; }
 			
 
-		if (!currentShapeData.hasStoreyData())
+		if (currentShapeData.hasStoreyData())
 		{
 			if (storeyGroupMap.find(currentShapeData.storeyName) == storeyGroupMap.end())
 			{

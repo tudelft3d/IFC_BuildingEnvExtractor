@@ -17,11 +17,11 @@ template void FileWriter::dumpToCopy<TopoDS_Solid>(const std::pair<TopoDS_Solid,
 template void FileWriter::dumpToCopy<TopoDS_Shape>(const std::pair<TopoDS_Shape, storageObject>& theShapeList, const FileWriter::FileNameID& targetLoD);
 template void FileWriter::dumpToCopy<TopoDS_Compound>(const std::pair<TopoDS_Compound, storageObject>& theShapeList, const FileWriter::FileNameID& targetLoD);
 
-template void FileWriter::dumpToCopy<TopoDS_Face>(const std::vector<std::pair<TopoDS_Face, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
-template void FileWriter::dumpToCopy<TopoDS_Shell>(const std::vector<std::pair<TopoDS_Shell, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
-template void FileWriter::dumpToCopy<TopoDS_Solid>(const std::vector<std::pair<TopoDS_Solid, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
-template void FileWriter::dumpToCopy<TopoDS_Shape>(const std::vector<std::pair<TopoDS_Shape, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
-template void FileWriter::dumpToCopy<TopoDS_Compound>(const std::vector<std::pair<TopoDS_Compound, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior);
+template void FileWriter::dumpToCopy<TopoDS_Face>(const std::vector<std::pair<TopoDS_Face, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Shell>(const std::vector<std::pair<TopoDS_Shell, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Solid>(const std::vector<std::pair<TopoDS_Solid, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Shape>(const std::vector<std::pair<TopoDS_Shape, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD);
+template void FileWriter::dumpToCopy<TopoDS_Compound>(const std::vector<std::pair<TopoDS_Compound, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD);
 
 struct IntXYZ {
 	int64_t x, y, z;
@@ -269,47 +269,45 @@ std::string FileWriter::FileExtensionEnum::getString(FileExtensionID id)
 std::string FileWriter::FileNameEnum::getString(FileNameID name, FileExtensionID id, bool isExterior)
 {
 	std::string fileExternsion = FileExtensionEnum::getString(id);
-	std::string locationTag = "i";
-	if (isExterior) { locationTag = "e"; }
 	std::string dash = "_";
 
 	switch (name) {
 	case FileNameID::LoD00:
-		return dash + locationTag + "LoD00" + fileExternsion;
+		return dash + "LoD00" + fileExternsion;
 	case FileNameID::LoD02:
-		return dash + locationTag + "LoD02" + fileExternsion;
+		return dash + "LoD02" + fileExternsion;
 	case FileNameID::LoD03:
-		return dash + locationTag + "LoD03" + fileExternsion;
+		return dash + "LoD03" + fileExternsion;
 	case FileNameID::LoD04:
-		return dash + locationTag + "LoD04" + fileExternsion;
+		return dash + "LoD04" + fileExternsion;
 	case FileNameID::LoD10:
-		return dash + locationTag + "LoD10" + fileExternsion;
+		return dash + "LoD10" + fileExternsion;
 	case FileNameID::LoD12:
-		return dash + locationTag + "LoD12" + fileExternsion;
+		return dash + "LoD12" + fileExternsion;
 	case FileNameID::LoD13:
-		return dash + locationTag + "LoD13" + fileExternsion;
+		return dash + "LoD13" + fileExternsion;
 	case FileNameID::LoD22:
-		return dash + locationTag + "LoD22" + fileExternsion;
+		return dash + "LoD22" + fileExternsion;
 	case FileNameID::LoDb:
-		return dash + locationTag + "LoDb" + fileExternsion;
+		return dash + "LoDb" + fileExternsion;
 	case FileNameID::LoDc1:
-		return dash + locationTag + "LoDc1" + fileExternsion;
+		return dash + "LoDc1" + fileExternsion;
 	case FileNameID::LoDc2:
-		return dash + locationTag + "LoDc2" + fileExternsion;
+		return dash + "LoDc2" + fileExternsion;
 	case FileNameID::LoDd1:
-		return dash + locationTag + "LoDd1" + fileExternsion;
+		return dash + "LoDd1" + fileExternsion;
 	case FileNameID::LoD40:
-		return dash + locationTag + "LoD40" + fileExternsion;
+		return dash + "LoD40" + fileExternsion;
 	case FileNameID::LoD41:
-		return dash + locationTag + "LoD41" + fileExternsion;
+		return dash + "LoD41" + fileExternsion;
 	case FileNameID::LoD42:
-		return dash + locationTag + "LoD42" + fileExternsion;
+		return dash + "LoD42" + fileExternsion;
 	case FileNameID::LoDe1:
-		return dash + locationTag + "LoDe1" + fileExternsion;
+		return dash + "LoDe1" + fileExternsion;
 	case FileNameID::LoD32:
-		return dash + locationTag + "LoD32" + fileExternsion;
+		return dash + "LoD32" + fileExternsion;
 	case FileNameID::LoD50:
-		return dash + locationTag + "LoD50" + fileExternsion;
+		return dash + "LoD50" + fileExternsion;
 	default:
 		return "";
 	}
@@ -547,30 +545,30 @@ template<typename T>
 void FileWriter::dumpToCopy(const std::pair<T, storageObject>& theShape, const FileWriter::FileNameID& targetLoD)
 {
 	std::vector<std::pair<T, storageObject>> theShapeList = { theShape };
-	dumpToCopy(theShapeList, targetLoD, false);
+	dumpToCopy(theShapeList, targetLoD);
 	return;
 }
 
 
 template<typename T>
-void FileWriter::dumpToCopy(const std::vector<std::pair<T, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD, bool isExterior)
+void FileWriter::dumpToCopy(const std::vector<std::pair<T, storageObject>>& theShapeList, const FileWriter::FileNameID& targetLoD)
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	std::string basePath = settingsCollection.getOutputBasePath();
 
 	if (settingsCollection.createOBJ())
 	{
-		writeToOBJ(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::OBJ, isExterior));
+		writeToOBJ(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::OBJ));
 	}
 
 	if (settingsCollection.createSTEP())
 	{
-		writeToSTEP(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::STEP, isExterior));
+		writeToSTEP(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::STEP));
 	}
 
 	if (settingsCollection.createDXF())
 	{
-		writeToDXF(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::DXF, isExterior));
+		writeToDXF(theShapeList, basePath + FileNameEnum::getString(targetLoD, FileWriter::FileExtensionID::DXF));
 	}
 	return;
 }

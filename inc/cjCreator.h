@@ -65,6 +65,7 @@ private:
 
 	bool finishedLoD02_ = false;
 	bool finishedLoD03_ = false;
+	bool finishedLoD12_ = false;
 	bool finishedLoD13_ = false;
 	bool finishedLoD22_ = false;
 	bool finishedLoD32_ = false;
@@ -94,6 +95,16 @@ private:
 	std::vector<CJT::CityObject> storeyObjects_;
 	// list collects the objects that are external according to the raycasting process
 	std::vector<Value> externalValueList_;
+
+	/// list that collects the LoD0.2 interior copy shapes for DXF and/or OBJ output
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD02Interior_;
+	/// list that collects the LoD0.3 interior copy shapes for DXF and/or OBJ output
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD03Interior_;
+	/// list that collects the LoD1.2 interior copy shapes for DXF and/or OBJ output
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD12Interior_;
+	/// list that collects the LoD2.2 interior copy shapes for DXF and/or OBJ output
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD22Interior_;
+
 	// check if the surfaces that are stored can be discarded.
 	void garbageCollection();
 
@@ -165,7 +176,7 @@ private:
 	// storey generation code
 
 	/// adds a storey object to the city object
-	void make2DStorey(std::mutex& storeyMutex, DataManager* h, CJT::Kernel* kernel, CJT::CityObject& storeyCityObject, std::vector<TopoDS_Shape>& copyGeoList, std::map<std::string, int>& progressMap, int unitScale, bool is03);
+	void make2DStorey(std::mutex& storeyMutex, DataManager* h, CJT::Kernel* kernel, CJT::CityObject& storeyCityObject, std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& copyGeoList, std::map<std::string, int>& progressMap, int unitScale, bool is03);
 	/// give user updates about the state of storey creation
 	void monitorStoreys(std::mutex& storeyMutex, std::map<std::string, int>& progressMap, int totalProcesses);
 

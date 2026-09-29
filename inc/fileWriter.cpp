@@ -580,13 +580,13 @@ std::string FileWriter::storageObject::getOBJString()
 	std::string outString = "g";
 	if (!guid.empty())
 	{
-		outString += " " + replaceSpace(guid);
+		outString += " " + guid;
 	}
 	if (!storeyName.empty())
 	{
 		outString += " " + replaceSpace(storeyName);
 	}
-	if (!storeyName.empty())
+	if (!objectType.empty())
 	{
 		outString += " " + replaceSpace(objectType);
 	}

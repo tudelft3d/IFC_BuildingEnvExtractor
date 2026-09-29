@@ -68,7 +68,8 @@ struct FileWriter {
 		}
 
 		storageObject() {};
-		storageObject(const std::string& objectId) { guid = objectId; };
+		storageObject(const std::string& objectId) { guid = objectId; };		
+		storageObject(const std::string& objectId, const std::string& storeyId, const std::string& obType) { guid = objectId; storeyName = storeyId; objectType = obType; };
 
 		std::string getOBJString();
 

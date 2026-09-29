@@ -210,6 +210,27 @@ void CJGeoCreator::garbageCollection()
 		std::vector<Value>().swap(externalValueList_);
 	}
 
+	// check if internal data can be released
+	if (finishedLoD02_ && !LoD02Interior_.empty())
+	{
+		std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>().swap(LoD02Interior_);
+	}
+
+	if (finishedLoD03_ && !LoD03Interior_.empty())
+	{
+		std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>().swap(LoD03Interior_);
+	}
+
+	if (finishedLoD12_ && !LoD12Interior_.empty())
+	{
+		std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>().swap(LoD12Interior_);
+	}
+
+	if (finishedLoD22_ && !LoD22Interior_.empty())
+	{
+		std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>().swap(LoD22Interior_);
+	}
+
 	return;
 }
 
@@ -2768,6 +2789,14 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD02(DataManager* h, CJT::Kernel
 		}
 	}
 
+	if (settingCollection.makeInterior())
+	{
+		for (const auto& interiorObject: LoD02Interior_)
+		{
+			collectionShape.emplace_back(interiorObject);
+		}
+	}
+
 	FileWriter::dumpToCopy(collectionShape, FileWriter::FileNameID::LoD02);
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -2844,14 +2873,12 @@ void CJGeoCreator::make2DStoreys(
 	std::mutex storeyMutex;
 	std::map<std::string, int> storyProgressList;
 
-	std::vector<TopoDS_Shape> copyGeoList;
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& copyGeoList = is03 ? LoD03Interior_ : LoD02Interior_;
 	for (CJT::CityObject& storeyCityObject : storeyCityObjects)
 	{
 		//make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03);
 		threadList.emplace_back([&]() {make2DStorey(storeyMutex, h, kernel, storeyCityObject, copyGeoList, storyProgressList, unitScale, is03); });
 	}
-
-	
 
 	threadList.emplace_back([&] {monitorStoreys(storeyMutex, storyProgressList, storeyCityObjects.size()); });
 
@@ -2859,16 +2886,6 @@ void CJGeoCreator::make2DStoreys(
 		if (thread.joinable()) {
 			thread.join();
 		}
-	}
-
-	if (!output) { return; }
-	if (is03)
-	{
-		//FileWriter::dumpToCopy(copyGeoList, FileWriter::FileNameID::LoD03, false);
-	}
-	else
-	{
-		//FileWriter::dumpToCopy(copyGeoList, FileWriter::FileNameID::LoD02, false);
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -2881,7 +2898,7 @@ void CJGeoCreator::make2DStorey(
 	DataManager* h,
 	CJT::Kernel* kernel,
 	CJT::CityObject& storeyCityObject,
-	std::vector<TopoDS_Shape>& copyGeoList,
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& copyGeoList,
 	std::map<std::string, int>& progressMap,
 	int unitScale,
 	bool is03
@@ -3009,7 +3026,8 @@ void CJGeoCreator::make2DStorey(
 			if (SettingsCollection::getInstance().createSTEP() || SettingsCollection::getInstance().createOBJ())
 			{
 				storeyMutex.lock();
-				copyGeoList.emplace_back(movedStoreyFace);
+				FileWriter::storageObject storageObject(storeyGuidList[0], storeyCityObject.getName(), CJObjectEnum::getString(CJObjectID::CJTypeFloor));
+				copyGeoList.emplace_back(std::pair(movedStoreyFace, storageObject));
 				storeyMutex.unlock();
 			}
 
@@ -3038,7 +3056,8 @@ void CJGeoCreator::make2DStorey(
 			if (SettingsCollection::getInstance().createSTEP() || SettingsCollection::getInstance().createOBJ())
 			{
 				storeyMutex.lock();
-				copyGeoList.emplace_back(movedStoreyFace);
+				FileWriter::storageObject storageObject(storeyGuidList[0], storeyCityObject.getName(), CJObjectEnum::getString(CJObjectID::CJTypeOuterFloor));
+				copyGeoList.emplace_back(std::pair(movedStoreyFace, storageObject));
 				storeyMutex.unlock();
 			}
 
@@ -3079,10 +3098,6 @@ void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::
 		}
 	}
 
-	std::vector<TopoDS_Shape> copyLoD02GeoList;
-	std::vector<TopoDS_Shape> copyLoD12GeoList;
-	std::vector<TopoDS_Shape> copyLoD22GeoList;
-
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
 
 	for (auto spaceIt = spaceList.begin(); spaceIt != spaceList.end(); ++spaceIt)
@@ -3103,6 +3118,8 @@ void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::
 			}
 		}
 		if (!spaceFound) { continue; }
+
+		std::string storeyName = matchingCityRoomObject->getParents()[0];
 
 		// get height values
 		TopoDS_Shape spaceShape = h->getObjectShape(spaceIfcObject, false, false);
@@ -3190,7 +3207,11 @@ void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::
 				{
 					CJT::GeoObject roomGeoObject02 = kernel->convertToJSON(face, "0.2");;
 
-					//if (settingsCollection.createSTEP() || settingsCollection.createOBJ()) { copyLoD02GeoList.emplace_back(face); }
+					if (settingsCollection.createSTEP() || settingsCollection.createOBJ()) 
+					{ 
+						FileWriter::storageObject storageObject(spaceGuid, storeyName, CJObjectEnum::getString(CJObjectID::CJTTypeProjectedCeilingOutline));
+						LoD02Interior_.emplace_back(std::make_pair(face, storageObject));
+					}
 
 					std::map<std::string, std::string> rMap;
 					rMap.emplace(CJObjectEnum::getString(CJObjectID::CJType), CJObjectEnum::getString(CJObjectID::CJTTypeProjectedCeilingOutline));
@@ -3204,7 +3225,11 @@ void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::
 					TopoDS_Solid solidShape12 = extrudeFace(face, false, highestZ);
 					if (solidShape12.IsNull()) { continue; }
 
-					if (settingsCollection.createSTEP() || settingsCollection.createOBJ()) { copyLoD12GeoList.emplace_back(solidShape12); }
+					if (settingsCollection.createSTEP() || settingsCollection.createOBJ())
+					{ 
+						FileWriter::storageObject storageObject(spaceGuid, storeyName, CJObjectEnum::getString(CJObjectID::innerShell));
+						LoD12Interior_.emplace_back(std::make_pair(solidShape12, storageObject));
+					}
 
 					CJT::GeoObject roomGeoObject12 = kernel->convertToJSON(solidShape12, "1.2");
 					createSemanticData(&roomGeoObject12, solidShape12, false);
@@ -3221,7 +3246,11 @@ void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::
 				if (roomPrismList[0].IsNull()) { return; } //TODO: check why this is needed for the gaia model (also at LoD12 creation)
 				roomPrismList[0].Move(trsf);
 
-				//if (settingsCollection.createSTEP() || settingsCollection.createOBJ()) { copyLoD12GeoList.emplace_back(roomPrismList[0]); }
+				if (settingsCollection.createSTEP() || settingsCollection.createOBJ()) 
+				{ 
+					FileWriter::storageObject storageObject(spaceGuid, storeyName, CJObjectEnum::getString(CJObjectID::innerShell));
+					LoD22Interior_.emplace_back(std::make_pair(roomPrismList[0], storageObject));
+				}
 
 				CJT::GeoObject roomGeoObject22 = kernel->convertToJSON(roomPrismList[0], "2.2");
 
@@ -3229,8 +3258,8 @@ void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::
 				matchingCityRoomObject->addGeoObject(roomGeoObject22);
 			}
 		}
-	}
-	//FileWriter::dumpToCopy(copyLoD12GeoList, FileWriter::FileNameID::LoD03);
+	} 
+
 	return;
 }
 
@@ -3388,6 +3417,14 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD03(DataManager* h, CJT::Kernel
 		}
 	}
 
+	if (settingsCollection.makeInterior())
+	{
+		for (const auto& interiorObject : LoD03Interior_)
+		{
+			faceCopyCollection.emplace_back(interiorObject);
+		}
+	}
+
 	FileWriter::dumpToCopy(faceCopyCollection, FileWriter::FileNameID::LoD03);
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -3490,6 +3527,7 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD12(DataManager* h, CJT::Kernel
 {
 	auto startTime = std::chrono::steady_clock::now();
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingLoD12) << std::endl;
+	finishedLoD12_ = true;
 	if (!hasTopFaces_ || !hasGeoBase_) { { return std::vector< CJT::GeoObject>(); } }
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
@@ -3536,6 +3574,14 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD12(DataManager* h, CJT::Kernel
 		CJT::GeoObject geoObject = kernel->convertToJSON(extrudedShape, "1.2");		
 		createSemanticData(&geoObject, extrudedShape);
 		geoObjectList.emplace_back(geoObject);
+	}
+
+	if (settingsCollection.makeInterior())
+	{
+		for (const auto& interiorObject : LoD12Interior_)
+		{
+			shapeCopyCollection.emplace_back(interiorObject);
+		}
 	}
 
 	FileWriter::dumpToCopy(shapeCopyCollection, FileWriter::FileNameID::LoD12);
@@ -3673,6 +3719,15 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD22(DataManager* h, CJT::Kernel
 			CJT::GeoObject geoObject = kernel->convertToJSON(prism, "2.2");
 			createSemanticData(&geoObject, prism);
 			geoObjectList.emplace_back(geoObject);
+		}
+	}
+
+
+	if (settingsCollection.makeInterior())
+	{
+		for (const auto& interiorObject : LoD22Interior_)
+		{
+			prismCopyList.emplace_back(interiorObject);
 		}
 	}
 

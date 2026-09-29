@@ -1471,7 +1471,7 @@ std::vector<TopoDS_Shape> CJGeoCreator::computePrisms(const std::vector<TopoDS_F
 	return prismList;
 }
 
-std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS_Face>& inputFaceList, double lowestZ, const std::vector<TopoDS_Face>& bufferSurfaceList)
+std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS_Face>& inputFaceList, double lowestZ, const std::vector<TopoDS_Face>& bufferSurfaceList, bool isFlat)
 {
 	double precision = SettingsCollection::getInstance().linearTolerance();
 	double angularTolerance = SettingsCollection::getInstance().angularTolerance();
@@ -1487,7 +1487,7 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 		BoostBox3D topFaceBox = helperFunctions::createBBox(currentTopFace, precision);
 		inputFaceIdx.insert(std::make_pair(topFaceBox, currentTopFace));
 
-		if (!allFlat) { continue; }
+		if (!allFlat|| isFlat) { continue; }
 		gp_Vec currentNormal = helperFunctions::computeFaceNormal(currentTopFace);
 		if (currentNormal.IsParallel(horizontalVec, angularTolerance)) { continue; }
 
@@ -1515,12 +1515,10 @@ std::vector<TopoDS_Face> CJGeoCreator::getSplitTopFaces(const std::vector<TopoDS
 			trimmedFaceIdx.insert(std::make_pair(topFaceBox, currentTopFace));
 		}
 		trimmedFace = intersectionSplitting(trimmedFace, trimmedFaceIdx);
-
 	}
 
 	std::vector<TopoDS_Face> visibleFaceList = getVisTopSurfaces(trimmedFace, lowestZ, bufferSurfaceList);
 	std::vector<TopoDS_Face> visibleMergedFaceList = helperFunctions::mergeFaces(visibleFaceList);
-	//clean the surfaces
 	return  visibleMergedFaceList;
 }
 
@@ -3322,12 +3320,12 @@ std::vector<std::vector<TopoDS_Face>> CJGeoCreator::makeRoofFaces(DataManager* h
 
 		if (footprintBased && !footprintList.empty())
 		{
-			std::vector<TopoDS_Face> faceList = getSplitTopFaces(faceCollection, h->getLllPoint().Z(), footprintList);
+			std::vector<TopoDS_Face> faceList = getSplitTopFaces(faceCollection, h->getLllPoint().Z(), footprintList, useFlatFaces);
 			nestedFaceList.emplace_back(faceList);
 		}
 		else
 		{
-			std::vector<TopoDS_Face> faceList = getSplitTopFaces(faceCollection, h->getLllPoint().Z());
+			std::vector<TopoDS_Face> faceList = getSplitTopFaces(faceCollection, h->getLllPoint().Z(), {}, useFlatFaces);
 			nestedFaceList.emplace_back(faceList);
 		}
 	}

@@ -1757,7 +1757,7 @@ TopoDS_Face helperFunctions::projectFaceFlat(const TopoDS_Face& theFace, double 
 	}
 
 	TopoDS_Face flatFace;
-	if (abs(faceNormal.X()) < angularTolerance && abs(faceNormal.Y()) < angularTolerance)
+	if (faceNormal.IsParallel(flatFaceNormal, angularTolerance))
 	{
 		gp_Trsf trsf;
 		double faceHeight = getLowestZ(theFace);

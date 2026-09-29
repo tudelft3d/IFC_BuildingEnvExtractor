@@ -207,7 +207,7 @@ private:
 	// extrudes shape downwards and caps it on the splitting face
 	TopoDS_Solid extrudeFace(const TopoDS_Face& evalFace, bool downwards,  double splittingFaceHeight = 0);
 	/// splits the surfaces with extruded solid copies and returns the ones visible from the top
-	std::vector<TopoDS_Face> getSplitTopFaces(const std::vector<TopoDS_Face>& inputFaceList, double lowestZ, const std::vector<TopoDS_Face>& bufferSurfaceList = {});
+	std::vector<TopoDS_Face> getSplitTopFaces(const std::vector<TopoDS_Face>& inputFaceList, double lowestZ, const std::vector<TopoDS_Face>& bufferSurfaceList = {}, bool isFlat = false);
 	/// splits the surfaces with extruded solid copies
 	std::vector<TopoDS_Face> getSplitFaces(
 		const std::vector<TopoDS_Face>& inputFaceList,

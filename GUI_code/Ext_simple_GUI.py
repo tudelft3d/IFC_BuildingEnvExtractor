@@ -518,7 +518,7 @@ IExtension.Tooltip(frame_lod_settings4, desired_lod_tooltip_txt)
 
 IExtension.Tooltip(toggle_make_obj, "If active output is copied to wavefront .OBJ file(s)")
 IExtension.Tooltip(toggle_make_step, "If active output is copied to .STEP (ISO 10303) file(s)")
-IExtension.Tooltip(toggle_make_dxf, "If active output is copied to .dxf (AC1009) file(s)")
+IExtension.Tooltip(toggle_make_dxf, "If active output is copied to .dxf (AC1009) file(s) (WIP/unreliable)")
 
 IExtension.Tooltip(toggle_makefootprint, "If active a footprint will be created at the footprint elevation (lod0.0, 0.2, 0.3 and 0.4 only)")
 IExtension.Tooltip(toggle_makeroofprint, "If active a roof outline will be created (lod0.0, 0.2, 0.3 and 0.4 only)")

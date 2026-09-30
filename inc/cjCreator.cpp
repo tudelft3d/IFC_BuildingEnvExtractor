@@ -5952,11 +5952,15 @@ void CJGeoCreator::intersectionSplitting(const std::vector<TopoDS_Face>& inputFa
 			continue;
 		}
 
+		gp_Vec currentTopVec = helperFunctions::computeFaceNormal(currentTopFace);
+
 		TopTools_ListOfShape trimFaces;
 		for (const auto& [otherBox, otherFace] : qResult)
 		{
 			if (currentTopFace.IsSame(otherFace)) { continue; }
 			if (otherFace.IsNull()) { continue; }
+			if (helperFunctions::computeFaceNormal(otherFace).IsParallel(currentTopVec, angularTolerance)) { continue; }
+
 			trimFaces.Append(otherFace);
 		}
 

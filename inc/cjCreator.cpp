@@ -1081,8 +1081,11 @@ TopoDS_Face CJGeoCreator::eleminateInnerVoids(const TopoDS_Face& theFace)
 		{
 			facePoint.SetZ(facePoint.Z() + SettingsCollection::getInstance().voxelSize() * 0.6);
 			int voxelIndx = voxelGrid_->getCloseByVoxel(facePoint);
-			voxel boxel = voxelGrid_->getVoxel(voxelIndx);
-			if (boxel.getIsIntersecting() || boxel.getIsInside())
+			voxel* boxel = voxelGrid_->getVoxelPtr(voxelIndx);
+
+			if (boxel == nullptr) { continue; }
+
+			if (boxel->getIsIntersecting() || boxel->getIsInside())
 			{
 				insideCounter++;
 			}

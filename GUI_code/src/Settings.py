@@ -141,6 +141,7 @@ class OtherSettings(SettingsBase):
         "summary_voxels": (tkinter.IntVar, 0),
         "ignoreIsExternal": (tkinter.IntVar, 1),
         "make_report": (tkinter.IntVar, 1),
+        "make_cityJSON": (tkinter.IntVar, 1),
         "make_obj": (tkinter.IntVar, 0),
         "make_step": (tkinter.IntVar, 0),
         "make_dxf": (tkinter.IntVar, 0),
@@ -209,6 +210,15 @@ class GuiSettings:
         footprint_settings = self.footprint
         other_settings = self.other
         div_settings = self.div
+
+        # check if output has been selected
+        if not other_settings.make_cityJSON.get() \
+                and not other_settings.make_obj.get() \
+                and not other_settings.make_step.get() \
+                and not other_settings.make_dxf.get():
+            tkinter.messagebox.showerror("Format Error",
+                                         "Error: no output format has been selected")
+            return False
 
         # check voxel input
         try:
@@ -314,6 +324,7 @@ class GuiSettings:
         json_dictionary["Generate report"] = other_settings.make_report.get()
 
         json_dictionary["Output format"] = {}
+        json_dictionary["Output format"]["JSON file"] = other_settings.make_cityJSON.get()
         json_dictionary["Output format"]["STEP file"] = other_settings.make_step.get()
         json_dictionary["Output format"]["OBJ file"] = other_settings.make_obj.get()
         json_dictionary["Output format"]["DXF file"] = other_settings.make_dxf.get()
@@ -621,6 +632,16 @@ class GuiSettings:
 
                 if gen_step_val == True or gen_step_val == 1:
                     self.other.make_step.set(True)
+
+            if "JSON file" in json_data_format:
+                gen_json_val = json_data_format["JSON file"]
+
+                if not self.is_bool(gen_json_val):
+                    self.throw_error_window("Output format JSON file")
+                    return False
+
+                if gen_json_val == True or gen_json_val == 1:
+                    self.other.make_cityJSON.set(True)
 
             if "OBJ file" in json_data_format:
                 gen_obj_val = json_data_format["OBJ file"]

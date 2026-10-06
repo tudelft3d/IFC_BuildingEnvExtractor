@@ -263,8 +263,7 @@ private:
 	// LoD32 related code
 	template <typename T>
 	std::vector<std::pair<T, IfcSchema::IfcProduct*>> getE1Objects(
-		DataManager* h, 
-		CJT::Kernel* kernel, 
+		DataManager* h,
 		int unitScale, 
 		const std::vector<Value>& productLookupValues,
 		const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIdx);
@@ -443,7 +442,7 @@ public:
 	/// generates a list of LoD0.2 objects
 	std::vector< CJT::GeoObject>  makeLoD02(DataManager* h, CJT::Kernel* kernel, int unitScale);
 	/// generates a list of LoD0.3 roof faces
-	std::vector<std::vector<TopoDS_Face>> makeRoofFaces(DataManager* h, CJT::Kernel* kernel, int unitScale, bool useFlatFaces, bool footprintBased = false);
+	std::vector<std::vector<TopoDS_Face>> makeRoofFaces(DataManager* h, int unitScale, bool useFlatFaces, bool footprintBased = false);
 	/// generates a list of LoD0.3 objects
 	std::vector< CJT::GeoObject> makeLoD03(DataManager* h, CJT::Kernel* kernel, int unitScale);
 	/// generates a list of LoD0.4 objects

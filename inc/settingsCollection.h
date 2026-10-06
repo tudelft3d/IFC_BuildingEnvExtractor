@@ -68,9 +68,7 @@ private:
 
     bool createJSON_ = true;
     bool createSTEP_ = false;
-    bool mergeSTEP_ = false;
     bool createOBJ_ = false;
-    bool mereOBJ_ = false;
     bool createDXF_ = false;
 
     bool forceSolid_ = false;
@@ -219,8 +217,9 @@ public:
 
     const std::string& getOutputBasePath() const { return outputBasePath_; }
     const std::string getOutputJSONPath() { return outputBasePath_ + ".json"; }
-    const std::string getOutputOBJPath() { return outputBasePath_ + "_nLoDxx.obj"; }
-    const std::string getOutputSTEPPath() { return outputBasePath_ + "_nLoDxx.STEP"; }
+    const std::string getOutputOBJPath() { return outputBasePath_ + "_LoDxx.obj"; }
+    const std::string getOutputSTEPPath() { return outputBasePath_ + "_LoDxx.step"; }
+    const std::string getOutputDXFPath() { return outputBasePath_ + "_LoDxx.dxf"; }
     void setOutputJSONPath(const std::string& value);
 
     const std::string& getOutputReportPath() const { return outputReportPath_; }

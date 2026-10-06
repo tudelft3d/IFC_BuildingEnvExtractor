@@ -87,6 +87,6 @@ int main(int argc, char** argv) {
 		manager.write(true);
 		return 1;
 	}
-	manager.write();	
+	manager.write(!SettingsCollection::getInstance().createJSON());
 	return 0;
 }

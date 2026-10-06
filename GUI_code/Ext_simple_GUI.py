@@ -299,9 +299,10 @@ toggle_makelod42 = ttk.Checkbutton(frame_lod_settings4, text="LoD4.2",  variable
                                        IExtension.checkActiveToggles(toggle_dictionary, settings),
                                    ])
 
-text_format_settings = tkinter.Label(frame_lod_settings_gen, text="Additional format:")
+text_format_settings = tkinter.Label(frame_lod_settings_gen, text="Output format:")
 frame_format_settings = tkinter.Frame(frame_lod_settings_gen)
 
+toggle_make_cityJSON = ttk.Checkbutton(frame_format_settings, text=".JSON", variable=settings.other.make_cityJSON)
 toggle_make_obj = ttk.Checkbutton(frame_format_settings, text=".OBJ", variable=settings.other.make_obj)
 toggle_make_step = ttk.Checkbutton(frame_format_settings, text=".STEP", variable=settings.other.make_step)
 toggle_make_dxf = ttk.Checkbutton(frame_format_settings, text=".DXF", variable=settings.other.make_dxf)
@@ -332,6 +333,7 @@ if not is_simple:
 
     text_format_settings.pack(pady=[5, 0])
     frame_format_settings.pack()
+    toggle_make_cityJSON.pack(side=tkinter.LEFT, padx=5)
     toggle_make_obj.pack(side=tkinter.LEFT, padx=5)
     toggle_make_step.pack(side=tkinter.LEFT, padx=5)
     toggle_make_dxf.pack(side=tkinter.LEFT, padx=5)
@@ -516,9 +518,10 @@ IExtension.Tooltip(frame_lod_settings2, desired_lod_tooltip_txt)
 IExtension.Tooltip(frame_lod_settings3, desired_lod_tooltip_txt)
 IExtension.Tooltip(frame_lod_settings4, desired_lod_tooltip_txt)
 
-IExtension.Tooltip(toggle_make_obj, "If active output is copied to wavefront .OBJ file(s)")
-IExtension.Tooltip(toggle_make_step, "If active output is copied to .STEP (ISO 10303) file(s)")
-IExtension.Tooltip(toggle_make_dxf, "If active output is copied to .dxf (AC1009) file(s) (WIP/unreliable)")
+IExtension.Tooltip(toggle_make_cityJSON, "If active output includes a CityJSON .json file")
+IExtension.Tooltip(toggle_make_obj, "If active output includes wavefront .OBJ file(s)")
+IExtension.Tooltip(toggle_make_step, "If active output includes .STEP (ISO 10303) file(s)")
+IExtension.Tooltip(toggle_make_dxf, "If active output includes .dxf (AC1009) file(s) (WIP/unreliable)")
 
 IExtension.Tooltip(toggle_makefootprint, "If active a footprint will be created at the footprint elevation (lod0.0, 0.2, 0.3 and 0.4 only)")
 IExtension.Tooltip(toggle_makeroofprint, "If active a roof outline will be created (lod0.0, 0.2, 0.3 and 0.4 only)")

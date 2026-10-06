@@ -24,8 +24,10 @@
     },
     "Generate report": 1,
     "Output format": {
+        "JSON file": 1,
         "STEP file": 0,
-        "OBJ file": 0
+        "OBJ file": 0,
+        "DXF file": 0
     },
     "LoD output": [
         0.2,

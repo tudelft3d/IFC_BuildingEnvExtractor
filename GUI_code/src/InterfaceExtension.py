@@ -239,36 +239,48 @@ def checkActiveToggles(toggleDict, settings):
     return
 
 def browse_(box, is_folder, window, initial_file, preferences):
-    folder_path = ""
+    file_path_list = ""
 
     if (not is_folder):
-        folder_path =  filedialog.askopenfilenames(
+        file_path_list =  filedialog.askopenfilenames(
             title= "Input file",
             filetypes=[("IFC file", ".ifc")],
             defaultextension=".ifc",
             initialdir=preferences.file_open_browse_path
         )
+
+        if len(file_path_list) == 0:
+            return
+
+        preferences.file_open_browse_path = os.path.dirname(file_path_list[0])
+
     else:
         # get the inital filename
         initial_file_name =  Path(initial_file).name
-        folder_path = [filedialog.asksaveasfilename(
+        file_path = filedialog.asksaveasfilename(
             title="Output file",
-            filetypes=[("JSON file", ".json"), ("CityJSON file", ".city.json")],
+            filetypes=[
+                ("JSON file", ".json"),
+                ("CityJSON file", ".city.json"),
+                ("OBJ geometry", ".obj"),
+                ("Drawing Exchange Format", ".dxf"),
+                ("STEP", ".step"),
+            ],
             defaultextension="city.json",
             initialfile=Path(initial_file_name).stem + ".json",
             initialdir = preferences.file_save_browse_path
-        )]
+            )
 
-    if len(folder_path) == 0:
-        return
+        if len(file_path) == 0:
+            return
 
-    if (not is_folder):
-        preferences.file_open_browse_path = os.path.dirname(folder_path[0])
-    else:
-        preferences.file_save_browse_path = os.path.dirname(folder_path[0])
+        preferences.file_save_browse_path = os.path.dirname(file_path)
+
+        file_path = os.path.dirname(file_path) + "/" + os.path.splitext(os.path.basename(file_path))[0] + "*"
+        file_path_list = (file_path ,)
 
     box.delete(0, tkinter.END)
-    box.insert(0, "; ".join(folder_path))
+    box.insert(0, "; ".join(file_path_list))
     window.focus_force()
     return
 

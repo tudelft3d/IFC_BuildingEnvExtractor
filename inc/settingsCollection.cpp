@@ -120,6 +120,23 @@ std::string getJsonPath(const nlohmann::json& jsonStringValue, bool valFolder, c
 	return jsonPathPtr;
 }
 
+std::string getJsonPath(const nlohmann::json& jsonStringValue, bool valFolder, const std::vector<std::string>& fileExtension)
+{
+	ErrorID errorId;
+	for (const std::string& ext : fileExtension)
+	{
+		try
+		{
+			return getJsonPath(jsonStringValue, true, ext);
+		}
+		catch (const ErrorID& exceptionId)
+		{
+			errorId =  exceptionId;
+		}
+	}
+	throw errorId;
+}
+
 
 void SettingsCollection::setJSONRelatedSettings(const nlohmann::json& json)
 {
@@ -211,7 +228,7 @@ void SettingsCollection::setFormatRelatedSettings(const nlohmann::json& json)
 
 	try
 	{
-		//setCreateJSON(outputDataJson);
+		setCreateJSON(outputDataJson);
 		setCreateOBJ(outputDataJson);
 		setCreateSTEP(outputDataJson);
 		setCreateDXF(outputDataJson);
@@ -295,7 +312,8 @@ void SettingsCollection::setIOPaths(const nlohmann::json& json)
 	{
 		try
 		{
-			setOutputJSONPath(getJsonPath(filePaths[outputOName], true, "json"));
+			std::vector<std::string> allowedExt = { "*", "json", "dxf", "step", "obj" };
+			setOutputJSONPath(getJsonPath(filePaths[outputOName], true, allowedExt));
 		}
 		catch (const ErrorID& exceptionId)
 		{

@@ -179,6 +179,10 @@ void IOManager::printSummary()
 	{
 		std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.getOutputOBJPath() << "\n";
 	}
+	if (settingsCollection.createDXF())
+	{
+		std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.getOutputDXFPath() << "\n";
+	}
 
 	std::cout << "- Create Report:\n";
 	std::cout << boolToString(settingsCollection.writeReport()) << "\n";
@@ -1046,15 +1050,20 @@ bool IOManager::run()
 	}
 
 	// create the cjt objects
-	double scale = 0.001;
-	std::shared_ptr<CJT::CityCollection> collection = std::make_shared<CJT::CityCollection>(scale);
+
+	std::shared_ptr<CJT::CityCollection> collection = nullptr;
 	CJT::CityObject cityBuildingObject; //the overarching city object
 	CJT::CityObject cityOuterShellObject; //container of outer shell geo objects
 	CJT::CityObject cityComplexObject; // container of the ifc conversion objects
 	CJT::CityObject cityInnerShellObject; //container of storey objects
 
-	setDefaultSemantic(cityBuildingObject, cityComplexObject, cityOuterShellObject, cityInnerShellObject);
-	setMetaData(collection);
+	if (settingsCollection.createJSON())
+	{
+		double scale = 0.001;
+		collection = std::make_shared<CJT::CityCollection>(scale);
+		setDefaultSemantic(cityBuildingObject, cityComplexObject, cityOuterShellObject, cityInnerShellObject);
+		setMetaData(collection);
+	}
 
 	// make the geometrycreator and voxelgrid
 	CJGeoCreator geoCreator;
@@ -1084,34 +1093,43 @@ bool IOManager::run()
 	}
 
 	// create the actual geometry
-	CJT::Kernel kernel = CJT::Kernel(collection);
+	std::unique_ptr<CJT::Kernel> kernel = nullptr;
+	if (settingsCollection.createJSON())
+	{
+		kernel = std::make_unique<CJT::Kernel>(collection);
+	}
+
 	if (settingsCollection.makeInterior())
 	{
-		processInteriorLod(&geoCreator, collection, &cityInnerShellObject, &kernel);
+		processInteriorLod(&geoCreator, collection, &cityInnerShellObject, kernel.get());
 	}
 	if (settingsCollection.makeExterior())
 	{
-		processExternalLoD(&geoCreator, cityOuterShellObject, &kernel);
+		processExternalLoD(&geoCreator, cityOuterShellObject, kernel.get());
 	}
 	if (settingsCollection.make40() || settingsCollection.make41() || settingsCollection.make42())
 	{
-		processComplexlLoD(&geoCreator, cityComplexObject, &kernel);
+		processComplexlLoD(&geoCreator, cityComplexObject, kernel.get());
 	}
 	if (settingsCollection.makeSite())
 	{
-		processSitelod(&geoCreator, collection, &cityBuildingObject, &kernel);
+		processSitelod(&geoCreator, collection, &cityBuildingObject, kernel.get());
 	}
 
-	setComputedSemantic(&geoCreator, cityBuildingObject, cityOuterShellObject, cityInnerShellObject);
+	if (settingsCollection.createJSON())
+	{
+		setComputedSemantic(&geoCreator, cityBuildingObject, cityOuterShellObject, cityInnerShellObject);
 
-	collection->addCityObject(cityBuildingObject);
+		collection->addCityObject(cityBuildingObject);
 
-	if (settingsCollection.makeExterior()) { collection->addCityObject(cityOuterShellObject); }
-	if (settingsCollection.makeComplex()) { collection->addCityObject(cityComplexObject); }
-	if (settingsCollection.makeInterior()) { collection->addCityObject(cityInnerShellObject); }
+		if (settingsCollection.makeExterior()) { collection->addCityObject(cityOuterShellObject); }
+		if (settingsCollection.makeComplex()) { collection->addCityObject(cityComplexObject); }
+		if (settingsCollection.makeInterior()) { collection->addCityObject(cityInnerShellObject); }
 
-	collection->CleanVertices();
-	cityCollection_ = collection;
+		collection->CleanVertices();
+		cityCollection_ = collection;
+	}
+
 	printErrors();
 	return succesfullExit_;
 }

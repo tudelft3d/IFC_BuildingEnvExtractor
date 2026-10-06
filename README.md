@@ -67,7 +67,8 @@ This application and the related research has been funded by multiple parties:
 * [VNG](https://vng.nl/) (2026)
 * [Municipality of Eindhoven](https://www.eindhoven.nl/) (2026)
 
-The software is currently maintained and developed by [GISmantike](https://gismantike.nl/)/Jasper van der Vaart.
+The software is currently maintained by [GISmantike](https://gismantike.nl/)/Jasper van der Vaart.
+
 <a href="https://gismantike.nl/">
   <img src="./Images/gismantikeLogo.svg" width="47%">
 </a>

@@ -632,6 +632,8 @@ class GuiSettings:
 
                 if gen_step_val == True or gen_step_val == 1:
                     self.other.make_step.set(True)
+                else:
+                    self.other.make_step.set(False)
 
             if "JSON file" in json_data_format:
                 gen_json_val = json_data_format["JSON file"]
@@ -642,6 +644,8 @@ class GuiSettings:
 
                 if gen_json_val == True or gen_json_val == 1:
                     self.other.make_cityJSON.set(True)
+                else:
+                    self.other.make_cityJSON.set(False)
 
             if "OBJ file" in json_data_format:
                 gen_obj_val = json_data_format["OBJ file"]
@@ -652,6 +656,8 @@ class GuiSettings:
 
                 if gen_obj_val == True or gen_obj_val == 1:
                     self.other.make_obj.set(True)
+                else:
+                    self.other.make_obj.set(False)
 
             if "DXF file" in json_data_format:
                 gen_dxf_val = json_data_format["DXF file"]
@@ -662,6 +668,8 @@ class GuiSettings:
 
                 if gen_dxf_val == True or gen_dxf_val == 1:
                     self.other.make_dxf.set(True)
+                else:
+                    self.other.make_dxf.set(False)
         return True
 
     def set_lod_from_json(self, json_data):

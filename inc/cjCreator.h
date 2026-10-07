@@ -77,6 +77,7 @@ private:
 	bool finishedLoD40_ = false;
 	bool finishedLoD41_ = false;
 	bool finishedLoD42_ = false;
+	bool finishedLoD50_ = false;
 
 
 	// list collects the faces from the LoD03 creation to base LoD13 output on
@@ -103,7 +104,10 @@ private:
 	/// list that collects the LoD1.2 interior copy shapes for DXF and/or OBJ output
 	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD12Interior_;
 	/// list that collects the LoD2.2 interior copy shapes for DXF and/or OBJ output
-	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD22Interior_;
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD22Interior_;	
+	/// list that collects the LoD5.0 interior copy shapes for DXF and/or OBJ output
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD50Interior_;
+
 
 	// check if the surfaces that are stored can be discarded.
 	void garbageCollection();

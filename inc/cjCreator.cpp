@@ -231,6 +231,11 @@ void CJGeoCreator::garbageCollection()
 		std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>().swap(LoD22Interior_);
 	}
 
+	if (finishedLoD50_ && !LoD50Interior_.empty())
+	{
+		std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>().swap(LoD50Interior_);
+	}
+
 	return;
 }
 
@@ -4850,8 +4855,9 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeV(DataManager* h, CJT::Kernel* ker
 {
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingLoD50) << std::endl;
 	auto startTime = std::chrono::steady_clock::now();
+	finishedLoD50_ = true;
 
-	std::vector< CJT::GeoObject> geoObjectList; // final output collection
+	std::vector< CJT::GeoObject> geoObjectList = {}; // final output collection
 
 	voxelGrid_->computeSurfaceSemantics(h);
 	std::vector<int> globalTypeValueList;
@@ -4861,11 +4867,16 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeV(DataManager* h, CJT::Kernel* ker
 	localRotationTrsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -SettingsCollection::getInstance().gridRotation());
 	sewedShape.Move(localRotationTrsf);
 
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> collectionShape;
+
 	int typevalCounter = 0;
 	for (TopExp_Explorer expl(sewedShape, TopAbs_SHELL); expl.More(); expl.Next())
 	{
 		CJT::GeoObject geoObject;
 		TopoDS_Shell currentShell = TopoDS::Shell(expl.Current());
+
+		FileWriter::storageObject storageObject(CJObjectEnum::getString(CJObjectID::outerShell));
+		collectionShape.emplace_back(std::make_pair(currentShell, storageObject));
 
 		if (currentShell.Closed())
 		{
@@ -4876,9 +4887,6 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeV(DataManager* h, CJT::Kernel* ker
 			brepBuilder.MakeSolid(voxelSolid);
 			brepBuilder.Add(voxelSolid, currentShell);
 
-			FileWriter::storageObject storageObject(CJObjectEnum::getString(CJObjectID::outerShell));
-			FileWriter::dumpToCopy(std::make_pair(voxelSolid, storageObject), FileWriter::FileNameID::LoD50);
-
 			if (kernel == nullptr) { continue; }
 			geoObject = kernel->convertToJSON(voxelSolid, "5.0", true);		
 		}
@@ -4886,9 +4894,6 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeV(DataManager* h, CJT::Kernel* ker
 		{
 			ErrorCollection::getInstance().addError(ErrorID::warningNoSolid, "LoD5.0");
 			std::cout << errorWarningStringEnum::getString(ErrorID::warningNoSolid) << std::endl;
-
-			FileWriter::storageObject storageObject(CJObjectEnum::getString(CJObjectID::outerShell));
-			FileWriter::dumpToCopy(std::make_pair(currentShell, storageObject), FileWriter::FileNameID::LoD50);
 
 			if (kernel == nullptr) { continue; }
 			geoObject = kernel->convertToJSON(currentShell, "5.0");
@@ -4931,6 +4936,14 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeV(DataManager* h, CJT::Kernel* ker
 
 		geoObjectList.emplace_back(geoObject);
 	}
+
+	for (std::pair<TopoDS_Shape, FileWriter::storageObject> roomItem : LoD50Interior_)
+	{
+		collectionShape.emplace_back(roomItem);
+	}
+
+	FileWriter::dumpToCopy(collectionShape, FileWriter::FileNameID::LoD50);
+
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
 	return geoObjectList;
@@ -5188,6 +5201,17 @@ void CJGeoCreator::makeVRoom(DataManager* h, CJT::Kernel* kernel, std::vector<CJ
 
 		std::vector<CJT::CityObject*> potentialRoomCityObjectList;
 		if (!genData) { potentialRoomCityObjectList = fetchRoomObject(h, roomCityObjects, i); }
+
+		for (size_t i = 0; i < potentialRoomCityObjectList.size(); i++)
+		{
+			std::string spaceGuid = potentialRoomCityObjectList[i]->getAttributes()["IFC Guid"];
+			std::string storeyName = potentialRoomCityObjectList[i]->getParents()[0];
+			FileWriter::storageObject storageObject = FileWriter::storageObject(spaceGuid, storeyName, CJObjectEnum::getString(CJObjectID::innerShell));
+			roomListMutex.lock();
+			LoD50Interior_.emplace_back(std::make_pair(sewedShape, storageObject));
+			roomListMutex.unlock();
+			break;
+		}
 
 		if (kernel == nullptr ) { continue; }
 

@@ -322,13 +322,14 @@ void FileWriter::writeToSTEP(const std::vector<std::pair<T, storageObject>>& the
 	TopoDS_Compound compound;
 	BRep_Builder builder;
 	builder.MakeCompound(compound);
-	for (const auto& shape : theShapeList)
-	{
-		builder.Add(compound, shape.first);
-	}
 
 	STEPControl_Writer writer;
-	writer.Transfer(compound, STEPControl_AsIs);
+	for (const auto& shape : theShapeList)
+	{
+		writer.Transfer(shape.first, STEPControl_AsIs);
+	}
+
+
 	IFSelect_ReturnStatus stat = writer.Write(targetPath.c_str());
 
 	std::cout.rdbuf(originalBuffer);

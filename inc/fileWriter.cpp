@@ -316,6 +316,8 @@ std::string FileWriter::FileNameEnum::getString(FileNameID name, FileExtensionID
 template <typename T>
 void FileWriter::writeToSTEP(const std::vector<std::pair<T, storageObject>>& theShapeList, const std::string& targetPath)
 {
+	return; //TODO: remove
+
 	std::stringstream buffer;
 	std::streambuf* originalBuffer = std::cout.rdbuf(buffer.rdbuf());
 

@@ -276,7 +276,7 @@ def browse_(box, is_folder, window, initial_file, preferences):
 
         preferences.file_save_browse_path = os.path.dirname(file_path)
 
-        file_path = os.path.dirname(file_path) + "/" + os.path.splitext(os.path.basename(file_path))[0] + "*"
+        file_path = os.path.dirname(file_path) + "/" + os.path.splitext(os.path.basename(file_path))[0] + ".*"
         file_path_list = (file_path ,)
 
     box.delete(0, tkinter.END)

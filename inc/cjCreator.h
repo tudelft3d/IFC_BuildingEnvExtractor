@@ -343,6 +343,8 @@ private:
 	void populateSurfaceData(CJT::GeoObject* geoObject, const std::vector<int>& SurfaceIndxDataList, bool isExterior = true);
 	// generates default CJ object that represents a room, used for voxel rooms if no room objects are present
 	CJT::CityObject createDefaultRoomObject(std::vector<CJT::CityObject>& storeyCityObjects, int roomNum, double lowestZ);
+	/// finds the best match of storey object based on the base Z height of an object
+	CJT::CityObject* getMatchingStoreyObject(std::vector<CJT::CityObject>& storeyCityObjects, double lowestZ);
 
 	// other code
 

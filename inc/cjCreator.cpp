@@ -5202,16 +5202,28 @@ void CJGeoCreator::makeVRoom(DataManager* h, CJT::Kernel* kernel, std::vector<CJ
 		std::vector<CJT::CityObject*> potentialRoomCityObjectList;
 		if (!genData) { potentialRoomCityObjectList = fetchRoomObject(h, roomCityObjects, i); }
 
-		for (size_t i = 0; i < potentialRoomCityObjectList.size(); i++)
+		if (potentialRoomCityObjectList.empty())
 		{
-			std::string spaceGuid = potentialRoomCityObjectList[i]->getAttributes()["IFC Guid"];
-			std::string storeyName = potentialRoomCityObjectList[i]->getParents()[0];
-			FileWriter::storageObject storageObject = FileWriter::storageObject(spaceGuid, storeyName, CJObjectEnum::getString(CJObjectID::innerShell));
+			double lowestZ = helperFunctions::getLowestZ(sewedShape);
+			CJT::CityObject* matchingStoreyObject = getMatchingStoreyObject(storeyCityObjects, lowestZ);
+			FileWriter::storageObject storageObject = FileWriter::storageObject(std::to_string(i), matchingStoreyObject->getName(), CJObjectEnum::getString(CJObjectID::innerShell));
 			roomListMutex.lock();
 			LoD50Interior_.emplace_back(std::make_pair(sewedShape, storageObject));
 			roomListMutex.unlock();
-			break;
 		}
+		else
+		{
+			for (size_t i = 0; i < potentialRoomCityObjectList.size(); i++)
+			{
+				std::string spaceGuid = potentialRoomCityObjectList[i]->getAttributes()["IFC Guid"];
+				std::string storeyName = potentialRoomCityObjectList[i]->getParents()[0];
+				FileWriter::storageObject storageObject = FileWriter::storageObject(spaceGuid, storeyName, CJObjectEnum::getString(CJObjectID::innerShell));
+				roomListMutex.lock();
+				LoD50Interior_.emplace_back(std::make_pair(sewedShape, storageObject));
+				roomListMutex.unlock();
+				break;
+			}
+		}		
 
 		if (kernel == nullptr ) { continue; }
 
@@ -6483,26 +6495,12 @@ CJT::CityObject CJGeoCreator::createDefaultRoomObject(std::vector<CJT::CityObjec
 	cjRoomObject.setName("generic " + std::to_string(roomNum));
 	cjRoomObject.setType(CJT::Building_Type::BuildingRoom);
 
-	double smallestZDistance = 999999;
-	int storeyIndx = -1;
-	for (int j = 0; j < storeyCityObjects.size(); j++)
+	CJT::CityObject* matchingStoreyObjectPtr = getMatchingStoreyObject(storeyCityObjects, lowestZ);
+
+	if (matchingStoreyObjectPtr)
 	{
-		nlohmann::json jsonElev = storeyCityObjects[j].getAttributes()[CJObjectEnum::getString(CJObjectID::ifcElevation)];
-		double zDistance = abs(static_cast<double>(jsonElev) - lowestZ);
-
-		if (smallestZDistance > zDistance)
-		{
-			storeyIndx = j;
-			smallestZDistance = zDistance;
-		}
+		cjRoomObject.addParent(matchingStoreyObjectPtr);
 	}
-
-	if (storeyIndx == -1)
-	{
-		return cjRoomObject;
-	}
-
-	cjRoomObject.addParent(&storeyCityObjects[storeyIndx]);
 
 	return cjRoomObject;
 }
@@ -6820,6 +6818,29 @@ std::vector<IfcSchema::IfcBuildingStorey*> CJGeoCreator::fetchStoreyObjects(Data
 		}
 	}
 	return ifcStoreyList;
+}
+
+CJT::CityObject* CJGeoCreator::getMatchingStoreyObject(std::vector<CJT::CityObject>& storeyCityObjects, double lowestZ)
+{
+	double smallestZDistance = 999999;
+	int storeyIndx = -1;
+	for (int j = 0; j < storeyCityObjects.size(); j++)
+	{
+		nlohmann::json jsonElev = storeyCityObjects[j].getAttributes()[CJObjectEnum::getString(CJObjectID::ifcElevation)];
+		double zDistance = abs(static_cast<double>(jsonElev) - lowestZ);
+
+		if (smallestZDistance > zDistance)
+		{
+			storeyIndx = j;
+			smallestZDistance = zDistance;
+		}
+	}
+
+	if (storeyIndx == -1)
+	{
+		return nullptr;
+	}
+	return &storeyCityObjects[storeyIndx];
 }
 
 CJGeoCreator::CJGeoCreator(DataManager* h, double vSize)

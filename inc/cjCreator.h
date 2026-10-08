@@ -105,6 +105,8 @@ private:
 	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD12Interior_;
 	/// list that collects the LoD2.2 interior copy shapes for DXF and/or OBJ output
 	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD22Interior_;	
+	/// list that collects the LoD2.2 interior copy shapes for DXF and/or OBJ output
+	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD32Interior_;	
 	/// list that collects the LoD5.0 interior copy shapes for DXF and/or OBJ output
 	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD50Interior_;
 

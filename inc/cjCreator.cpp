@@ -229,6 +229,11 @@ void CJGeoCreator::garbageCollection()
 	if (finishedLoD22_ && !LoD22Interior_.empty())
 	{
 		std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>().swap(LoD22Interior_);
+	}	
+	
+	if (finishedLoD32_ && !LoD32Interior_.empty())
+	{
+		std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>().swap(LoD32Interior_);
 	}
 
 	if (finishedLoD50_ && !LoD50Interior_.empty())
@@ -4728,7 +4733,8 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	}
 	
 	FileWriter::storageObject storageObject(CJObjectEnum::getString(CJObjectID::outerShell));
-	FileWriter::dumpToCopy(std::make_pair(collectionShape, storageObject), FileWriter::FileNameID::LoD32);
+	LoD32Interior_.emplace_back(std::make_pair(collectionShape, storageObject));
+	FileWriter::dumpToCopy(LoD32Interior_, FileWriter::FileNameID::LoD32);
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
 	garbageCollection();
@@ -4773,9 +4779,17 @@ void CJGeoCreator::makeComplexLoDRooms(DataManager* h, CJT::Kernel* kernel, std:
 
 		// get height values
 		TopoDS_Shape spaceShape = h->getObjectShape(spaceIfcObject, false, false);
-		if (spaceShape.IsNull()) { std::cout << "empty" << std::endl; continue; }
+		if (spaceShape.IsNull()) { continue; }
 
 		spaceShape.Move(localRotationTrsf);
+
+		std::vector<std::string> parentList = matchingCityRoomObject->getParents();
+
+		if (!parentList.empty())
+		{
+			FileWriter::storageObject storageObject = FileWriter::storageObject(spaceIfcObject->GlobalId(), parentList[0], CJObjectEnum::getString(CJObjectID::innerShell));
+			LoD32Interior_.emplace_back(spaceShape, storageObject);
+		}
 
 		if (kernel == nullptr) { continue; }
 

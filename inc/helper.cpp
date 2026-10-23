@@ -3657,6 +3657,29 @@ IfcSchema::IfcBuildingStorey* helperFunctions::getBuildingStorey(const IfcSchema
 		}
 		return storeyObject;
 	}
+
+	aggregate_of_instance::ptr aggregateList = currentProduct->get_inverse("Decomposes");
+	for (auto aggregateIt= aggregateList->begin(); aggregateIt != aggregateList->end(); ++aggregateIt)
+	{
+		if ((*aggregateIt)->declaration().name() != "IfcRelAggregates") { continue;}
+
+		IfcSchema::IfcRelAggregates* currentAggregate = (*aggregateIt)->as<IfcSchema::IfcRelAggregates>();
+		if (currentAggregate == nullptr) { continue; }
+
+		IfcSchema::IfcObjectDefinition* relObject = currentAggregate->RelatingObject();
+		if (relObject == nullptr) { continue; }
+
+		IfcSchema::IfcProduct* relProduct = relObject->as<IfcSchema::IfcProduct>();
+		if (relProduct == nullptr) { continue; }
+
+		IfcSchema::IfcBuildingStorey* storeyPtr = getBuildingStorey(relProduct);
+
+		if (storeyPtr != nullptr)
+		{
+			return storeyPtr;
+		}
+	}
+
 	return nullptr;
 }
 

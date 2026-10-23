@@ -335,7 +335,7 @@ if not is_simple:
     frame_format_settings.pack()
     toggle_make_cityJSON.pack(side=tkinter.LEFT, padx=5)
     toggle_make_obj.pack(side=tkinter.LEFT, padx=5)
-    toggle_make_step.pack(side=tkinter.LEFT, padx=5)
+    #toggle_make_step.pack(side=tkinter.LEFT, padx=5)
     toggle_make_dxf.pack(side=tkinter.LEFT, padx=5)
 
 # makeSplit

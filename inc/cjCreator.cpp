@@ -2524,10 +2524,10 @@ void CJGeoCreator::setLoD32SurfaceAttributes(
 
 		if (productType == "IfcPlate" || productType == "IfcCurtainWall")
 		{
-			if (helperFunctions::hasGlassMaterial(product))
+			/*if (helperFunctions::hasGlassMaterial(product))
 			{
 				std::cout << productType << std::endl;
-			}
+			}*/
 
 			std::map<std::string, std::string> windowMap;
 			if (!helperFunctions::hasGlassMaterial(product))
@@ -4578,7 +4578,10 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel*
 	compoundShape.reserve(compoundMap.size());
 	for (const std::pair<IfcSchema::IfcProduct*, TopoDS_Compound>& currentFacePair : compoundMap)
 	{
-		FileWriter::storageObject storageObject(currentFacePair.first->GlobalId(), *helperFunctions::getBuildingStorey(currentFacePair.first)->Name(),  currentFacePair.first->declaration().name());
+		IfcSchema::IfcBuildingStorey* storeyPrt = helperFunctions::getBuildingStorey(currentFacePair.first);
+		if (storeyPrt == nullptr) { continue; }
+
+		FileWriter::storageObject storageObject(currentFacePair.first->GlobalId(), *storeyPrt->Name(),  currentFacePair.first->declaration().name());
 		compoundShape.emplace_back(std::pair(currentFacePair.second, storageObject));
 	}
 

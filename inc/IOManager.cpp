@@ -563,6 +563,7 @@ void IOManager::setMetaData(std::shared_ptr<CJT::CityCollection> collection)
 	gp_Trsf gridRotation;
 	gridRotation.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
 	TopoDS_Shape bboxGeo = helperFunctions::createBBOXOCCT(lll, urr).Moved(gridRotation);
+	bboxGeo.Move(internalDataManager_->getObjectNormalizedTranslation());
 	bg::model::box <BoostPoint3D> extents = helperFunctions::createBBox(bboxGeo);
 
 	metaData.setExtend(

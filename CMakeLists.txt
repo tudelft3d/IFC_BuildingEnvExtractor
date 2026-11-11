@@ -163,12 +163,20 @@ if("${ZSTD_LIBRARY_DIR}" STREQUAL "")
     endif()
 endif()
 
-find_library(
+ find_library(
     ZSTD_LIBRARY
-    NAMES zstd_static
-    PATHS ${ZSTD_LIBRARY_DIR}
+    NAMES zstd zstd_static
+    PATHS "${ZSTD_LIBRARY_DIR}"
     NO_DEFAULT_PATH
 )
+
+if(ZSTD_LIBRARY)
+    message(STATUS "Found ZSTD library: ${ZSTD_LIBRARY}")
+else()
+    message(FATAL_ERROR
+        "Unable to find ZSTD library in: ${ZSTD_LIBRARY_DIR}"
+    )
+endif()
 
 if(ZSTD_LIBRARY)
     message(STATUS "Found ROCKSDB library: ${ZSTD_LIBRARY}")

@@ -46,7 +46,8 @@ Serializers_ifc4x3_rc1 Serializers_ifc4x3_rc2 Serializers_ifc4x3_rc3 Serializers
 IfcGeom
 IfcGeom_ifc2x3 IfcGeom_ifc4 IfcGeom_ifc4x1 IfcGeom_ifc4x2 IfcGeom_ifc4x3 IfcGeom_ifc4x3_add1 IfcGeom_ifc4x3_add2 
 IfcGeom_ifc4x3_rc1 IfcGeom_ifc4x3_rc2 IfcGeom_ifc4x3_rc3 IfcGeom_ifc4x3_rc4 IfcGeom_ifc4x3_tc1
-Serializers IfcParse 
+Serializers IfcParse
+geometry_kernel_opencascade
 )
 
 if("${IFC_LIBRARY_DIR}" STREQUAL "")
@@ -80,7 +81,9 @@ if(WIN32)
     file(GLOB IFC_LIBRARY_FILES "${IFC_LIBRARY_DIR}/*.lib")
 elseif(UNIX)
     foreach(file ${IFC_LIBRARY_NAMES})
-        list(APPEND IFC_LIBRARY_FILES "${IFC_LIBRARY_DIR}/lib${file}.a")
+        if(EXISTS "${IFC_LIBRARY_DIR}/lib${file}.a")
+            list(APPEND IFC_LIBRARY_FILES "${IFC_LIBRARY_DIR}/lib${file}.a")
+        endif()
     endforeach()
 endif()
 

@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
 	std::string issueEncounterString = errorWarningStringEnum::getString(ErrorID::warningIssueencountered);
 
 	// outputs errors related to the selected objects
-	if (false) { Logger::SetOutput(&std::cout, &std::cout); }
+	//if (false) { Logger::SetOutput(&std::cout, &std::cout); }
 
 	IOManager manager;
 	bool success = false;

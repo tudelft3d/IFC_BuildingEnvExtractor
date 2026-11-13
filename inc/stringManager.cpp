@@ -455,12 +455,12 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 		break;
 	}	
 	case ErrorID::warningIfcMultipleSpatialStructures: {
-		coms = "Multiple IfcSpatialStructureElement classes found: ";
+		coms = "Multiple IfcFacility classes found: ";
 		importance = CommunicationStringImportanceID::warning;
 		break;
 	}	
 	case ErrorID::warningIfcMistypedSpatialStructures: {
-		coms = "Multiple different IfcSpatialStructureElement classes found! IfcBuilding is used as type";
+		coms = "Multiple different IfcFacility classes found! IfcBuilding is used as type";
 		importance = CommunicationStringImportanceID::warning;
 		break;
 	}

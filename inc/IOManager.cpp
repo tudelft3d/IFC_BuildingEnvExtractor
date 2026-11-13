@@ -17,6 +17,7 @@ void addTimeToJSON(nlohmann::json* j, const std::string& valueName, const std::c
 	long long duration = std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count();
 	if (duration < 5) { (*j)[valueName + UnitStringEnum::getString(UnitStringID::milliseconds)] = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count(); }
 	else { (*j)[valueName + UnitStringEnum::getString(UnitStringID::seconds)] = duration; }
+	return;
 }
 
 template<typename T>
@@ -64,7 +65,7 @@ std::string IOManager::getTargetPath()
 	std::string stringNoFilePath = CommunicationStringEnum::getString(CommunicationStringID::infoNoFilePath);
 	std::string stringNoValFilePath = CommunicationStringEnum::getString(CommunicationStringID::infoNoValFilePath);
 
-	std::cout << stringJSONRequest << std::endl;
+	std::cout << stringJSONRequest << "\n";
 
 	while (true)
 	{
@@ -74,8 +75,8 @@ std::string IOManager::getTargetPath()
 
 		if (singlepath.size() == 0 && settingsCollection.getIfcPathList().size() == 0)
 		{
-			std::cout << stringNoFilePath << std::endl;
-			std::cout << stringJSONRequest << std::endl;
+			std::cout << stringNoFilePath << "\n";
+			std::cout << stringJSONRequest << "\n";
 			continue;
 		}
 		if (singlepath.front() == '"' && singlepath.back() == '"')
@@ -84,18 +85,19 @@ std::string IOManager::getTargetPath()
 		}
 		if (!hasExtension(singlepath, "json"))
 		{
-			std::cout << stringNoValFilePath << std::endl;
-			std::cout << stringJSONRequest << std::endl;
+			std::cout << stringNoValFilePath << "\n";
+			std::cout << stringJSONRequest << "\n";
 			continue;
 		}
 		if (!isValidPath(singlepath))
 		{
-			std::cout << stringNoValFilePath << std::endl;
-			std::cout << stringJSONRequest << std::endl;
+			std::cout << stringNoValFilePath << "\n";
+			std::cout << stringJSONRequest << "\n";
 			continue;
 		}
 		return singlepath;
 	}
+	return "";
 }
 
 bool IOManager::getJSONValues(const std::string& inputPath)
@@ -103,7 +105,7 @@ bool IOManager::getJSONValues(const std::string& inputPath)
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	// test if input configuration path is valid
-	try { settingsCollection.setInputJSONPath(inputPath, true); }
+	try { settingsCollection.setInputJSONPath(inputPath); }
 	catch (const std::string& errorString) { throw errorString; }
 
 	// read config file
@@ -112,54 +114,25 @@ bool IOManager::getJSONValues(const std::string& inputPath)
 
 	// in and output related settings
 	// get filepath object
-	try { settingsCollection.setIOPaths(json); }
+	try { 
+		settingsCollection.setIOPaths(json); 
+		settingsCollection.setWriteReport(json);
+		settingsCollection.setThreadcount(json);
+		settingsCollection.setTolerances(json);
+		settingsCollection.setLoD(json);
+		settingsCollection.setJSONRelatedSettings(json);
+		settingsCollection.setVoxelRelatedSettings(json);
+		settingsCollection.setIFCRelatedSettings(json);
+		settingsCollection.setFormatRelatedSettings(json);
+		settingsCollection.generateGeneralSettings();
+	}
 	catch (const std::string& errorString) { throw errorString; }
-
-	// set report output toggle
-	try { settingsCollection.setWriteReport(json); }
-	catch (const std::string& errorString) { throw errorString; }
-
-	// set the threadcount
-	try { settingsCollection.setThreadcount(json); }
-	catch (const std::string& errorString) { throw errorString; }
-
-	try { settingsCollection.setTolerances(json); }
-	catch (const std::string& errorString) { throw errorString; }
-
-	// set lod output values
-	try { settingsCollection.setLoD(json); }
-	catch (const std::string& errorString) { throw errorString; }
-
-	// set json related values 
-	try { settingsCollection.setJSONRelatedSettings(json); }
-	catch (const std::string& errorString) { throw errorString; }
-
-	// set voxel related values 
-	try { settingsCollection.setVoxelRelatedSettings(json); }
-	catch (const std::string& errorString) { throw errorString; }
-
-	// set IFC related values 
-	try { settingsCollection.setIFCRelatedSettings(json); }
-	catch (const std::string& errorString) { throw errorString; }
-
-	// set alternative output related values
-	try { settingsCollection.setFormatRelatedSettings(json); }
-	catch (const std::string& errorString) { throw errorString; }
-
-	// set IFC related values 
-	try { settingsCollection.generateGeneralSettings(); }
-	catch (const std::string& errorString) { throw errorString; }
-
 	return true;
 }
 
-
-void IOManager::printSummary()
+void IOManager::printIOSummary() 
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
-
-	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::seperator) << "\n\n";
-	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "Used settings:\n\n";
 
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "I/O settings\n";
 	std::cout << "- Configuration file:\n";
@@ -198,6 +171,12 @@ void IOManager::printSummary()
 	if (settingsCollection.createDXF()) { formatString += "DXF, "; }
 	formatString.erase(formatString.size() - 2);
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << formatString << "\n\n";
+	return;
+}
+
+void IOManager::printTolSummary()
+{
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "Tolerances\n";
 	std::cout << "- Spatial tolerance:\n";
@@ -210,6 +189,12 @@ void IOManager::printSummary()
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.meshLinearDeflection() << "\n";
 	std::cout << "- grid resolution:\n";
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.surfaceGridSize() << "\n\n";
+	return;
+}
+
+void IOManager::printIFCSummary()
+{
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "IFC settings\n";
 	std::cout << "- Model rotation:\n";
@@ -243,6 +228,11 @@ void IOManager::printSummary()
 	std::vector<std::string> addDivObjects = settingsCollection.getCustomDivList();
 	for (auto it = addDivObjects.begin(); it != addDivObjects.end(); ++it) { std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << *it << "\n"; }
 	std::cout << "\n";
+	return;
+}
+
+void IOManager::printVoxelSummary() {
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "voxel settings\n";
 	std::cout << "- Voxel size:\n";
@@ -254,6 +244,11 @@ void IOManager::printSummary()
 	std::cout << boolToString(settingsCollection.summaryVoxels()) << "\n";
 	std::cout << "- Coarse filter with voxel:\n";
 	std::cout << boolToString(settingsCollection.voxelBasedFiltering()) << "\n\n";
+	return;
+}
+
+void IOManager::printJSONSummary() {
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "json settings\n";
 	std::cout << "- Footprint Elevation:\n";
@@ -290,6 +285,21 @@ void IOManager::printSummary()
 	std::cout << boolToString(settingsCollection.geoReference()) << "\n";
 	std::cout << "- Merge semantic objects:\n";
 	std::cout << boolToString(settingsCollection.mergeSemantics()) << "\n\n";
+	return;
+}
+
+void IOManager::printSummary()
+{
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+
+	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::seperator) << "\n\n";
+	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "Used settings:\n\n";
+
+	printIOSummary();
+	printTolSummary();
+	printIFCSummary();
+	printVoxelSummary();
+	printJSONSummary();
 
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) << "other settings:\n";
 	std::cout << "- Max thread count\n";
@@ -332,14 +342,13 @@ void IOManager::printErrors()
 	{
 		std::cout << "\n[INFO] See report file for more info:\n\t" << settingsCollection.getOutputReportPath() << "\n";
 	}
-
 	return;
 }
 
 std::string IOManager::boolToString(const bool boolValue)
 {
 	if (boolValue) { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) + "yes"; }
-	else { return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) + "no"; }
+	return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) + "no";
 }
 
 
@@ -374,6 +383,141 @@ std::string IOManager::getLoDEnabled()
 	return summaryString;
 }
 
+std::vector<std::string> IOManager::getLoDListEnabled() {
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+
+	std::vector<std::string> LoDList;
+	if (settingsCollection.make00()) { LoDList.emplace_back("0.0"); }
+	if (settingsCollection.make02()) { LoDList.emplace_back("0.2"); }
+	if (settingsCollection.make03()) { LoDList.emplace_back("0.3"); }
+	if (settingsCollection.make04()) { LoDList.emplace_back("0.4"); }
+	if (settingsCollection.make10()) { LoDList.emplace_back("1.0"); }
+	if (settingsCollection.make12()) { LoDList.emplace_back("1.2"); }
+	if (settingsCollection.make13()) { LoDList.emplace_back("1.3"); }
+	if (settingsCollection.make22()) { LoDList.emplace_back("2.2"); }
+	if (settingsCollection.makeb0()) { LoDList.emplace_back("b.0"); }
+	if (settingsCollection.makec1()) { LoDList.emplace_back("c.1"); }
+	if (settingsCollection.makec2()) { LoDList.emplace_back("c.2"); }
+	if (settingsCollection.maked1()) { LoDList.emplace_back("d.1"); }
+	if (settingsCollection.maked2()) { LoDList.emplace_back("d.2"); }
+	if (settingsCollection.makee1()) { LoDList.emplace_back("e.1"); }
+	if (settingsCollection.make40()) { LoDList.emplace_back("4.0"); }
+	if (settingsCollection.make41()) { LoDList.emplace_back("4.1"); }
+	if (settingsCollection.make42()) { LoDList.emplace_back("4.2"); }
+	if (settingsCollection.make32()) { LoDList.emplace_back("3.2"); }
+	if (settingsCollection.makeV()) { LoDList.emplace_back("5.0"); }
+	return LoDList;
+}
+
+nlohmann::json IOManager::getTolSettings() 
+{
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+
+	nlohmann::json tolJSON;
+	std::string spatialTolOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesLinear);
+	std::string angularTolOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesAngular);
+	std::string areaTolOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesArea);
+	std::string meshLinDefOName = JsonObjectInEnum::getString(JsonObjectInID::meshLinearDeflection);
+	std::string sufraceGridOName = JsonObjectInEnum::getString(JsonObjectInID::gridResolution);
+
+	tolJSON[spatialTolOName] = settingsCollection.linearTolerance();
+	tolJSON[angularTolOName] = settingsCollection.angularTolerance();
+	tolJSON[areaTolOName] = settingsCollection.areaTolerance();
+	tolJSON[meshLinDefOName] = settingsCollection.meshLinearDeflection();
+	tolJSON[sufraceGridOName] = settingsCollection.surfaceGridSize();
+	return tolJSON;
+}
+
+nlohmann::json IOManager::getVoxelSettings()
+{
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+
+	nlohmann::json voxelJSON;
+	std::string voxelSizOName = JsonObjectInEnum::getString(JsonObjectInID::voxelSize);
+	std::string voxelSummarizeOName = JsonObjectInEnum::getString(JsonObjectInID::voxelSummarize);
+	std::string voxelIntersectionOName = JsonObjectInEnum::getString(JsonObjectInID::voxelIntersection);
+	std::string voxelFiltinerOName = JsonObjectInEnum::getString(JsonObjectInID::voxelFilter);
+
+	voxelJSON[voxelSizOName] = settingsCollection.voxelSize();
+	voxelJSON[voxelSummarizeOName] = settingsCollection.summaryVoxels();
+	voxelJSON[voxelIntersectionOName] = settingsCollection.intersectionLogic();
+	voxelJSON[voxelFiltinerOName] = settingsCollection.voxelBasedFiltering();
+	return voxelJSON;
+}
+
+nlohmann::json IOManager::getIFCSettings()
+{
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+
+	nlohmann::json ifcJSON;
+	std::string ifcRotationOName = JsonObjectInEnum::getString(JsonObjectInID::IFCRotationAngle);
+	std::string ifcDivOName = JsonObjectInEnum::getString(JsonObjectInID::IFCDivObject);
+	std::string ifcignoreVoidOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreVoids);
+	std::string ifcSimpleOName = JsonObjectInEnum::getString(JsonObjectInID::IFCsimplefyGeo);
+	std::string ifcIgnoreSimpleOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreSimple);
+	std::string ifcIgnoreComplex = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreComplex);
+	std::string IFCignoreIsExternalOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreIsExternal);
+	std::string ifcDetectFootprintElevation = JsonObjectInEnum::getString(JsonObjectInID::IFCDetectFootprintElev);
+
+	ifcJSON[ifcRotationOName] = settingsCollection.gridRotation();
+	std::vector<std::string> DivList;
+	if (settingsCollection.useDefaultDiv())
+	{
+		const std::vector<std::string>& divObjects = settingsCollection.getDefaultDivList();
+		for (auto it = divObjects.begin(); it != divObjects.end(); ++it)
+		{
+			DivList.emplace_back(*it);
+		}
+		if (settingsCollection.useProxy()) { DivList.emplace_back("IfcBuildingElementProxy"); }
+		ifcJSON[ifcDivOName] = DivList;
+	}
+	else
+	{
+		ifcJSON[ifcDivOName] = settingsCollection.getCustomDivList();
+	}
+	ifcJSON[ifcignoreVoidOName] = settingsCollection.ignoreVoidGrade();
+	ifcJSON[ifcSimpleOName] = settingsCollection.simplefyGeo();
+	ifcJSON[ifcIgnoreSimpleOName] = settingsCollection.getIgnoreSimplificationList();
+	ifcJSON[ifcIgnoreComplex] = settingsCollection.ignoreComplex();
+	ifcJSON[IFCignoreIsExternalOName] = settingsCollection.ignoreIsExternal();
+	ifcJSON[ifcDetectFootprintElevation] = settingsCollection.detectFootprintElevation();
+	return ifcJSON;
+}
+
+nlohmann::json IOManager::getJSONSettings()
+{
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+
+	nlohmann::json jsonJSON;
+	std::string jsonBAGrefNAme = JsonObjectInEnum::getString(JsonObjectInID::JSONBAG02);
+	std::string jsonFootprintElevOName = JsonObjectInEnum::getString(JsonObjectInID::JSONFootprintElev);
+	std::string jsonFootprintBSOName = JsonObjectInEnum::getString(JsonObjectInID::JSONFootprintBShape);
+	std::string jsonSecOffsetOName = JsonObjectInEnum::getString(JsonObjectInID::JSONSecOffset);
+	std::string jsonGenFootprintOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGenFootPrint);
+	std::string jsonGenRootprintOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGenRoofOutline);
+	std::string jsonGenInteriorOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGenInterior);
+	std::string jsonGenExteriorOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGenExterior);
+	std::string jsonGensiteOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGenSite);
+	std::string jsonGeoreferenceOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGeoreference);
+	std::string jsonMergeSemanticsOName = JsonObjectInEnum::getString(JsonObjectInID::JSONMergeSemantics);
+
+	jsonJSON[jsonBAGrefNAme] = settingsCollection.makeBAG02();
+	jsonJSON[jsonFootprintElevOName] = settingsCollection.footprintElevation();
+	jsonJSON[jsonFootprintBSOName] = settingsCollection.footPrintBased();
+	jsonJSON[jsonSecOffsetOName] = settingsCollection.horizontalSectionOffset();
+	jsonJSON[jsonGenFootprintOName] = settingsCollection.makeFootPrint();
+	if (settingsCollection.make02())
+	{
+		jsonJSON[jsonGenFootprintOName] = settingsCollection.makeFootPrint();
+		jsonJSON[jsonGenRootprintOName] = settingsCollection.makeRoofPrint();
+	}
+	jsonJSON[jsonGenInteriorOName] = settingsCollection.makeInterior();
+	jsonJSON[jsonGenExteriorOName] = settingsCollection.makeExterior();
+	jsonJSON[jsonGensiteOName] = settingsCollection.makeSite();
+	jsonJSON[jsonGeoreferenceOName] = settingsCollection.geoReference();
+	jsonJSON[jsonMergeSemanticsOName] = settingsCollection.mergeSemantics();
+	return jsonJSON;
+}
 
 nlohmann::json IOManager::settingsToJSON()
 {
@@ -398,125 +542,19 @@ nlohmann::json IOManager::settingsToJSON()
 	settingsJSON[JsonObjectInEnum::getString(JsonObjectInID::maxThread)] = settingsCollection.threadcount();
 
 	// store the LoD output data
-	std::vector<std::string> LoDList;
-	if (settingsCollection.make00()) { LoDList.emplace_back("0.0"); }
-	if (settingsCollection.make02()) { LoDList.emplace_back("0.2"); }
-	if (settingsCollection.make03()) { LoDList.emplace_back("0.3"); }
-	if (settingsCollection.make04()) { LoDList.emplace_back("0.4"); }
-	if (settingsCollection.make10()) { LoDList.emplace_back("1.0"); }
-	if (settingsCollection.make12()) { LoDList.emplace_back("1.2"); }
-	if (settingsCollection.make13()) { LoDList.emplace_back("1.3"); }
-	if (settingsCollection.make22()) { LoDList.emplace_back("2.2"); }
-	if (settingsCollection.makeb0()) { LoDList.emplace_back("b.0"); }
-	if (settingsCollection.makec1()) { LoDList.emplace_back("c.1"); }
-	if (settingsCollection.makec2()) { LoDList.emplace_back("c.2"); }
-	if (settingsCollection.maked1()) { LoDList.emplace_back("d.1"); }
-	if (settingsCollection.maked2()) { LoDList.emplace_back("d.2"); }
-	if (settingsCollection.make40()) { LoDList.emplace_back("4.0"); }
-	if (settingsCollection.make41()) { LoDList.emplace_back("4.1"); }
-	if (settingsCollection.make42()) { LoDList.emplace_back("4.2"); }
-	if (settingsCollection.make32()) { LoDList.emplace_back("3.2"); }
-	if (settingsCollection.makeV()) { LoDList.emplace_back("5.0"); }
-
-	settingsJSON[JsonObjectInEnum::getString(JsonObjectInID::lodOutput)] = LoDList;
+	settingsJSON[JsonObjectInEnum::getString(JsonObjectInID::lodOutput)] = getLoDListEnabled();
 
 	// store the tolerance data
-	nlohmann::json tolJSON;
-	std::string spatialTolOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesLinear);
-	std::string angularTolOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesAngular);
-	std::string areaTolOName = JsonObjectInEnum::getString(JsonObjectInID::tolerancesArea);
-	std::string meshLinDefOName = JsonObjectInEnum::getString(JsonObjectInID::meshLinearDeflection);
-	std::string meshAngDefOName = JsonObjectInEnum::getString(JsonObjectInID::meshAngularDeflection);
-	std::string sufraceGridOName = JsonObjectInEnum::getString(JsonObjectInID::gridResolution);
-
-	tolJSON[spatialTolOName] = settingsCollection.linearTolerance();
-	tolJSON[angularTolOName] = settingsCollection.angularTolerance();
-	tolJSON[areaTolOName] = settingsCollection.areaTolerance();
-	tolJSON[meshLinDefOName] = settingsCollection.meshLinearDeflection();
-	tolJSON[sufraceGridOName] = settingsCollection.surfaceGridSize();
-	settingsJSON[JsonObjectInEnum::getString(JsonObjectInID::tolerances)] = tolJSON;
+	settingsJSON[JsonObjectInEnum::getString(JsonObjectInID::tolerances)] = getTolSettings();
 
 	// store the voxel data
-	nlohmann::json voxelJSON;
-	std::string voxelOName = JsonObjectInEnum::getString(JsonObjectInID::voxel);
-	std::string voxelSizOName = JsonObjectInEnum::getString(JsonObjectInID::voxelSize);
-	std::string voxelSummarizeOName = JsonObjectInEnum::getString(JsonObjectInID::voxelSummarize);
-	std::string voxelIntersectionOName = JsonObjectInEnum::getString(JsonObjectInID::voxelIntersection);
-	std::string voxelFiltinerOName = JsonObjectInEnum::getString(JsonObjectInID::voxelFilter);
-
-	voxelJSON[voxelSizOName] = settingsCollection.voxelSize();
-	voxelJSON[voxelSummarizeOName] = settingsCollection.summaryVoxels();
-	voxelJSON[voxelIntersectionOName] = settingsCollection.intersectionLogic();
-	voxelJSON[voxelFiltinerOName] = settingsCollection.voxelBasedFiltering();
-	settingsJSON[voxelOName] = voxelJSON;
+	settingsJSON[JsonObjectInEnum::getString(JsonObjectInID::voxel)] = getVoxelSettings();
 
 	//store the ifc data
-	nlohmann::json ifcJSON;
-	std::string ifcOName = JsonObjectInEnum::getString(JsonObjectInID::IFC);
-	std::string ifcRotationOName = JsonObjectInEnum::getString(JsonObjectInID::IFCRotationAngle);
-	std::string ifcDivOName = JsonObjectInEnum::getString(JsonObjectInID::IFCDivObject);
-	std::string ifcignoreVoidOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreVoids);
-	std::string ifcSimpleOName = JsonObjectInEnum::getString(JsonObjectInID::IFCsimplefyGeo);
-	std::string ifcIgnoreSimpleOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreSimple);
-	std::string ifcIgnoreComplex = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreComplex);
-	std::string IFCignoreIsExternalOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreIsExternal);
-	std::string ifcDetectFootprintElevation = JsonObjectInEnum::getString(JsonObjectInID::IFCDetectFootprintElev);
-	
-	ifcJSON[ifcRotationOName] = settingsCollection.gridRotation();
-	std::vector<std::string> DivList;
-	if (settingsCollection.useDefaultDiv())
-	{
-		const std::vector<std::string>& divObjects = settingsCollection.getDefaultDivList();
-		for (auto it = divObjects.begin(); it != divObjects.end(); ++it)
-		{
-			DivList.emplace_back(*it);
-		}
-		if (settingsCollection.useProxy()) { DivList.emplace_back("IfcBuildingElementProxy"); }
-		ifcJSON[ifcDivOName] = DivList;
-	}
-	else
-	{
-		ifcJSON[ifcDivOName] = settingsCollection.getCustomDivList();
-	}
-	ifcJSON[ifcignoreVoidOName] = settingsCollection.ignoreVoidGrade();
-	ifcJSON[ifcSimpleOName] = settingsCollection.simplefyGeo();
-	ifcJSON[ifcIgnoreSimpleOName] = settingsCollection.getIgnoreSimplificationList();
-	ifcJSON[ifcIgnoreComplex] = settingsCollection.ignoreComplex();
-	ifcJSON[IFCignoreIsExternalOName] = settingsCollection.ignoreIsExternal();
-	ifcJSON[ifcDetectFootprintElevation] = settingsCollection.detectFootprintElevation();
-	settingsJSON[ifcOName] = ifcJSON;
+	settingsJSON[JsonObjectInEnum::getString(JsonObjectInID::IFC)] = getIFCSettings();
 
 	// store the json data
-	nlohmann::json jsonJSON;
-	std::string jsonOName = JsonObjectInEnum::getString(JsonObjectInID::JSON);
-	std::string jsonBAGrefNAme = JsonObjectInEnum::getString(JsonObjectInID::JSONBAG02);
-	std::string jsonFootprintElevOName = JsonObjectInEnum::getString(JsonObjectInID::JSONFootprintElev);
-	std::string jsonFootprintBSOName = JsonObjectInEnum::getString(JsonObjectInID::JSONFootprintBShape);
-	std::string jsonSecOffsetOName = JsonObjectInEnum::getString(JsonObjectInID::JSONSecOffset);
-	std::string jsonGenFootprintOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGenFootPrint);
-	std::string jsonGenRootprintOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGenRoofOutline);
-	std::string jsonGenInteriorOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGenInterior);
-	std::string jsonGenExteriorOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGenExterior);
-	std::string jsonGensiteOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGenSite);
-	std::string jsonGeoreferenceOName = JsonObjectInEnum::getString(JsonObjectInID::JSONGeoreference);
-	std::string jsonMergeSemanticsOName = JsonObjectInEnum::getString(JsonObjectInID::JSONMergeSemantics);
-
-	jsonJSON[jsonBAGrefNAme] = settingsCollection.makeBAG02();
-	jsonJSON[jsonFootprintElevOName] = settingsCollection.footprintElevation();
-	jsonJSON[jsonFootprintBSOName] = settingsCollection.footPrintBased();
-	jsonJSON[jsonSecOffsetOName] = settingsCollection.horizontalSectionOffset();
-	jsonJSON[jsonGenFootprintOName] = settingsCollection.makeFootPrint();
-	if (settingsCollection.make02())
-	{ 
-		jsonJSON[jsonGenFootprintOName] = settingsCollection.makeFootPrint();
-		jsonJSON[jsonGenRootprintOName] = settingsCollection.makeRoofPrint();
-	}
-	jsonJSON[jsonGenInteriorOName] = settingsCollection.makeInterior();
-	jsonJSON[jsonGenExteriorOName] = settingsCollection.makeExterior();
-	jsonJSON[jsonGensiteOName] = settingsCollection.makeSite();
-	jsonJSON[jsonGeoreferenceOName] = settingsCollection.geoReference();
-	jsonJSON[jsonMergeSemanticsOName] = settingsCollection.mergeSemantics();
-	settingsJSON[jsonOName] = jsonJSON;
+	settingsJSON[JsonObjectInEnum::getString(JsonObjectInID::JSON)] = getJSONSettings();
 
 	return settingsJSON;
 }
@@ -551,14 +589,14 @@ void IOManager::setMetaData(std::shared_ptr<CJT::CityCollection> collection)
 	metaData.setTitle(CJObjectEnum::getString(CJObjectID::metaDataTitle));
 	if (settingsCollection.geoReference())
 	{
-		internalDataManager_.get()->getProjectionData(&transformation, &metaData);
+		internalDataManager_->getProjectionData(&transformation, &metaData);
 	}
 
 	transformation.setScale(transformation.getScale()[0]);
 
 	// compute the extends
-	gp_Pnt lll = internalDataManager_.get()->getLllPoint();
-	gp_Pnt urr = internalDataManager_.get()->getUrrPoint();
+	gp_Pnt lll = internalDataManager_->getLllPoint();
+	gp_Pnt urr = internalDataManager_->getUrrPoint();
 
 	gp_Trsf gridRotation;
 	gridRotation.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Vec(0, 0, 1)), -settingsCollection.gridRotation());
@@ -584,53 +622,45 @@ void IOManager::setDefaultSemantic(CJT::CityObject& cityBuildingObject, CJT::Cit
 	CJT::Building_Type rootType = CJT::Building_Type::Building;
 	CJT::Building_Type childType = CJT::Building_Type::BuildingPart;
 
-	if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcBuilding>()->size() > 0) // is building
-	{
-		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
-		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBuilding>();
-	} 
+	int buildingTypeId = findBuildingType(internalDataManager_->getSourceFiles());
 
-#if defined(USE_IFC4x2) || defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
-	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcBridge>()->size() > 0) // is brdige
+	switch (buildingTypeId)
 	{
-		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBridge>("IfcBridge", false);
-		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBridge>();
+#if defined(USE_IFC4x2) || defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
+	case 2: // is brdige
+		buildingName = internalDataManager_->getIfcObjectName<IfcSchema::IfcBridge>("IfcBridge", false);
+		buildingAttributes = internalDataManager_->getBuildingInformation<IfcSchema::IfcBridge>();
 		rootType = CJT::Building_Type::Bridge;
 		childType = CJT::Building_Type::BridgePart;
-	}
+		break;
 #endif // USE_IFC4x3
-
 #if defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
-	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcRoad>()->size() > 0) // is road
-	{
-		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcRoad>("IfcRoad", false);
-		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcRoad>();
+	case 3:  // is road
+		buildingName = internalDataManager_->getIfcObjectName<IfcSchema::IfcRoad>("IfcRoad", false);
+		buildingAttributes = internalDataManager_->getBuildingInformation<IfcSchema::IfcRoad>();
 		rootType = CJT::Building_Type::Road;
 		childType = CJT::Building_Type::Road;
-	
-	}
-	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcRailway>()->size() > 0) // is railway
-	{
-		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcRailway>("IfcRailway", false);
-		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcRailway>();
+		break;
+	case 4: // is railway
+		buildingName = internalDataManager_->getIfcObjectName<IfcSchema::IfcRailway>("IfcRailway", false);
+		buildingAttributes = internalDataManager_->getBuildingInformation<IfcSchema::IfcRailway>();
 		rootType = CJT::Building_Type::Railway;
 		childType = CJT::Building_Type::Railway;
-
-	}
-	else if (internalDataManager_->getSourceFiles()[0]->instances_by_type<IfcSchema::IfcMarineFacility>()->size() > 0) // is marinefacilty
-	{
-		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcMarineFacility>("IfcMarineFacility", false);
-		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcMarineFacility>();
-	}
+		break;
+	case 5: // is marinefacilty
+		buildingName = internalDataManager_->getIfcObjectName<IfcSchema::IfcMarineFacility>("IfcMarineFacility", false);
+		buildingAttributes = internalDataManager_->getBuildingInformation<IfcSchema::IfcMarineFacility>();
+		break;
 #endif
-	else
-	{
-		buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
-		buildingAttributes = internalDataManager_.get()->getBuildingInformation<IfcSchema::IfcBuilding>();
+	default:
+	case 1: // is building
+		buildingName = internalDataManager_->getIfcObjectName<IfcSchema::IfcBuilding>("IfcBuilding", false);
+		buildingAttributes = internalDataManager_->getBuildingInformation<IfcSchema::IfcBuilding>();
+		break;
 	}
 
 	// Set up objects and their relationships
-	if (buildingName == "") { buildingName = internalDataManager_.get()->getIfcObjectName<IfcSchema::IfcSite>("IfcSite", false); }
+	if (buildingName == "") { buildingName = internalDataManager_->getIfcObjectName<IfcSchema::IfcSite>("IfcSite", false); }
 	cityBuildingObject.addAttributes(buildingAttributes);
 
 	cityBuildingObject.setName(buildingName);
@@ -654,7 +684,7 @@ void IOManager::setComputedSemantic(CJGeoCreator* geoCreator, CJT::CityObject& c
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	cityOuterShellObject.addAttribute(sourceIdentifierEnum::getString(sourceIdentifierID::envExtractor) + "footprint elevation", settingsCollection.footprintElevation());
-	cityBuildingObject.addAttribute(sourceIdentifierEnum::getString(sourceIdentifierID::envExtractor) + "buildingHeight", internalDataManager_.get()->getUrrPoint().Z() - settingsCollection.footprintElevation());
+	cityBuildingObject.addAttribute(sourceIdentifierEnum::getString(sourceIdentifierID::envExtractor) + "buildingHeight", internalDataManager_->getUrrPoint().Z() - settingsCollection.footprintElevation());
 
 	int storeyFloors = 0;
 	int basementFloors = 0;
@@ -692,7 +722,7 @@ void IOManager::setComputedSemantic(CJGeoCreator* geoCreator, CJT::CityObject& c
 
 void IOManager::ComputeStoreysAboveGround(int* storeysAboveGround, int* storeysBelowGround)
 {
-	IfcSchema::IfcBuildingStorey::list::ptr storeyList = internalDataManager_.get()->getSourceFile(0)->instances_by_type<IfcSchema::IfcBuildingStorey>();
+	IfcSchema::IfcBuildingStorey::list::ptr storeyList = internalDataManager_->getSourceFile(0)->instances_by_type<IfcSchema::IfcBuildingStorey>();
 
 	double groundHeight = SettingsCollection::getInstance().footprintElevation();
 	double smallestDistance = 1000000;
@@ -701,7 +731,7 @@ void IOManager::ComputeStoreysAboveGround(int* storeysAboveGround, int* storeysB
 	for (auto it = storeyList->begin(); it != storeyList->end(); ++it)
 	{
 		IfcSchema::IfcBuildingStorey* storeyObject = *it;
-		double floorHeight = storeyObject->Elevation().get() * internalDataManager_.get()->getScaler(0);
+		double floorHeight = storeyObject->Elevation().get() * internalDataManager_->getScaler(0);
 		storeyHeights.emplace_back(floorHeight);
 
 		double distanceToGround = abs(floorHeight - groundHeight);
@@ -761,16 +791,99 @@ std::unique_ptr<gp_Pnt> IOManager::FetchMainEntranceLocation(std::unique_ptr<gp_
 	return nullptr;
 }
 
+int IOManager::findBuildingType(const std::vector<IfcParse::IfcFile*>& fileList )
+{
+	int buildingCount = fileList[0]->instances_by_type<IfcSchema::IfcBuilding>()->size();
+	int bridgeCount = 0;
+	int roadCount = 0;
+	int railwayCount = 0;
+	int marineCount = 0;
+
+#if defined(USE_IFC4x2) || defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
+	bridgeCount = fileList[0]->instances_by_type<IfcSchema::IfcBridge>()->size();
+#endif // USE_IFC4x3
+
+#if defined(USE_IFC4x3) || defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
+	roadCount = fileList[0]->instances_by_type<IfcSchema::IfcRoad>()->size();
+	railwayCount = fileList[0]->instances_by_type<IfcSchema::IfcRailway>()->size();
+	marineCount = fileList[0]->instances_by_type<IfcSchema::IfcMarineFacility>()->size();
+#endif
+
+	if ((buildingCount > 0) + (bridgeCount > 0) + (roadCount > 0) + (railwayCount > 0) + (marineCount > 0) > 1)
+	{
+		std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMistypedSpatialStructures) << "\n\n";
+	}
+
+	auto checkCount = [](int count, const char* name)
+	{
+		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoConstructionTypeFound) << name << "\n\n";
+		if (count > 1)
+		{
+			std::cout << errorWarningStringEnum::getString( ErrorID::warningIfcMultipleSpatialStructures) << name << "\n\n";
+		}
+		return;
+	};
+
+	if (buildingCount != 0)
+	{
+		checkCount(buildingCount, "IfcBuilding");
+		return 1;		
+	}
+	if (bridgeCount > 1)
+	{
+		checkCount(bridgeCount, "IfcBridge");
+		return 2;		
+	}
+	if (roadCount > 1)
+	{
+		checkCount(roadCount, "IfcRoad");
+		return 3;	
+	}
+	if (railwayCount > 1)
+	{
+		checkCount(railwayCount, "IfcRailway");
+		return 4;		
+	}
+	if (marineCount > 1)
+	{
+		checkCount(marineCount, "IfcMarineFacility");
+		return 5;		
+	}
+	return 0;
+}
+
+void IOManager::createCompanionFile()
+{
+	CJT::ObjectTransformation transformation(1);
+	CJT::metaDataObject metaData;
+
+	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
+	metaData.setTitle(CJObjectEnum::getString(CJObjectID::metaDataTitle));
+	gp_Trsf translation = internalDataManager_->getObjectNormalizedTranslation();
+
+	nlohmann::json companionJson;
+	nlohmann::json referencingJson;
+
+	referencingJson["referenceSystem"] = internalDataManager_->getProjection();
+	referencingJson["translate"] = { translation.TranslationPart().X(), translation.TranslationPart().Y(), translation.TranslationPart().Z() };
+	companionJson["georeference"] = referencingJson;
+
+	std::ofstream companionFile(settingsCollection.getOutputBasePath() + "_georef_companion.json");
+	companionFile << companionJson.dump(4);
+	companionFile.close();
+	return;
+}
+
 
 void IOManager::processExternalLoD(CJGeoCreator* geoCreator, CJT::CityObject& cityOuterShellObject, CJT::Kernel* kernel)
 {
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingExterior) << std::endl;
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
-	
-	if (settingsCollection.make02() && settingsCollection.makeFootPrint() || 
+
+	if (settingsCollection.make02() && settingsCollection.makeFootPrint() ||
 		settingsCollection.make03() && settingsCollection.makeFootPrint() ||
 		settingsCollection.make04() && settingsCollection.makeFootPrint() ||
-		settingsCollection.footPrintBased() || 
+		settingsCollection.footPrintBased() ||
 		settingsCollection.makeb0()
 		)
 	{
@@ -785,125 +898,97 @@ void IOManager::processExternalLoD(CJGeoCreator* geoCreator, CJT::CityObject& ci
 		}
 	}
 
-	if (settingsCollection.make00())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD00(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD00, timeLoD00_);
-	}
-	if (settingsCollection.make02())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD02(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD02, timeLoD02_);
-	}
-	if (settingsCollection.make03())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD03(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD03, timeLoD03_);
-	}
-	if (settingsCollection.make04())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD04(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD04, timeLoD04_);
-	}
-	if (settingsCollection.make10())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD10(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD10, timeLoD10_);
-	}
-	if (settingsCollection.make12())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD12(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD12, timeLoD12_);
-	}
-	if (settingsCollection.make13())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD13(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD13, timeLoD13_);
-	}
-	if (settingsCollection.make22())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD22(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD22, timeLoD22_);
-	}
-	if (settingsCollection.makeb0())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoDb0(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoDb0, timeLoDb0_);
-	}
-	if (settingsCollection.makec1())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoDc1(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoDc1, timeLoDc1_);
-	}
-	if (settingsCollection.makec2())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoDc2(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoDc2, timeLoDc2_);
-	}
-	if (settingsCollection.maked1())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoDd1(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoDd1, timeLoDd1_);
-	}
-	if (settingsCollection.maked2())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoDd2(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoDd2, timeLoDd2_);
-	}
-	if (settingsCollection.makee1())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoDe1(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoDe1, timeLoDe1_);
-	}
-	if (settingsCollection.make32())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD32(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD32, timeLoD32_);
-	}
-	if (settingsCollection.makeV())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeV(internalDataManager_.get(), kernel, 1)};
-			}, cityOuterShellObject, ErrorID::failedLoD50, timeV_);
-	}
+	processExternalLoD(settingsCollection.make00(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD00(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoD00, timeLoD00_);
+
+	processExternalLoD(settingsCollection.make02(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD02(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoD02, timeLoD02_);
+
+	processExternalLoD(settingsCollection.make03(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD03(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoD03, timeLoD03_);
+
+	processExternalLoD(settingsCollection.make04(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD04(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoD04, timeLoD04_);
+
+	processExternalLoD(settingsCollection.make10(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD10(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoD10, timeLoD10_);
+
+	processExternalLoD(settingsCollection.make12(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD12(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoD12, timeLoD12_);
+
+	processExternalLoD(settingsCollection.make13(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD13(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoD13, timeLoD13_);
+
+	processExternalLoD(settingsCollection.make22(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD22(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoD22, timeLoD22_);
+
+	processExternalLoD(settingsCollection.makeb0(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoDb0(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoDb0, timeLoDb0_);
+
+	processExternalLoD(settingsCollection.makec1(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoDc1(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoDc1, timeLoDc1_);
+
+	processExternalLoD(settingsCollection.makec2(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoDc2(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoDc2, timeLoDc2_);
+
+	processExternalLoD(settingsCollection.maked1(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoDd1(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoDd1, timeLoDd1_);
+
+	processExternalLoD(settingsCollection.maked2(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoDd2(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoDd2, timeLoDd2_);
+
+	processExternalLoD(settingsCollection.makee1(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoDe1(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoDe1, timeLoDe1_);
+
+	processExternalLoD(settingsCollection.make32(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD32(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoD32, timeLoD32_);
+
+	processExternalLoD(settingsCollection.makeV(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeV(internalDataManager_.get(), kernel, 1)};
+		}, cityOuterShellObject, ErrorID::failedLoD50, timeV_);
+
 	std::cout << "\n";
 	return;
 }
 
 void IOManager::processExternalLoD(
+	bool process,
 	const std::function<std::vector<CJT::GeoObject>()>& lodCreationFunc,
 	CJT::CityObject& cityOuterShellObject,
 	ErrorID errorID,
 	long long& timeRecord
 )
 {
-	auto startTimeGeoCreation = std::chrono::high_resolution_clock::now();
-	try
+	if (process)
 	{
-		std::vector<CJT::GeoObject> geoObjects = lodCreationFunc();
-		for (size_t i = 0; i < geoObjects.size(); i++) { cityOuterShellObject.addGeoObject(geoObjects[i]); }
+		auto startTimeGeoCreation = std::chrono::high_resolution_clock::now();
+		try
+		{
+			std::vector<CJT::GeoObject> geoObjects = lodCreationFunc();
+			for (size_t i = 0; i < geoObjects.size(); i++) { cityOuterShellObject.addGeoObject(geoObjects[i]); }
+		}
+		catch (const std::exception&)
+		{
+			ErrorCollection::getInstance().addError(errorID);
+			succesfullExit_ = 0;
+		}
+		timeRecord = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTimeGeoCreation).count();
 	}
-	catch (const std::exception&)
-	{
-		ErrorCollection::getInstance().addError(errorID);
-		succesfullExit_ = 0;
-	}
-	timeRecord = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTimeGeoCreation).count();
 	return;
 }
 
@@ -912,24 +997,18 @@ void IOManager::processComplexlLoD(CJGeoCreator* geoCreator, CJT::CityObject& ci
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoComputingComplex) << std::endl;
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
-	if (settingsCollection.make40())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD40(internalDataManager_.get(), kernel, 1)};
-			}, cityComplexObject, ErrorID::failedLoD40, timeLoD40_);
-	}
-	if (settingsCollection.make41())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD41(internalDataManager_.get(), kernel, 1)};
-			}, cityComplexObject, ErrorID::failedLoD41, timeLoD41_);
-	}
-	if (settingsCollection.make42())
-	{
-		processExternalLoD([&]() {
-			return std::vector<CJT::GeoObject>{geoCreator->makeLoD42(internalDataManager_.get(), kernel, 1)};
-			}, cityComplexObject, ErrorID::failedLoD42, timeLoD42_);
-	}
+	processExternalLoD(settingsCollection.make40(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD40(internalDataManager_.get(), kernel, 1)};
+		}, cityComplexObject, ErrorID::failedLoD40, timeLoD40_);
+
+	processExternalLoD(settingsCollection.make41(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD41(internalDataManager_.get(), kernel, 1)};
+		}, cityComplexObject, ErrorID::failedLoD41, timeLoD41_);
+
+	processExternalLoD(settingsCollection.make42(), [&]() {
+		return std::vector<CJT::GeoObject>{geoCreator->makeLoD42(internalDataManager_.get(), kernel, 1)};
+		}, cityComplexObject, ErrorID::failedLoD42, timeLoD42_);
+
 	return;
 }
 
@@ -1042,16 +1121,7 @@ bool IOManager::run()
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 
-	// internalize the helper data
-	try { internalizeGeo(); }
-	catch (const std::string& exceptionString) 
-	{ 
-		std::cout << exceptionString << std::endl;
-		return false;
-	}
-
 	// create the cjt objects
-
 	std::shared_ptr<CJT::CityCollection> collection = nullptr;
 	CJT::CityObject cityBuildingObject; //the overarching city object
 	CJT::CityObject cityOuterShellObject; //container of outer shell geo objects
@@ -1060,11 +1130,24 @@ bool IOManager::run()
 
 	if (settingsCollection.createJSON())
 	{
-		double scale = 0.001;
-		collection = std::make_shared<CJT::CityCollection>(scale);
 		setDefaultSemantic(cityBuildingObject, cityComplexObject, cityOuterShellObject, cityInnerShellObject);
+	}
+
+	// internalize the helper data
+	try { internalizeGeo(); }
+	catch (const std::string& exceptionString) 
+	{ 
+		std::cout << exceptionString << std::endl;
+		return false;
+	}
+
+	if (settingsCollection.createJSON())
+	{
+		double scale = 0.001;
+		collection = std::make_shared<CJT::CityCollection>(scale);	
 		setMetaData(collection);
 	}
+	if (settingsCollection.createCADFile()) { createCompanionFile(); }
 
 	// make the geometrycreator and voxelgrid
 	CJGeoCreator geoCreator;

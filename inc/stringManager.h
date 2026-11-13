@@ -69,6 +69,7 @@ enum class CommunicationStringID {
 	infoIgnoreVoids,
 	infoFoundUnits,
 	infoDefaultVolumeUnit,
+	infoConstructionTypeFound,
 
 	infoPreProcessing,
 	infoCoarseFiltering,

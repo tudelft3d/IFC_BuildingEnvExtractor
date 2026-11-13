@@ -79,7 +79,9 @@ std::string CommunicationStringEnum::getString(CommunicationStringID id)
 	case CommunicationStringID::infoFoundUnits:
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Found units:";
 	case CommunicationStringID::infoDefaultVolumeUnit:
-		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "SI unit for volume is set to cubic metre";
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "SI unit for volume is set to cubic metre";	
+	case CommunicationStringID::infoConstructionTypeFound:
+		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Construction type found: ";
 
 	case CommunicationStringID::infoPreProcessing:
 		return CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::info) + "Pre proccessing";
@@ -449,6 +451,16 @@ std::string errorWarningStringEnum::getString(ErrorID id, bool withImportance)
 	}
 	case ErrorID::warningIfcIncorrectGeoRefTranslation: {
 		coms = "Georeference projected coordinates lie out of bounds";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}	
+	case ErrorID::warningIfcMultipleSpatialStructures: {
+		coms = "Multiple IfcSpatialStructureElement classes found: ";
+		importance = CommunicationStringImportanceID::warning;
+		break;
+	}	
+	case ErrorID::warningIfcMistypedSpatialStructures: {
+		coms = "Multiple different IfcSpatialStructureElement classes found! IfcBuilding is used as type";
 		importance = CommunicationStringImportanceID::warning;
 		break;
 	}

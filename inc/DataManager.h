@@ -285,6 +285,8 @@ public:
 	gp_Trsf getProjectionTransformation();
 	/// gets the projectiodata if present
 	void getProjectionData(CJT::ObjectTransformation* transformation, CJT::metaDataObject* metaData);
+	// get the projection name from the file
+	std::string getProjection();
 	/// gets the generic building information
 	template <typename T>
 	nlohmann::json getBuildingInformation();

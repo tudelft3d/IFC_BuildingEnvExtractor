@@ -204,7 +204,7 @@ public:
     void setSilent(bool value) { isSilent_ = value; }
 
     // check if path is valid and stores it
-    void setInputJSONPath(const std::string& inputString, bool validate);
+    void setInputJSONPath(const std::string& inputString);
     std::string getInputJSONPath() { return InputJsonPath_; }
 
     // populates all the paths except the JSON config path
@@ -357,6 +357,8 @@ public:
     bool createDXF() const { return createDXF_; }
     void setCreateDXF(bool value) { createDXF_ = value; }
     void setCreateDXF(const nlohmann::json& json);
+
+    bool createCADFile() const { return (createSTEP_ || createOBJ_ || createDXF_); }
 
     bool forceSolid() const { return forceSolid_; }
 

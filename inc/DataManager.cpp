@@ -1086,6 +1086,42 @@ void DataManager::getScaleAndProjection(CJT::ObjectTransformation* transformatio
 	return;
 }
 
+std::string DataManager::getProjection() {
+#if defined(USE_IFC2x3)
+
+	nlohmann::json grefSetData = get2x3GeoData();
+	if (grefSetData.empty()) { return ""; }
+
+	if (grefSetData.contains("TargetCRS"))
+	{
+		if (grefSetData["TargetCRS"].is_string())
+		{
+			 return grefSetData["TargetCRS"];
+		}
+	}
+#else
+	IfcParse::IfcFile* fileObject = datacollection_[0].getFilePtr();
+	IfcSchema::IfcMapConversion::list::ptr mapList = fileObject->instances_by_type<IfcSchema::IfcMapConversion>();
+	if (mapList->size() != 0) {
+		if (mapList->size() > 1) {
+			ErrorCollection::getInstance().addError(ErrorID::warningIfcMultipleProjections);
+			std::cout << errorWarningStringEnum::getString(ErrorID::warningIfcMultipleProjections) << std::endl;
+		}
+
+		IfcSchema::IfcMapConversion* mapConversion = *(mapList->begin());
+
+#if defined(USE_IFC4x3add1) || defined(USE_IFC4x3add2)
+		boost::optional<std::string> targetCRSOptionalName = mapConversion->TargetCRS()->Name();
+		if (targetCRSOptionalName->empty()) { return ""; }
+		return *targetCRSOptionalName;
+#else
+		return mapConversion->TargetCRS()->Name();
+#endif // defined(USE_IFC4x3add2)
+	}
+#endif // !USE_IFC4
+	return "";
+}
+
 void DataManager::populateAttributeLookup()
 {
 	for (size_t i = 0; i < getSourceFileCount(); i++)

@@ -280,18 +280,16 @@ void SettingsCollection::generateGeneralSettings()
 	return;
 }
 
-void SettingsCollection::setInputJSONPath(const std::string& inputString, bool validate)
+void SettingsCollection::setInputJSONPath(const std::string& inputString)
 {
-	if (validate)
+	if (!isValidPath(inputString))
 	{
-		if (!isValidPath(inputString))
-		{
-			throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoValFilePaths));
-		}
-		else if (!hasExtension(inputString, "json")) {
-			throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoValFilePaths));
-		}
+		throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoValFilePaths));
 	}
+	else if (!hasExtension(inputString, "json")) {
+		throw std::string(errorWarningStringEnum::getString(ErrorID::errorNoValFilePaths));
+	}
+
 	InputJsonPath_ = inputString;
 	return;
 }

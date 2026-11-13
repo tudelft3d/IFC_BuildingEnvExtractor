@@ -54,8 +54,18 @@ private:
 	// attempts to get the settings from json file
 	bool getJSONValues(const std::string& inputPath);
 	
-	// console outputs the settings that are utilized
+	// console outputs the complete settings that are utilized
 	void printSummary();
+	// console outputs the path settings that are utilizid
+	void printIOSummary();
+	// console outputs the tolerance settings that are utilizid
+	void printTolSummary();
+	// console outputs the IFC settings that are utilizid
+	void printIFCSummary();
+	// console outputs the voxel settings that are utilizid
+	void printVoxelSummary();
+	// console outputs the voxel settings that are utilizid
+	void printJSONSummary();
 	// console output the encountered errors
 	void printErrors();
 	// outputs yes or no based on a input bool
@@ -63,9 +73,20 @@ private:
 
 	// returns a single string representing the enables LoD output
 	std::string getLoDEnabled();
+	// returns a vector representing the enables LoD output
+	std::vector<std::string> getLoDListEnabled();
 
 	// returns a json object that is populated with the settings in the settingsobject
 	nlohmann::json settingsToJSON();
+	// returns a json object that is populated with the tolearnce related settings
+	nlohmann::json getTolSettings();
+	// returns a json object that is populated with the voxel related settings
+	nlohmann::json getVoxelSettings();
+	// returns a json object that is populated with the IFC related settings
+	nlohmann::json getIFCSettings();
+	// returns a json object that is populated with the JSON related settings
+	nlohmann::json getJSONSettings();
+
 	/// internalize and index geometry
 	void internalizeGeo();
 
@@ -80,6 +101,11 @@ private:
 	/// fetch main entrance location
 	std::unique_ptr <gp_Pnt> FetchMainEntranceLocation(std::unique_ptr<gp_Pnt> location);
 
+	int findBuildingType(const std::vector<IfcParse::IfcFile*>& fileList);
+
+	// creates companion file to georeference non-georefencable files
+	void createCompanionFile();
+
 	/// process, collect errors and clock all the geocreating functions
 	void processExternalLoD(
 		CJGeoCreator* geoCreator, 
@@ -87,6 +113,7 @@ private:
 		CJT::Kernel* kernel);
 	/// process, collect errors and clock the geocreating functions
 	void processExternalLoD(
+		bool process,
 		const std::function<std::vector<CJT::GeoObject>()>& lodCreationFunc,
 		CJT::CityObject& cityOuterShellObject,
 		ErrorID errorID,

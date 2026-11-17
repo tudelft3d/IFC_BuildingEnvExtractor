@@ -182,7 +182,7 @@ void CJGeoCreator::garbageCollection()
 
 	if (!LoDe1FacesRequired && !LoDE1Faces_.empty())
 	{
-		std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>().swap(LoDE1Faces_);
+		std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>().swap(LoDE1Faces_);
 	}
 
 	// check if storey objects can be released
@@ -419,8 +419,8 @@ std::vector<RCollection> CJGeoCreator::mergeRoofSurfaces(std::vector<SurfaceGrid
 }
 
 void CJGeoCreator::simpleRaySurfaceCast(
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& outList,
-	const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& surfaceList,
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& outList,
+	const std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& surfaceList,
 	const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIndex,
 	const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& surfaceIndx
 )
@@ -519,7 +519,7 @@ void CJGeoCreator::initializeBasic(DataManager* cluster)
 		}
 		else
 		{
-			filteredObjects = cluster->getIndexedShapes(); //TODO: this bloats memory for no reason
+			filteredObjects = cluster->getIndexedShapes(); //TODO: I do not like this use products not geometry
 		}
 
 		std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoReduceSurfaces) << std::endl;
@@ -584,8 +584,8 @@ std::vector<TopoDS_Face> CJGeoCreator::section2Faces(const std::vector<Value>& p
 	std::vector<TopoDS_Shape> shapeList;
 	for (size_t i = 0; i < productLookupValues.size(); i++)
 	{
-		const IfcProductSpatialData& lookup = h->getLookup(productLookupValues[i].second);
-		const TopoDS_Shape& currentShape = lookup.getProductShape();
+		const GeometryCacheItem& lookup = h->getLookup(productLookupValues[i].second);
+		const TopoDS_Shape& currentShape = lookup.getGeo(true);
 		shapeList.emplace_back(currentShape);
 	}
 
@@ -1629,7 +1629,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 		}
 	};
 
-	auto getProduct = [](const T& item) -> IfcSchema::IfcProduct* {
+	auto getProduct = [](const T& item) -> const IfcSchema::IfcProduct* {
 		if constexpr (std::is_same_v<T, TopoDS_Face>) {
 			return nullptr;
 		}
@@ -1663,7 +1663,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 			if (evalList[currentIdx] == true) { continue; }
 			evalList[currentIdx] = true;
 
-			IfcSchema::IfcProduct* currentProduct = getProduct(surfaceList[currentIdx]);
+			const IfcSchema::IfcProduct* currentProduct = getProduct(surfaceList[currentIdx]);
 			std::string currentType = "";
 			if (currentProduct != nullptr)
 			{
@@ -1687,7 +1687,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 				if (currentIdx == otherFaceIdx) { continue; }
 				if (evalList[otherFaceIdx] == true) { continue; }
 
-				IfcSchema::IfcProduct* otherProduct = getProduct(surfaceList[otherFaceIdx]);
+				const IfcSchema::IfcProduct* otherProduct = getProduct(surfaceList[otherFaceIdx]);
 				std::string otherType = "";
 				if (otherProduct != nullptr)
 				{
@@ -1725,11 +1725,11 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 		else
 		{
 			std::vector<TopoDS_Face> tempFaceList;
-			std::map<IfcSchema::IfcProduct*, double> productAreaMap;
+			std::map<const IfcSchema::IfcProduct*, double> productAreaMap;
 			for (size_t i = 0; i < mergedSurfaceIdxList.size(); i++)
 			{
 				TopoDS_Face currentFace = getFace(surfaceList[mergedSurfaceIdxList[i]]);
-				IfcSchema::IfcProduct* currentProduct = getProduct(surfaceList[mergedSurfaceIdxList[i]]);
+				const IfcSchema::IfcProduct* currentProduct = getProduct(surfaceList[mergedSurfaceIdxList[i]]);
 
 				double currentArea = helperFunctions::computeArea(currentFace);
 				tempFaceList.emplace_back(currentFace);
@@ -1746,7 +1746,7 @@ std::vector<T> CJGeoCreator::simplefyFacePool(const std::vector<T>& surfaceList,
 
 				// get the surface type of the type that has the largest area
 				double maxArea = 0;
-				IfcSchema::IfcProduct* surfaceProduct = nullptr;
+				const IfcSchema::IfcProduct* surfaceProduct = nullptr;
 				for (const auto& [typeName, areaValue] : productAreaMap)
 				{
 					if (areaValue > maxArea)
@@ -1950,9 +1950,9 @@ std::vector<TopoDS_Shape> CJGeoCreator::beamProjection(DataManager* h)
 
 	for (int currentValue : topValueIdxset)
 	{
-		const IfcProductSpatialData& lookup = h->getLookup(currentValue);
+		const GeometryCacheItem& lookup = h->getLookup(currentValue);
 		TopoDS_Shape currentShape;
-		topObjectList.emplace_back(lookup.getProductShape());
+		topObjectList.emplace_back(lookup.getGeo(true));
 	}
 
 	helperFunctions::printTime(startTime, std::chrono::steady_clock::now());
@@ -2495,7 +2495,7 @@ std::vector<CJT::CityObject> CJGeoCreator::makeRoomObjects(DataManager* h, std::
 void CJGeoCreator::setLoD32SurfaceAttributes(
 	std::vector<nlohmann::json>& outSurfaceTypeCollection, 
 	std::vector<int>& outTypeValueList, 
-	const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& surfacePairList,
+	const std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& surfacePairList,
 	DataManager* h
 )
 {
@@ -2514,7 +2514,7 @@ void CJGeoCreator::setLoD32SurfaceAttributes(
 
 	std::map<std::string, int> attributeLookup; //gui to lookup indx;
 	int c = 0;
-	for (const std::pair<TopoDS_Face, IfcSchema::IfcProduct*>& currentFacePair : surfacePairList)
+	for (const std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>& currentFacePair : surfacePairList)
 	{
 		c++;
 		std::cout << "\tCopying Attribute data - " << c << " of " << surfacePairList.size() << "\r";
@@ -2644,8 +2644,8 @@ std::vector< CJT::GeoObject> CJGeoCreator::makeLoD00(DataManager* h, CJT::Kernel
 		std::vector<gp_Pnt> pointList;
 		for (const Value& resultItem : qResult)
 		{
-			const IfcProductSpatialData& lookup = h->getLookup(resultItem.second);
-			TopoDS_Shape currentShape = h->getObjectShape(lookup.getProductPtr(), true);
+			const GeometryCacheItem& lookup = h->getLookup(resultItem.second);
+			TopoDS_Shape currentShape = h->getObjectShape(lookup.getProduct(), true);
 			for (TopExp_Explorer expl(currentShape, TopAbs_VERTEX); expl.More(); expl.Next())
 			{
 				TopoDS_Vertex vertex = TopoDS::Vertex(expl.Current());
@@ -4330,16 +4330,16 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
 	auto spatialIndx = h->getIndexPointer();
 
-	std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>> shapeProductList;
+	std::vector<std::pair<TopoDS_Shape, const IfcSchema::IfcProduct*>> shapeProductList;
 	std::vector<Value> allEntries(spatialIndx->begin(), spatialIndx->end());
 
 	if (!settingsCollection.ignoreIsExternal())
 	{
 		for (const Value& value : allEntries)
 		{
-			const IfcProductSpatialData& lookup = h->getLookup(value.second);
-			TopoDS_Shape currentShape = lookup.getProductShape();
-			IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
+			const GeometryCacheItem& lookup = h->getLookup(value.second);
+			TopoDS_Shape currentShape = lookup.getGeo(true);
+			const IfcSchema::IfcProduct* currentProduct = lookup.getProduct();
 			shapeProductList.emplace_back(std::make_pair(currentShape, currentProduct));
 		}
 	}
@@ -4362,9 +4362,9 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 			std::cout << "\tRay casting data from LoDe.1 and/or 3.2 is used\n";
 			for (const Value& currentValue : externalValueList_)
 			{
-				const IfcProductSpatialData& lookup = h->getLookup(currentValue.second);
-				TopoDS_Shape currentShape = lookup.getProductShape();
-				IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
+				const GeometryCacheItem& lookup = h->getLookup(currentValue.second);
+				TopoDS_Shape currentShape = lookup.getGeo(true);
+				const IfcSchema::IfcProduct* currentProduct = lookup.getProduct();
 				shapeProductList.emplace_back(std::make_pair(currentShape, currentProduct));
 			}
 		}
@@ -4389,7 +4389,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 	std::vector<int> scoreList;
 	int totalScore = 0;
 
-	for (std::pair<TopoDS_Shape, IfcSchema::IfcProduct*> shapeProductPair : shapeProductList)
+	for (std::pair<TopoDS_Shape,const IfcSchema::IfcProduct*> shapeProductPair : shapeProductList)
 	{
 		int localScore = helperFunctions::getPointCount(shapeProductPair.first);
 		scoreList.emplace_back(localScore);
@@ -4397,7 +4397,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 	}
 	int targetScore = static_cast<int>(std::floor(totalScore / coreUse));
 
-	std::vector<std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>>> sublists = subListScore(shapeProductList, scoreList, targetScore);
+	std::vector<std::vector<std::pair<TopoDS_Shape, const IfcSchema::IfcProduct*>>> sublists = subListScore(shapeProductList, scoreList, targetScore);
 	std::vector< CJT::GeoObject> geoObjectList; // final output collection
 	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> collectionShape;
 	int counter = 0;
@@ -4455,15 +4455,19 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 	}
 	coreUse -= 1;
 
-	const std::vector<IfcProductSpatialData>& allSpatialObjects = h->getLookup();
+	const std::vector<GeometryCacheItem>& allSpatialObjects = h->getLookup();
 
-	std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>> shapeProductList;
+	std::vector<std::pair<TopoDS_Shape, const IfcSchema::IfcProduct*>> shapeProductList;
 	std::vector<int> scoreList;
 	int totalScore = 0;
-	for (const IfcProductSpatialData& spatialObjects : allSpatialObjects)
+	for (const GeometryCacheItem& spatialObjects : allSpatialObjects)
 	{
-		TopoDS_Shape currentShape = spatialObjects.getProductShape();
-		IfcSchema::IfcProduct* currentProduct = spatialObjects.getProductPtr();
+		const IfcSchema::IfcProduct* currentProduct = spatialObjects.getProduct();
+
+		if (currentProduct->declaration().name() == "IfcSpace") { continue; }
+
+		TopoDS_Shape currentShape = spatialObjects.getGeo(true);
+
 		shapeProductList.emplace_back(std::make_pair(currentShape, currentProduct));
 
 		int localScore = helperFunctions::getPointCount(currentShape);
@@ -4472,7 +4476,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 	}
 	int targetScore = static_cast<int>(std::floor(totalScore / coreUse));
 
-	std::vector<std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>>> sublists = subListScore(shapeProductList, scoreList, targetScore);
+	std::vector<std::vector<std::pair<TopoDS_Shape, const IfcSchema::IfcProduct*>>> sublists = subListScore(shapeProductList, scoreList, targetScore);
 	std::vector< CJT::GeoObject> geoObjectList; // final output collection
 	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> collectionShape;
 	int counter = 0;
@@ -4551,10 +4555,10 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel*
 	std::vector<int> typeValueList;
 	setLoD32SurfaceAttributes(SurfaceTypeCollection, typeValueList, LoDE1Faces_, h);
 
-	std::map< IfcSchema::IfcProduct*, TopoDS_Compound> compoundMap;
-	for (const std::pair<TopoDS_Face, IfcSchema::IfcProduct*>& currentFacePair : LoDE1Faces_)
+	std::map<const IfcSchema::IfcProduct*, TopoDS_Compound> compoundMap;
+	for (const std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>& currentFacePair : LoDE1Faces_)
 	{
-		IfcSchema::IfcProduct* currentProductPtr = currentFacePair.second;
+		const IfcSchema::IfcProduct* currentProductPtr = currentFacePair.second;
 
 		TopoDS_Face currentFace = currentFacePair.first;
 		currentFace.Move(localRotationTrsf);
@@ -4576,7 +4580,7 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel*
 
 	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> compoundShape;
 	compoundShape.reserve(compoundMap.size());
-	for (const std::pair<IfcSchema::IfcProduct*, TopoDS_Compound>& currentFacePair : compoundMap)
+	for (const std::pair<const IfcSchema::IfcProduct*, TopoDS_Compound>& currentFacePair : compoundMap)
 	{
 		IfcSchema::IfcBuildingStorey* storeyPrt = helperFunctions::getBuildingStorey(currentFacePair.first);
 		if (storeyPrt == nullptr) { continue; }
@@ -4620,7 +4624,7 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	populateVoxelIndex(&voxelIndex, externalVoxel);
 
 	// evaluate which surfaces are visible from the exterior
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> outerSurfacePairList;
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>> outerSurfacePairList;
 	if (!LoDE1Faces_.empty())
 	{
 		outerSurfacePairList = LoDE1Faces_;
@@ -4644,14 +4648,14 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	//TODO: tesselate the faces
 
 	// clip surfaces that are in contact with eachother
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> splitOuterSurfacePairList;
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> unSplitOuterSurfacePairList;
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>> splitOuterSurfacePairList;
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>> unSplitOuterSurfacePairList;
 	splitOuterSurfaces(splitOuterSurfacePairList, unSplitOuterSurfacePairList, outerSurfacePairList);
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>().swap(outerSurfacePairList);
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>().swap(outerSurfacePairList);
 
 	// remove internal faces
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> splitFaceIndx;
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> splitOuterSurfacePairCleanList;
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>> splitOuterSurfacePairCleanList;
 
 	for (const auto& [currentFace, currentProduct] : splitOuterSurfacePairList)
 	{
@@ -4667,7 +4671,7 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 		splitFaceIndx.insert(std::make_pair(currentBox, currentFace));
 		splitOuterSurfacePairCleanList.emplace_back(std::pair(currentFace, currentProduct));
 	}
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> finalOuterSurfacePairList;
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>> finalOuterSurfacePairList;
 	for (const auto& [currentFace, currentProduct] : unSplitOuterSurfacePairList)
 	{
 		BoostBox3D currentBox = helperFunctions::createBBox(currentFace);
@@ -4709,8 +4713,8 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 		finalOuterSurfacePairList.erase(finalOuterSurfacePairList.begin() + eliminatedIndx);
 	}
 
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> cleanedOuterSurfacePairList = simplefyFacePool(finalOuterSurfacePairList, normalList); //TODO: multithread
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>().swap(finalOuterSurfacePairList);
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>> cleanedOuterSurfacePairList = simplefyFacePool(finalOuterSurfacePairList, normalList); //TODO: multithread
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>().swap(finalOuterSurfacePairList);
 
 	// make the collection compund shape
 	BRep_Builder builder;
@@ -4720,7 +4724,7 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 	std::vector<nlohmann::json> SurfaceTypeCollection;
 	std::vector<int> typeValueList;
 	setLoD32SurfaceAttributes(SurfaceTypeCollection, typeValueList, cleanedOuterSurfacePairList, h);
-	for (const std::pair<TopoDS_Face, IfcSchema::IfcProduct*>& currentFacePair : cleanedOuterSurfacePairList)
+	for (const std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>& currentFacePair : cleanedOuterSurfacePairList)
 	{
 		const TopoDS_Face& currentFace = currentFacePair.first;
 		builder.Add(collectionShape, currentFace);
@@ -5305,7 +5309,7 @@ void CJGeoCreator::makeVRoom(DataManager* h, CJT::Kernel* kernel, std::vector<CJ
 }
 
 template <typename T>
-std::vector<std::pair<T, IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objects(
+std::vector<std::pair<T, const IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objects(
 	DataManager* h,
 	int unitScale, 
 	const std::vector<Value>& productLookupValues,
@@ -5325,8 +5329,8 @@ std::vector<std::pair<T, IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objects(
 	double searchBuffer = settingsCollection.searchBufferLod32();
 	for (size_t i = 0; i < productLookupValues.size(); i++)
 	{
-		const IfcProductSpatialData& lookup = h->getLookup(productLookupValues[i].second);
-		TopoDS_Shape currentShape = lookup.getProductShape();
+		const GeometryCacheItem& lookup = h->getLookup(productLookupValues[i].second);
+		TopoDS_Shape currentShape = lookup.getGeo(true);
 
 		BoostBox3D totalBox = helperFunctions::createBBox(currentShape, searchBuffer);
 		int score = static_cast<int>(std::distance(voxelIdx.qbegin(bgi::intersects(totalBox)), voxelIdx.qend()));
@@ -5343,7 +5347,7 @@ std::vector<std::pair<T, IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objects(
 	}
 
 	// evaluate which surfaces are visible from the exterior
-	std::vector<std::pair<T, IfcSchema::IfcProduct*>> outerSurfacePairList;
+	std::vector<std::pair<T, const IfcSchema::IfcProduct*>> outerSurfacePairList;
 	getOuterRayObjects(outerSurfacePairList, cleanedProductLookupValues, scoreList, h, faceIndx, voxelIdx);
 	std::vector<int>().swap(scoreList);
 
@@ -5351,7 +5355,7 @@ std::vector<std::pair<T, IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objects(
 }
 
 template <typename T>
-void CJGeoCreator::getOuterRayObjects(std::vector<std::pair<T, IfcSchema::IfcProduct*>>& outerSurfacePairList, const std::vector<Value>& totalValueObjectList, const std::vector<int>& scoreList, DataManager* h, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIndex)
+void CJGeoCreator::getOuterRayObjects(std::vector<std::pair<T, const IfcSchema::IfcProduct*>>& outerSurfacePairList, const std::vector<Value>& totalValueObjectList, const std::vector<int>& scoreList, DataManager* h, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIndex)
 {
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount();
@@ -5412,7 +5416,7 @@ void CJGeoCreator::getOuterRayObjects(std::vector<std::pair<T, IfcSchema::IfcPro
 
 template <typename T>
 void CJGeoCreator::getOuterRayObjects(
-	std::vector<std::pair<T, IfcSchema::IfcProduct*>>& outerObjectPairList,
+	std::vector<std::pair<T, const IfcSchema::IfcProduct*>>& outerObjectPairList,
 	const std::vector<Value>& valueObjectList, 
 	int& processedObject,
 	std::mutex& processedObjectmutex,
@@ -5433,9 +5437,9 @@ void CJGeoCreator::getOuterRayObjects(
 		processedObject++;
 		processCountLock.unlock();
 
-		const IfcProductSpatialData& lookup = h->getLookup(currentValue.second);
-		const std::string& lookupType = lookup.getProductPtr()->declaration().name();
-		const TopoDS_Shape& currentShape = lookup.getProductShape();
+		const GeometryCacheItem& lookup = h->getLookup(currentValue.second);
+		const std::string& lookupType = lookup.getProduct()->declaration().name();
+		const TopoDS_Shape& currentShape = lookup.getGeo(true);
 
 		bool objectIsExternal = false;
 		bool breakProcess = false;
@@ -5464,7 +5468,7 @@ void CJGeoCreator::getOuterRayObjects(
 				if constexpr (std::is_same_v<T, TopoDS_Face>)
 				{
 					std::unique_lock<std::mutex> listLock(listmutex);
-					outerObjectPairList.emplace_back(std::make_pair(currentTesselatedFace, lookup.getProductPtr()));
+					outerObjectPairList.emplace_back(std::make_pair(currentTesselatedFace, lookup.getProduct()));
 					listLock.unlock();
 				}
 				else
@@ -5497,11 +5501,11 @@ void CJGeoCreator::getOuterRayObjects(
 
 					if (cleanedCurrentShape.IsNull())
 					{
-						outerObjectPairList.emplace_back(std::make_pair(currentShape, lookup.getProductPtr()));
+						outerObjectPairList.emplace_back(std::make_pair(currentShape, lookup.getProduct()));
 					}
 					else
 					{
-						outerObjectPairList.emplace_back(std::make_pair(cleanedCurrentShape, lookup.getProductPtr()));
+						outerObjectPairList.emplace_back(std::make_pair(cleanedCurrentShape, lookup.getProduct()));
 					}
 
 
@@ -5730,8 +5734,8 @@ std::vector<CJT::CityObject*> CJGeoCreator::fetchRoomObject(DataManager* h, std:
 		// find the room that point is located in
 
 		bool encapsulating = true;
-		const IfcProductSpatialData& lookup = h->getSpaceLookup(qResult[k].second);
-		IfcSchema::IfcProduct* product = lookup.getProductPtr();
+		const GeometryCacheItem& lookup = h->getLookup(qResult[k].second);
+		const IfcSchema::IfcProduct* product = lookup.getProduct();
 
 		TopoDS_Shape productShape = h->getObjectShape(product, false, true);
 		BRepClass3d_SolidClassifier solidClassifier;
@@ -6141,8 +6145,8 @@ void CJGeoCreator::valueToGeoObject(
 		countMutex.unlock();
 
 		Value valueObject = *it;
-		const IfcProductSpatialData& lookup = h->getLookup(valueObject.second);
-		IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
+		const GeometryCacheItem& lookup = h->getLookup(valueObject.second);
+		const IfcSchema::IfcProduct* currentProduct = lookup.getProduct();
 
 		nlohmann::json attributeMap;
 		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->declaration().name();
@@ -6152,7 +6156,7 @@ void CJGeoCreator::valueToGeoObject(
 			attributeMap[sourceIdentifierEnum::getString(sourceIdentifierID::ifc) + jsonObIt.key()] = jsonObIt.value();
 		}
 
-		TopoDS_Shape currentShape = lookup.getProductShape();
+		TopoDS_Shape currentShape = lookup.getGeo(true);
 		if (currentShape.IsNull()) { continue; }
 
 		TopoDS_Shape cleanShape = helperFunctions::TesselateShape(currentShape);
@@ -6187,7 +6191,7 @@ void CJGeoCreator::valueToGeoObject(
 	return;
 }
 
-void CJGeoCreator::productToGeoObject(DataManager* h, CJT::Kernel* kernel, const std::vector<std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>>& shapeProductPairList, const gp_Trsf& localTrans, bool filterIsExternal, std::mutex& listMutex, std::mutex& countMutex, int& totalObjectsProcessed, std::vector<CJT::GeoObject>& geoObjectListOut, std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& collectionShapeOut, const int num)
+void CJGeoCreator::productToGeoObject(DataManager* h, CJT::Kernel* kernel, const std::vector<std::pair<TopoDS_Shape, const IfcSchema::IfcProduct*>>& shapeProductPairList, const gp_Trsf& localTrans, bool filterIsExternal, std::mutex& listMutex, std::mutex& countMutex, int& totalObjectsProcessed, std::vector<CJT::GeoObject>& geoObjectListOut, std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>>& collectionShapeOut, const int num)
 {
 	std::string lodNum = "4.1";
 	if (filterIsExternal) { lodNum = "4.0"; }
@@ -6198,8 +6202,8 @@ void CJGeoCreator::productToGeoObject(DataManager* h, CJT::Kernel* kernel, const
 		totalObjectsProcessed++;
 		countMutex.unlock();
 
-		std::pair<TopoDS_Shape, IfcSchema::IfcProduct*> currentShapeProductPair = *it;
-		IfcSchema::IfcProduct* currentProduct = currentShapeProductPair.second;
+		std::pair<TopoDS_Shape, const IfcSchema::IfcProduct*> currentShapeProductPair = *it;
+		const IfcSchema::IfcProduct* currentProduct = currentShapeProductPair.second;
 
 		nlohmann::json attributeMap;
 		attributeMap[CJObjectEnum::getString(CJObjectID::CJType)] = "+" + currentProduct->declaration().name();
@@ -6555,9 +6559,9 @@ void CJGeoCreator::createSemanticData(CJT::GeoObject* geoObject, const TopoDS_Sh
 }
 
 void CJGeoCreator::splitOuterSurfaces(
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& splittedFacesOut, 
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& untouchedFacesOut,
-	const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& outerSurfacePairList
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& splittedFacesOut, 
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& untouchedFacesOut,
+	const std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& outerSurfacePairList
 )
 {
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> faceIndx;
@@ -6587,7 +6591,7 @@ void CJGeoCreator::splitOuterSurfaces(
 		auto startIdx = outerSurfacePairList.begin() + i * splitListSize;
 		auto endIdx = (i == coreUse - 1) ? outerSurfacePairList.end() : startIdx + splitListSize;
 
-		std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> sublist(startIdx, endIdx);
+		std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>> sublist(startIdx, endIdx);
 
 		threadList.emplace_back([this, &splittedFacesOut, &splittedListMutex, &untouchedFacesOut, &untouchedListMutex, &processedCount, &processedCountMutex, &faceIndx, sublist]() {
 			splitOuterSurfaces(splittedFacesOut, splittedListMutex, untouchedFacesOut, untouchedListMutex, processedCount, processedCountMutex, faceIndx, sublist);
@@ -6607,14 +6611,14 @@ void CJGeoCreator::splitOuterSurfaces(
 }
 
 void CJGeoCreator::splitOuterSurfaces(
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& splittedFacesOut,
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& splittedFacesOut,
 	std::mutex& splittedListMutex,
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& untouchedFacesOut,
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& untouchedFacesOut,
 	std::mutex& untouchedListMutex,
 	int& totalObjectsProcessed,
 	std::mutex& totalObjectsProcessedMutex,
 	const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIndx,
-	const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& outerSurfacePairList
+	const std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& outerSurfacePairList
 )
 {
 	double precision = SettingsCollection::getInstance().linearTolerance();

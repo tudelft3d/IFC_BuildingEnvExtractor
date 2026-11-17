@@ -1,4 +1,4 @@
-#define USE_IFC4x3add2
+#define USE_IFC4
 #define iterationVersion "0.5.0"
 
 #ifdef USE_IFC2x3
@@ -57,14 +57,13 @@
 #include "surfaceCollection.h"
 
 // IfcOpenShell includes
+//#include <ifcgeom/kernels/cgal/CgalKernel.h>
 #include <ifcgeom/kernels/opencascade/OpenCascadeKernel.h>
+
 #include <ifcgeom/Iterator.h>
 #include <ifcgeom/ConversionSettings.h>
-//#include <ifcgeom/kernels/opencascade/ser>
 
 #include <ifcparse/IfcFile.h>
-//#include <ifcgeom_schema_agnostic/Kernel.h>
-//#include <ifcgeom_schema_agnostic/Serialization.h>
 #include <ifcparse/IfcHierarchyHelper.h>
 
 // OpenCascade includes
@@ -321,6 +320,8 @@ struct helperFunctions{
 	static double computeSmallestAngle(const TopoDS_Face& theFace);
 	/// compute the horizontal dir based on vector count
 	static gp_Vec getShapedir(const std::vector<gp_Pnt>& pointList, bool isHorizontal);
+	/// compute if the vec is axis aligned
+	static bool vecIsAxisAligned(const gp_Vec& theVec, const double& tol);
 
 	/// overlapping object code
 

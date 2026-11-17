@@ -1,6 +1,7 @@
 #include "helper.h"
 #include "voxel.h"
 #include "IOManager.h"
+#include "DebugUtils.h"
 
 #include <gp_Pnt.hxx>
 
@@ -11,18 +12,31 @@
 
 #include <thread>   
 
-std::vector<gp_Pnt> voxel::getPotentialMeshObjectPoints(const std::vector<gp_Pnt>& voxelPoints, IfcProductSpatialData& lookup)
+std::vector<gp_Pnt> voxel::getPotentialMeshObjectPoints(const std::vector<gp_Pnt>& voxelPoints, GeometryCacheItem& lookup)
 {
-	std::vector<Value> qResultList;
-	lookup.getIndxPointer()->query(bgi::intersects(helperFunctions::createBBox(voxelPoints)), std::back_inserter(qResultList));
-	std::vector<gp_Pnt> productPoints;
-	for (const Value& qResult : qResultList)
+	// move the points of the voxel
+	std::vector<gp_Pnt> copyVoxelPoints;
+	gp_Trsf transformInv = lookup.getTransformation().Inverted();
+
+	for (gp_Pnt voxelPoint : voxelPoints)
 	{
-		MeshTriangle triangle = lookup.getProductTriangleList(qResult.second);
+		voxelPoint.Transform(transformInv);
+		copyVoxelPoints.emplace_back(voxelPoint);
+	}
+
+	std::vector<std::pair<bg::model::box<BoostPoint3D>, MeshTriangle>> qResultList;
+	lookup.getMeshIndexPtr()->query(bgi::intersects(helperFunctions::createBBox(copyVoxelPoints)), std::back_inserter(qResultList));
+	if (qResultList.empty()) { return {}; }
+
+	gp_Trsf transform = lookup.getTransformation();
+	std::vector<gp_Pnt> productPoints;
+	for (const std::pair<bg::model::box<BoostPoint3D>, MeshTriangle>& qResult : qResultList)
+	{
+		MeshTriangle triangle = qResult.second;
 		const std::array<gp_Pnt, 3> trianglePoints = triangle.getPoints();
 		for (const gp_Pnt& currentPoint : trianglePoints)
 		{
-			productPoints.emplace_back(currentPoint);
+			productPoints.emplace_back(currentPoint.Transformed(transform));
 		}
 	}
 	return productPoints;
@@ -30,15 +44,16 @@ std::vector<gp_Pnt> voxel::getPotentialMeshObjectPoints(const std::vector<gp_Pnt
 
 bool voxel::linearEqIntersection(const std::vector<gp_Pnt>& productPoints, const std::vector<gp_Pnt>& voxelPoints)
 {
-	gp_Pnt p1 = voxelPoints[0];
-	gp_Pnt p2 = voxelPoints[1];
-	gp_Pnt p4 = voxelPoints[4];
+	double precision = SettingsCollection::getInstance().linearTolerance();
+
+	const gp_Pnt& p1 = voxelPoints[0];
+	const gp_Pnt& p4 = voxelPoints[4];
 
 	for (const gp_Pnt& currentPP : productPoints)
 	{
-		if (currentPP.X() < p1.X() || currentPP.X() > p4.X()) { continue; }
-		if (currentPP.Y() < p1.Y() || currentPP.Y() > p4.Y()) { continue; }
-		if (currentPP.Z() < p1.Z() || currentPP.Z() > p4.Z()) { continue; }
+		if (currentPP.X() < p1.X() - precision || currentPP.X() > p4.X() + precision) { continue; }
+		if (currentPP.Y() < p1.Y() - precision || currentPP.Y() > p4.Y() + precision) { continue; }
+		if (currentPP.Z() < p1.Z() - precision || currentPP.Z() > p4.Z() + precision) { continue; }
 
 		return true;
 	}
@@ -46,19 +61,21 @@ bool voxel::linearEqIntersection(const std::vector<gp_Pnt>& productPoints, const
 }
 
 
-bool voxel::voxelCoreIsInShape(const gp_Pnt& centerPoint, IfcProductSpatialData& lookup)
+bool voxel::voxelCoreIsInShape(const gp_Pnt& centerPoint, GeometryCacheItem& lookup)
 {
 	// add check if voxel falls completely in the shape
+	gp_Pnt centerPointCopy = centerPoint;
+	centerPointCopy.Transform(lookup.getTransformation().Inverted());
 	gp_Pnt offsetPoint = gp_Pnt(centerPoint.X(), centerPoint.Y(), centerPoint.Z() + 100);
+	offsetPoint.Transform(lookup.getTransformation().Inverted());
+	std::array<gp_Pnt, 2> castRay = { centerPointCopy,  offsetPoint };
+
 	int counter = 0;
-
-	std::vector<Value> qResultList;
-	lookup.getIndxPointer()->query(bgi::intersects(helperFunctions::createBBox(centerPoint, offsetPoint)), std::back_inserter(qResultList));
-	std::array<gp_Pnt, 2> castRay = { centerPoint,  offsetPoint };
-
-	for (const Value& qResult : qResultList)
+	std::vector<std::pair<bg::model::box<BoostPoint3D>, MeshTriangle>> qResultList;
+	lookup.getMeshIndexPtr()->query(bgi::intersects(helperFunctions::createBBox(centerPointCopy, offsetPoint)), std::back_inserter(qResultList));
+	for (const std::pair<bg::model::box<BoostPoint3D>, MeshTriangle>& qResult : qResultList)
 	{
-		MeshTriangle triangle = lookup.getProductTriangleList(qResult.second);
+		MeshTriangle triangle = qResult.second;
 		const std::array<gp_Pnt, 3>& trianglePoints = triangle.getPoints();
 		if (helperFunctions::triangleIntersecting(castRay, trianglePoints))
 		{
@@ -179,7 +196,7 @@ bool voxel::voxelEdgeIntersectsProduct(const std::vector<gp_Pnt>& voxelPoints, c
 }
 
 
-bool voxel::checkIntersecting(IfcProductSpatialData& lookup, const std::vector<gp_Pnt>& voxelPoints, const gp_Pnt& centerPoint, int intersectionLogic)
+bool voxel::checkIntersecting(GeometryCacheItem& lookup, const std::vector<gp_Pnt>& voxelPoints, const gp_Pnt& centerPoint, int intersectionLogic)
 {
 	if (!voxelPoints.size()) { return false; }
 
@@ -190,6 +207,7 @@ bool voxel::checkIntersecting(IfcProductSpatialData& lookup, const std::vector<g
 	}
 
 	std::vector<gp_Pnt> productPoints = getPotentialMeshObjectPoints(voxelPoints, lookup);
+
 	if (productPoints.size() == 0)
 	{
 		return false;

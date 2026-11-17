@@ -91,7 +91,7 @@ private:
 	// list collects the lod03 plates per lvl
 	std::map<double, std::vector<TopoDS_Face>> LoD03ExtriorHFaces_;
 	// list collects the lode1 surfaces and their product ptr
-	std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>> LoDE1Faces_;
+	std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>> LoDE1Faces_;
 	// list collects the storey city Pointers
 	std::vector<CJT::CityObject> storeyObjects_;
 	// list collects the objects that are external according to the raycasting process
@@ -268,7 +268,7 @@ private:
 
 	// LoD32 related code
 	template <typename T>
-	std::vector<std::pair<T, IfcSchema::IfcProduct*>> getE1Objects(
+	std::vector<std::pair<T, const IfcSchema::IfcProduct*>> getE1Objects(
 		DataManager* h,
 		int unitScale, 
 		const std::vector<Value>& productLookupValues,
@@ -277,7 +277,7 @@ private:
 	// get the outer surface by raycasting against exterior voxels
 	template<typename T>
 	void getOuterRayObjects(
-		std::vector<std::pair<T, IfcSchema::IfcProduct*>>& outerSurfacePairList,
+		std::vector<std::pair<T, const IfcSchema::IfcProduct*>>& outerSurfacePairList,
 		const std::vector<Value>& totalValueObjectList,
 		const std::vector<int>& scoreList,
 		DataManager* h,
@@ -287,7 +287,7 @@ private:
 	// get the outer surface by raycasting against exterior voxels (subprocess)
 	template<typename T>
 	void getOuterRayObjects(
-		std::vector<std::pair<T, IfcSchema::IfcProduct*>>& outerSurfacePairList,
+		std::vector<std::pair<T, const IfcSchema::IfcProduct*>>& outerSurfacePairList,
 		const std::vector<Value>& valueObjectList,
 		int& processedObject,
 		std::mutex& processedObjectmutex,
@@ -306,29 +306,29 @@ private:
 
 	/// trims the surfaces that are left from the outer ray detection for lod32
 	void splitOuterSurfaces(
-		std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& splittedFacesOut,
-		std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& untouchedFacesOut,
-		const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& outerSurfacePairList);
+		std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& splittedFacesOut,
+		std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& untouchedFacesOut,
+		const std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& outerSurfacePairList);
 
 	/// trims the surfaces that are left from the outer ray detection for lod32 (subprocess)
 	void splitOuterSurfaces(
-		std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& splittedFacesOut,
+		std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& splittedFacesOut,
 		std::mutex& splittedListMutex,
-		std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& untouchedFacesOut,
+		std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& untouchedFacesOut,
 		std::mutex& untouchedListMutex,
 		int& totalObjectsProcessed,
 		std::mutex& totalObjectsProcessedMutex,
 		const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIndx,
-		const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& outerSurfacePairList);
+		const std::vector<std::pair<TopoDS_Face,const IfcSchema::IfcProduct*>>& outerSurfacePairList);
 
 	// get the outer surface by raycasting against exterior voxels from a single point on surface
 	void simpleRaySurfaceCast(
-		std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& outList,
-		const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& surfaceList,
+		std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& outList,
+		const std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& surfaceList,
 		const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIndex,
 		const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& surfaceIndx);
 
-	void setLoD32SurfaceAttributes(std::vector<nlohmann::json>& outSurfaceTypeCollection, std::vector<int>& outTypeValueList, const std::vector<std::pair<TopoDS_Face, IfcSchema::IfcProduct*>>& surfacePairList, DataManager* h);
+	void setLoD32SurfaceAttributes(std::vector<nlohmann::json>& outSurfaceTypeCollection, std::vector<int>& outTypeValueList, const std::vector<std::pair<TopoDS_Face, const IfcSchema::IfcProduct*>>& surfacePairList, DataManager* h);
 
 	// query result cleaning code
 
@@ -394,7 +394,7 @@ private:
 	void productToGeoObject(
 		DataManager* h,
 		CJT::Kernel* kernel,
-		const std::vector < std::pair<TopoDS_Shape, IfcSchema::IfcProduct*>>& shapeProductPairList,
+		const std::vector < std::pair<TopoDS_Shape, const IfcSchema::IfcProduct*>>& shapeProductPairList,
 		const gp_Trsf& localTrans,
 		bool filterIsExternal,
 		std::mutex& listMutex,

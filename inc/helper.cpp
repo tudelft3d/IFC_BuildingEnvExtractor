@@ -1212,6 +1212,16 @@ gp_Vec helperFunctions::getShapedir(const std::vector<gp_Pnt>& pointList, bool i
 	return RotationVecPair.first.Normalized();
 }
 
+bool helperFunctions::vecIsAxisAligned(const gp_Vec& theVec, const double& tol)
+{
+	gp_Vec normalizedVec = theVec.Normalized();
+
+	return
+		(std::abs(normalizedVec.X()) > 1.0 - tol && std::abs(normalizedVec.Y()) < tol && std::abs(normalizedVec.Z()) < tol) ||
+		(std::abs(normalizedVec.Y()) > 1.0 - tol && std::abs(normalizedVec.X()) < tol && std::abs(normalizedVec.Z()) < tol) ||
+		(std::abs(normalizedVec.Z()) > 1.0 - tol && std::abs(normalizedVec.X()) < tol && std::abs(normalizedVec.Y()) < tol);
+}
+
 bool helperFunctions::shareEdge(const TopoDS_Face& theFace, const TopoDS_Face& theotherFace)
 {
 	double precision = SettingsCollection::getInstance().linearTolerance();

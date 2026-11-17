@@ -48,6 +48,19 @@ template std::string DataManager::getIfcObjectName<IfcSchema::IfcRoad>(const std
 template std::string DataManager::getIfcObjectName<IfcSchema::IfcRailway>(const std::string& objectTypeName, IfcParse::IfcFile* filePtr, bool isLong);
 #endif
 
+gp_Trsf getTransformationBrepElement(const IfcGeom::BRepElement* element)
+{
+	const auto& m = element->transformation().data()->components();
+
+	gp_Trsf trsf;
+	trsf.SetValues(
+		m(0, 0), m(0, 1), m(0, 2), m(0, 3),
+		m(1, 0), m(1, 1), m(1, 2), m(1, 3),
+		m(2, 0), m(2, 1), m(2, 2), m(2, 3)
+	);
+	return trsf;
+}
+
 IfcProductSpatialData::IfcProductSpatialData(const IfcSchema::IfcProduct* productPtr, const TopoDS_Shape& productShape)
 {
 	ErrorCollection& errorCollection = ErrorCollection::getInstance();
@@ -83,11 +96,6 @@ IfcProductSpatialData::IfcProductSpatialData(const IfcSchema::IfcProduct* produc
 			triangleIndex_.insert(std::make_pair(box, productTrianglePoints_.size()));
 			productTrianglePoints_.emplace_back(MeshTriangle(trianglePoints));
 		}
-	}
-
-	if (objectType == "IfcDoor" || objectType == "IfcWindow")
-	{
-		isDetailed_ = true;
 	}
 }
 
@@ -437,12 +445,8 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 
 	SettingsCollection& settings = SettingsCollection::getInstance();
 
-	bool isSimple = true;
-	int simplefyGeoGrade = SettingsCollection::getInstance().ignoreVoidGrade();
-	std::unordered_set<std::string> openingObjects = settings.getOpeningObjectsList();
-	if (simplefyGeoGrade == 0) { isSimple = false; }
-	else if (simplefyGeoGrade == 2) { isSimple = true; }
-	else if (openingObjects.find(typeName) == openingObjects.end()) { isSimple = false; }
+	bool isSimple = false; //TODO: impement
+	double gridRotation = SettingsCollection::getInstance().gridRotation();
 
 	std::vector<IfcGeom::filter_t> filterFuncs;
 	filterFuncs.emplace_back(IfcGeom::entity_filter(true, false, { typeName }));
@@ -465,10 +469,13 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 		std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>> shapeList;
 		shapeList.reserve(collectionItem.getFilePtr()->instances_by_type(typeName)->size()); //TODO: optimize this
 
+		int count = 0;
 		int currentItemNum = 0;
 		fileNum++;
 		do { 
 			IfcGeom::BRepElement* boundaryRepElem = it.get_native();
+			const IfcSchema::IfcProduct* product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
+
 			if (!boundaryRepElem) { continue; }
 
 			auto* compound = boundaryRepElem->geometry().as_compound();
@@ -476,8 +483,29 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 
 			if (!occtShape) { throw std::runtime_error("Expected OpenCascadeShape"); }
 			TopoDS_Shape shape = occtShape->shape();
-			auto product = boundaryRepElem->product()->as<IfcSchema::IfcProduct>();
-			shapeList.emplace_back(std::make_pair(product, shape));
+
+			GeometryFingerprint fingerprint = GeometryFingerprint(shape);
+			auto it = geometryInstanceCache_.find(fingerprint);
+			GeometryInstance* instancePtr = nullptr;
+			if (it != geometryInstanceCache_.end())
+			{
+				instancePtr = &it->second;
+				shape = instancePtr->getGeo();
+			}
+			else
+			{
+				auto [insertedIt, success] = geometryInstanceCache_.emplace(fingerprint, GeometryInstance(shape));
+				instancePtr = &insertedIt->second;
+				count++;
+			}
+
+			gp_Trsf trsf = getTransformationBrepElement(boundaryRepElem) * objectTranslation_;
+			gp_Trsf rotation;
+			rotation.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), gridRotation);
+			trsf.Multiply(rotation);
+
+			GeometryCacheItem geometryCache = GeometryCacheItem(product, instancePtr, trsf);
+			geometryCache_.emplace_back(geometryCache);
 
 			if (currentItemNum % 100 == 0)
 			{
@@ -487,38 +515,6 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 		} 
 		while (it.next());
 		std::cout << "\t" << preFixString << "- Parsing file: " << fileNum << "; Object - " << currentItemNum << "\r";
-
-
-		int coreUse = settings.threadcount() - 1;
-		if (coreUse == 0) { coreUse = 1; }
-
-		if (shapeList.empty()) { continue; }
-		if (shapeList.size() < coreUse) { coreUse = shapeList.size(); }
-		int splitListSize = static_cast<int>(std::floor(shapeList.size() / coreUse));
-
-		std::vector<std::thread> threadList;
-		int processedItemCount = 0;
-		std::mutex counterMutex;
-
-		for (size_t i = 0; i < coreUse; i++)
-		{
-			auto startIdx = shapeList.begin() + i * splitListSize;
-			auto endIdx = (i == coreUse - 1) ? shapeList.end() : startIdx + splitListSize;
-
-			threadList.emplace_back([=, &shapeList, &uniqueKeySet, &processedItemCount, &counterMutex]() { AddBRepElementToIndex(shapeList, startIdx, endIdx, uniqueKeySet, processedItemCount, counterMutex, addToRoomIndx); });
-		}
-
-		std::cout << "                                                                                          \r";
-		std::string currentIndication = preFixString + "- Indexing file: " + std::to_string(fileNum) + "; Object";
-
-		threadList.emplace_back([&] {helperFunctions::updateCounter(currentIndication, shapeList.size(), processedItemCount, counterMutex, false);  });
-
-		for (auto& thread : threadList) {
-			if (thread.joinable()) {
-				thread.join();
-			}
-		}
-		std::cout << "                                                                                          \r";
 	}
 
 	std::cout << "\t" << preFixString << "finished in: " <<
@@ -526,26 +522,6 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 		UnitStringEnum::getString(UnitStringID::seconds) << "                                                " << std::endl;
 }
 
-//IfcGeom::Iterator* DataManager::getIteratorPtr(const std::string& productGuid) //TODO: implement this
-//{
-//	if (getSourceFileCount() == 1)
-//	{
-//		return datacollection_[0].getIteratorPtr(false);
-//	}
-//	else {
-//		for (size_t i = 0; i < getSourceFileCount(); i++)
-//		{
-//			try { 
-//				std::ostringstream oss;
-//				datacollection_[i].getFilePtr()->instance_by_guid(productGuid)->toString(oss);
-//			}
-//			catch (const std::exception&) { continue; }
-//
-//			return datacollection_[i].getIteratorPtr(false);
-//		}
-//	}
-//	return nullptr;
-//}
 
 IfcGeom::OpenCascadeKernel* DataManager::getKernelObject(const std::string& productGuid)
 {
@@ -568,30 +544,20 @@ IfcGeom::OpenCascadeKernel* DataManager::getKernelObject(const std::string& prod
 	return nullptr;
 }
 
-int DataManager::getObjectShapeLocation(IfcSchema::IfcProduct* product, bool isSpace)
+int DataManager::getObjectShapeLocation(const IfcSchema::IfcProduct* product, bool isSpace)
 {
-	if (isSpace)
-	{
-		const std::shared_lock<std::shared_mutex> lock(indexMutex_);
-		auto objectSearch = spaceIndxLookup_.find(product->GlobalId());
-		if (objectSearch == spaceIndxLookup_.end()) { return -1; }
-		return objectSearch->second;
-	}
-	else
-	{
-		std::string objectType = product->declaration().name();
-		const std::shared_lock<std::shared_mutex> lock(indexMutex_);
-		auto typeSearch = productIndxLookup_.find(objectType);
-		if (typeSearch == productIndxLookup_.end()) { return -1; }
+	std::string objectType = product->declaration().name();
+	const std::shared_lock<std::shared_mutex> lock(indexMutex_);
+	auto typeSearch = productIndxLookup_.find(objectType);
+	if (typeSearch == productIndxLookup_.end()) { return -1; }
 
-		auto objectSearch = typeSearch->second.find(product->GlobalId());
-		if (objectSearch == typeSearch->second.end()) { return -1; }
-		return objectSearch->second;
-	}
+	auto objectSearch = typeSearch->second.find(product->GlobalId());
+	if (objectSearch == typeSearch->second.end()) { return -1; }
+	return objectSearch->second;
 }
 
 
-IfcSchema::IfcRepresentation* DataManager::getProductRepPtr(IfcSchema::IfcProduct* product)
+IfcSchema::IfcRepresentation* DataManager::getProductRepPtr(const IfcSchema::IfcProduct* product)
 {
 	IfcSchema::IfcRepresentation* ifc_representation = nullptr;
 	if (product->Representation())
@@ -610,7 +576,7 @@ IfcSchema::IfcRepresentation* DataManager::getProductRepPtr(IfcSchema::IfcProduc
 	return ifc_representation;
 }
 
-IfcSchema::IfcProduct::list::ptr DataManager::getNestedProductList(IfcSchema::IfcProduct* product)
+IfcSchema::IfcProduct::list::ptr DataManager::getNestedProductList(const IfcSchema::IfcProduct* product)
 {
 	IfcSchema::IfcProduct::list::ptr outputList = boost::make_shared<IfcSchema::IfcProduct::list>();
 
@@ -694,18 +660,19 @@ std::vector<gp_Pnt> DataManager::getObjectPoints(IfcSchema::IfcProduct* product,
 
 void DataManager::updateShapeMemory(IfcSchema::IfcProduct* product, TopoDS_Shape shape)
 {
-	if (!product->Representation()) { return; }
+	//TODO: implement
+	//if (!product->Representation()) { return; }
 
-	helperFunctions::triangulateShape(shape);
-	std::string objectType = product->declaration().name();
+	//helperFunctions::triangulateShape(shape);
+	//std::string objectType = product->declaration().name();
 
-	// filter with lookup
-	std::lock_guard<std::shared_mutex> lock(indexMutex_);
-	if (productIndxLookup_.find(objectType) == productIndxLookup_.end()) { return; }
-	if (productIndxLookup_[objectType].find(product->GlobalId()) == productIndxLookup_[objectType].end()) { return; }
+	//// filter with lookup
+	//std::lock_guard<std::shared_mutex> lock(indexMutex_);
+	//if (productIndxLookup_.find(objectType) == productIndxLookup_.end()) { return; }
+	//if (productIndxLookup_[objectType].find(product->GlobalId()) == productIndxLookup_[objectType].end()) { return; }
 
-	IfcProductSpatialData& currentLookupvalue = productLookup_[productIndxLookup_[objectType][product->GlobalId()]];
-	currentLookupvalue.setProductShape(shape);
+	//IfcProductSpatialData& currentLookupvalue = productLookup_[productIndxLookup_[objectType][product->GlobalId()]];
+	//currentLookupvalue.setProductShape(shape);
 	return;
 }
 
@@ -824,67 +791,68 @@ nlohmann::json DataManager::get2x3GeoData()
 
 std::vector<TopoDS_Shape> DataManager::computeEmptyVoids(IfcSchema::IfcRelVoidsElement::list::ptr voidElementList)
 {
-	// find if the voids are filled or not
+	//TODO: implement
+	//// find if the voids are filled or not
 	std::vector<TopoDS_Shape> emptyVoidShapeList;
-	std::unordered_set<std::string> cuttingObjects = SettingsCollection::getInstance().getCuttingObjectsList();
+	//std::unordered_set<std::string> cuttingObjects = SettingsCollection::getInstance().getCuttingObjectsList();
 
-	for (auto et = voidElementList->begin(); et != voidElementList->end(); ++et)
-	{
-		IfcSchema::IfcRelVoidsElement* voidElement = *et;
-		IfcSchema::IfcFeatureElementSubtraction* openingElement = voidElement->RelatedOpeningElement();
-		TopoDS_Shape substractionShape = getObjectShape(openingElement, false);
+	//for (auto et = voidElementList->begin(); et != voidElementList->end(); ++et)
+	//{
+	//	IfcSchema::IfcRelVoidsElement* voidElement = *et;
+	//	IfcSchema::IfcFeatureElementSubtraction* openingElement = voidElement->RelatedOpeningElement();
+	//	TopoDS_Shape substractionShape = getObjectShape(openingElement, false);
 
-		// find void occupying objects
-		gp_Pnt lllPoint;
-		gp_Pnt urrPoint;
-		helperFunctions::bBoxDiagonal(getObjectPoints(openingElement), &lllPoint, &urrPoint, 0);
+	//	// find void occupying objects
+	//	gp_Pnt lllPoint;
+	//	gp_Pnt urrPoint;
+	//	helperFunctions::bBoxDiagonal(getObjectPoints(openingElement), &lllPoint, &urrPoint, 0);
 
-		std::vector<Value> qResult;
-		bg::model::box<BoostPoint3D> qBox = bg::model::box<BoostPoint3D>(
-			helperFunctions::Point3DOTB(lllPoint),
-			helperFunctions::Point3DOTB(urrPoint)
-			);
-		index_.query(bgi::intersects(qBox), std::back_inserter(qResult));
+	//	std::vector<Value> qResult;
+	//	bg::model::box<BoostPoint3D> qBox = bg::model::box<BoostPoint3D>(
+	//		helperFunctions::Point3DOTB(lllPoint),
+	//		helperFunctions::Point3DOTB(urrPoint)
+	//		);
+	//	index_.query(bgi::intersects(qBox), std::back_inserter(qResult));
 
-		// if no occupying objects found void can be applied
-		if (qResult.size() == 0)
-		{
-			emptyVoidShapeList.emplace_back(substractionShape);
-			continue;
-		}
+	//	// if no occupying objects found void can be applied
+	//	if (qResult.size() == 0)
+	//	{
+	//		emptyVoidShapeList.emplace_back(substractionShape);
+	//		continue;
+	//	}
 
-		BRepClass3d_SolidClassifier insideChecker;
-		insideChecker.Load(substractionShape);
+	//	BRepClass3d_SolidClassifier insideChecker;
+	//	insideChecker.Load(substractionShape);
 
-		bool intersects = false;
-		for (size_t i = 0; i < qResult.size(); i++)
-		{
-			const IfcProductSpatialData& lookup = getLookup(qResult[i].second);
-			IfcSchema::IfcProduct* qProduct = lookup.getProductPtr();
-			if (cuttingObjects.find(qProduct->declaration().name()) == cuttingObjects.end()) { continue; }
+	//	bool intersects = false;
+	//	for (size_t i = 0; i < qResult.size(); i++)
+	//	{
+	//		const IfcProductSpatialData& lookup = getLookup(qResult[i].second);
+	//		IfcSchema::IfcProduct* qProduct = lookup.getProductPtr();
+	//		if (cuttingObjects.find(qProduct->declaration().name()) == cuttingObjects.end()) { continue; }
 
-			TopoDS_Shape qShape = getObjectShape(qProduct, false);
-			for (TopExp_Explorer expl(qShape, TopAbs_VERTEX); expl.More(); expl.Next())
-			{
-				insideChecker.Perform(BRep_Tool::Pnt(TopoDS::Vertex(expl.Current())), 0.01);
-				if (insideChecker.State() || insideChecker.IsOnAFace())
-				{
-					intersects = true;
-					break;
-				}
-			}
-			if (intersects)
-			{
-				break;
-			}
-		}
+	//		TopoDS_Shape qShape = getObjectShape(qProduct, false);
+	//		for (TopExp_Explorer expl(qShape, TopAbs_VERTEX); expl.More(); expl.Next())
+	//		{
+	//			insideChecker.Perform(BRep_Tool::Pnt(TopoDS::Vertex(expl.Current())), 0.01);
+	//			if (insideChecker.State() || insideChecker.IsOnAFace())
+	//			{
+	//				intersects = true;
+	//				break;
+	//			}
+	//		}
+	//		if (intersects)
+	//		{
+	//			break;
+	//		}
+	//	}
 
-		if (!intersects)
-		{
-			emptyVoidShapeList.emplace_back(substractionShape);
-			continue;
-		}
-	}
+	//	if (!intersects)
+	//	{
+	//		emptyVoidShapeList.emplace_back(substractionShape);
+	//		continue;
+	//	}
+	//}
 	return emptyVoidShapeList;
 }
 
@@ -1122,6 +1090,56 @@ std::string DataManager::getProjection() {
 	return "";
 }
 
+void DataManager::AddBRepElementToIndex2(bool isRoom)
+{
+	int totalSize = geometryCache_.size();
+	int count = 0;
+	std::string prefixText = "Indexing Objects";
+
+	std::cout << "\n\t" << prefixText << " - " << count << " of " << totalSize << "      \r";
+
+	for (size_t i = 0; i < geometryCache_.size(); i++)
+	{
+		count++;
+		std::cout << "\t" << prefixText << " - " << count << " of " << totalSize << "      \r";
+		
+		GeometryCacheItem& cacheItem = geometryCache_[i];
+		cacheItem.init();
+
+		const IfcSchema::IfcProduct* currentProduct = cacheItem.getProduct();
+
+		if (isRoom)
+		{
+			std::lock_guard<std::mutex> spaceLock(spaceIndexMutex_);
+			int locationIdx = (int)spaceIndex_.size();
+			bg::model::box < BoostPoint3D> boundingBox = cacheItem.getBoundingBox();
+
+			spaceIndex_.insert(std::make_pair(boundingBox, (int)spaceIndex_.size()));
+			spaceIndxLookup_.insert({ currentProduct->GlobalId(), i });
+			continue;
+		}
+
+		indexMutex_.lock();
+		//if (!storeLookupOnly)
+		{
+			bg::model::box < BoostPoint3D> boundingBox = cacheItem.getBoundingBox();
+			index_.insert(std::make_pair(boundingBox, i));
+			updateBoudingData(boundingBox);
+		}
+
+		std::string productType = currentProduct->declaration().name();
+
+		auto typeSearch = productIndxLookup_.find(productType);
+		if (typeSearch == productIndxLookup_.end())
+		{
+			productIndxLookup_.insert({ productType, std::unordered_map < std::string, int >() });
+		}
+		productIndxLookup_[productType].insert({ currentProduct->GlobalId(), i });
+		indexMutex_.unlock();
+	}
+	std::cout << "\n";
+}
+
 void DataManager::populateAttributeLookup()
 {
 	for (size_t i = 0; i < getSourceFileCount(); i++)
@@ -1285,7 +1303,7 @@ void DataManager::AddBRepElementToIndex(
 			if (settings.ignoreComplex()) { continue; }
 		}
 
-		if (isRoom)
+		/*if (isRoom)
 		{
 			std::lock_guard<std::mutex> spaceLock(spaceIndexMutex_);
 			int locationIdx = (int)spaceIndex_.size();
@@ -1311,7 +1329,7 @@ void DataManager::AddBRepElementToIndex(
 			productIndxLookup_.insert({ productType, std::unordered_map < std::string, int >() });
 		}
 		productIndxLookup_[productType].insert({ product->GlobalId(), locationIdx });
-		indexMutex_.unlock();
+		indexMutex_.unlock();*/
 	}
 	return;
 }
@@ -1347,8 +1365,8 @@ std::vector<TopoDS_Shape> DataManager::getIndexedShapes()
 	for (auto it = spatialIndx->begin(); it != spatialIndx->end(); ++it)
 	{
 		Value test = *it;
-		const IfcProductSpatialData& lookup = getLookup(test.second);
-		TopoDS_Shape currentShape = lookup.getProductShape();
+		const GeometryCacheItem& lookup = getLookup(test.second);
+		TopoDS_Shape currentShape = lookup.getGeo(true);
 		if (currentShape.IsNull()) { continue; }
 		shapeList.emplace_back(currentShape);
 	}
@@ -1359,12 +1377,12 @@ std::vector<TopoDS_Shape> DataManager::getIndexedBVOShapes()
 {
 	std::vector<TopoDS_Shape> shapeList;
 	auto spatialIndx = getSpaceIndexPointer();
-	for (auto it = spatialIndx->begin(); it != spatialIndx->end(); ++it)
-	{
-		Value test = *it;
-		const IfcProductSpatialData& lookup = getSpaceLookup(test.second);
 
-		const IfcSchema::IfcProduct* currentProduct = lookup.getProductPtr();
+	for (const auto& [guid, locationIdx] : productIndxLookup_["IfcSpace"])
+	{
+		const GeometryCacheItem& cacheItem = geometryCache_[locationIdx];
+
+		const IfcSchema::IfcProduct* currentProduct = cacheItem.getProduct();
 		nlohmann::json currentAttributes = helperFunctions::getAttributes(currentProduct);
 
 		if (!currentAttributes.contains("LongName")) { continue; }
@@ -1372,7 +1390,7 @@ std::vector<TopoDS_Shape> DataManager::getIndexedBVOShapes()
 		std::string longName = currentAttributes["LongName"];
 		if (longName != "BVO" && longName != "BVO gemeenschappelijk") { continue; }
 
-		const TopoDS_Shape& currentShape = lookup.getProductShape();
+		const TopoDS_Shape& currentShape = cacheItem.getGeo(true);
 		if (currentShape.IsNull()) { continue; }
 		shapeList.emplace_back(currentShape);
 	}
@@ -1599,12 +1617,14 @@ void DataManager::indexGeo()
 			timedAddObjectListToIndex(customDivType, uniqueKeySet);
 		}
 	}
+
+	AddBRepElementToIndex2();
 	std::cout << "\n";
 
 	// find valid voids
 	if (settingsCollection.ignoreVoidGrade() == 1)
 	{
-		applyVoids();
+		//applyVoids();
 	}
 
 	if (index_.empty())
@@ -1801,7 +1821,7 @@ std::string DataManager::getIfcObjectName(const std::string& objectTypeName, Ifc
 	return "";
 }
 
-TopoDS_Shape DataManager::getObjectShapeFromMem(IfcSchema::IfcProduct* product, bool isSimple)
+TopoDS_Shape DataManager::getObjectShapeFromMem(const IfcSchema::IfcProduct* product, bool isSimple)
 {
 	// filter with lookup
 	std::string objectType = product->declaration().name();
@@ -1817,20 +1837,12 @@ TopoDS_Shape DataManager::getObjectShapeFromMem(IfcSchema::IfcProduct* product, 
 	if (obbjectShapeLocation == -1) { return {}; }
 
 	std::shared_lock<std::shared_mutex> lookupMutex(indexMutex_);
-	if (isSpace)
-	{
-		const IfcProductSpatialData& currentProductData = SpaceLookup_[obbjectShapeLocation];
-		return currentProductData.getProductShape();
-	}
-	else
-	{
-		const IfcProductSpatialData& currentProductData = productLookup_[obbjectShapeLocation];
-		return currentProductData.getProductShape();
-	}	
+	const GeometryCacheItem& currentProductData = geometryCache_[obbjectShapeLocation];
+	return currentProductData.getGeo(true);
 }
 
 
-TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool getNested, bool isSimple, bool fromMemOnly)
+TopoDS_Shape DataManager::getObjectShape(const IfcSchema::IfcProduct* product, bool getNested, bool isSimple, bool fromMemOnly)
 {
 	// filter with lookup
 	if (product == nullptr) { return {}; }
@@ -1908,4 +1920,118 @@ TopoDS_Shape DataManager::getObjectShape(IfcSchema::IfcProduct* product, bool ge
 		} while (it.next());
 	}
 	return {};
+}
+
+void GeometryCacheItem::init()
+{
+	std::string productType = productPtr_->declaration().name();
+	if (productType == "IfcDoor" || productType == "IfcWindow")
+	{
+		instancedGeometryPtr_->init(productPtr_->GlobalId(), true);
+	}
+	instancedGeometryPtr_->init(productPtr_->GlobalId(), false);
+
+	// create bbox
+	TopoDS_Shape currentShape = getGeo(true);
+
+	try
+	{
+		boundingBox_ = helperFunctions::createBBox(currentShape, 0);
+	}
+	catch (const ErrorID&)
+	{
+		ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, productPtr_->GlobalId());
+		return;
+	}
+	if (!helperFunctions::hasVolume(boundingBox_))
+	{
+		ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, productPtr_->GlobalId());
+		return;
+	}
+
+	return;
+}
+
+TopoDS_Shape GeometryCacheItem::getGeo(bool transformed) const
+{
+	if (!transformed)
+	{
+		return instancedGeometryPtr_->getGeo();
+	}
+
+	TopoDS_Shape movedShape = instancedGeometryPtr_->getGeo().Moved(transformation_);
+	return movedShape;
+}
+
+void GeometryInstance::init(const std::string& guid, bool forceSimple)
+{
+	if (active_)
+	{
+		return;
+	}
+	active_ = true;
+
+	SettingsCollection& settings = SettingsCollection::getInstance();
+
+	// forcing solid
+	if (forceSimple)
+	{
+		geometryShape_ = helperFunctions::boxSimplefyShape(geometryShape_);
+	}
+	else if (false && geometryShape_.ShapeType() != TopAbs_SOLID)
+	{
+		if (!helperFunctions::containsSolid(geometryShape_))
+		{
+			//TODO: add mutex
+			//solidSemanticMutex_.lock(); 
+			geometryShape_ = helperFunctions::addSolidSemantic(geometryShape_);
+			//solidSemanticMutex_.unlock();
+		}
+	}
+
+	// force triangulation
+	for (TopExp_Explorer expl(geometryShape_, TopAbs_FACE); expl.More(); expl.Next())
+	{
+		const TopoDS_Face& currentFace = TopoDS::Face(expl.Current());
+		helperFunctions::triangulateShape(currentFace);
+	}
+
+	if (helperFunctions::getFaceCount(geometryShape_) > 500)
+	{
+		ErrorCollection::getInstance().addError(ErrorID::warningDenseMesh, guid);
+		settings.setDenseMesh(true);
+
+		if (settings.ignoreComplex()) { return; }
+	}
+
+	// make triangleIndx
+	for (TopExp_Explorer expl(geometryShape_, TopAbs_FACE); expl.More(); expl.Next())
+	{
+		TopoDS_Face productFace = TopoDS::Face(expl.Current());
+
+		TopLoc_Location loc;
+		auto mesh = BRep_Tool::Triangulation(productFace, loc);
+
+		if (mesh.IsNull()) {
+			ErrorCollection::getInstance().addError(ErrorID::warningUnableToMesh, guid);
+			continue;
+		}
+
+		for (int i = 1; i <= mesh.get()->NbTriangles(); i++)
+		{
+			const Poly_Triangle& theTriangle = mesh->Triangles().Value(i);
+
+			std::array<gp_Pnt, 3> trianglePoints{
+				mesh->Node(theTriangle(1)).Transformed(loc),
+				mesh->Node(theTriangle(2)).Transformed(loc),
+				mesh->Node(theTriangle(3)).Transformed(loc)
+			};
+
+			auto box = helperFunctions::createBBox(trianglePoints);
+
+			triangleIndex_.insert(std::make_pair(box, MeshTriangle(trianglePoints)));
+		}
+	}
+
+	return;
 }

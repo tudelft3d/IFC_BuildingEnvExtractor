@@ -158,7 +158,7 @@ bool VoxelGrid::addVoxel(int indx, DataManager* h)
 	h->getIndexPointer()->query(bgi::intersects(boxelGeo), std::back_inserter(qResult));
 	for (const Value& resultItem : qResult)
 	{
-		GeometryCacheItem* lookup = h->getLookupPtr(resultItem.second);
+		const GeometryCacheItem* lookup = h->getLookupPtr(resultItem.second);
 		if (boxel->checkIntersecting(*lookup, pointList, midPointOCCT, settingsCollection.intersectionLogic()))
 		{
 			boxel->addInternalProduct(resultItem);
@@ -173,7 +173,6 @@ bool VoxelGrid::addVoxel(int indx, DataManager* h)
 	}
 
 	VoxelLookup_[indx] = std::move(boxel);
-
 	return isIntersecting;
 }
 
@@ -509,13 +508,17 @@ void VoxelGrid::growExterior(DataManager* h)
 	}
 
 	// populate voxelgrid for the growing of interiors
-	for (size_t i = 0; i < evalList.size(); i++)
+	if (SettingsCollection::getInstance().makeInterior())
 	{
-		if (evalList[i]) { continue; }
-		if (VoxelLookup_[i] != nullptr) { continue; }
-		auto boxel = std::make_unique<voxel>(voxel());
-		VoxelLookup_[i] = std::move(boxel);
+		for (size_t i = 0; i < evalList.size(); i++)
+		{
+			if (evalList[i]) { continue; }
+			if (VoxelLookup_[i] != nullptr) { continue; }
+			auto boxel = std::make_unique<voxel>(voxel());
+			VoxelLookup_[i] = std::move(boxel); //TODO: this is bloating
+		}
 	}
+	
 
 	std::cout << std::endl;
 	std::cout << CommunicationStringEnum::getString(CommunicationStringID::indentExteriorSpaceGrown) << std::endl;
@@ -561,6 +564,11 @@ void VoxelGrid::pairVoxels()
 			continue;
 		}
 		room2VoxelIdx_[roomNum].emplace_back(i);
+	}
+
+	if (!SettingsCollection::getInstance().makeInterior())
+	{
+		return;
 	}
 
 	int buildingNum = 0;

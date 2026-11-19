@@ -4455,12 +4455,12 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD41(DataManager* h, CJT::Kernel*
 	}
 	coreUse -= 1;
 
-	const std::vector<GeometryCacheItem>& allSpatialObjects = h->getLookup();
+	const class GeometryCache& allSpatialObjects = h->getLookup();
 
 	std::vector<std::pair<TopoDS_Shape, const IfcSchema::IfcProduct*>> shapeProductList;
 	std::vector<int> scoreList;
 	int totalScore = 0;
-	for (const GeometryCacheItem& spatialObjects : allSpatialObjects)
+	for (const GeometryCacheItem& spatialObjects : allSpatialObjects.getItems())
 	{
 		const IfcSchema::IfcProduct* currentProduct = spatialObjects.getProduct();
 
@@ -5096,6 +5096,8 @@ std::vector<CJT::CityObject> CJGeoCreator::makeSite(DataManager* h, CJT::Kernel*
 
 TopoDS_Shape CJGeoCreator::voxels2Shape(int roomNum, std::vector<int>* typeList)
 {
+	voxelGrid_->getIntersectingVoxels();
+
 	std::vector<std::thread> threads;
 	std::vector<std::pair<TopoDS_Face, CJObjectID>> threadFaceLists;
 	std::mutex faceListMutex;

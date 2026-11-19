@@ -126,12 +126,12 @@ private:
 	};
 
 	/// get the points of the product mesh
-	std::vector<gp_Pnt> getPotentialMeshObjectPoints(const std::vector<gp_Pnt>& voxelPoints, GeometryCacheItem& lookup);
+	std::vector<gp_Pnt> getPotentialMeshObjectPoints(const std::vector<gp_Pnt>& voxelPoints, const GeometryCacheItem& lookup);
 	/// check if any cornerpoints fall inside voxel
 	bool linearEqIntersection(const std::vector<gp_Pnt>& productPoints, const std::vector<gp_Pnt>& voxelPoints);
 
 	/// check if the centerpoint of the voxel falls within a product shape
-	bool voxelCoreIsInShape(const gp_Pnt& centerPoint, GeometryCacheItem& lookup);
+	bool voxelCoreIsInShape(const gp_Pnt& centerPoint, const GeometryCacheItem& lookup);
 	/// check if any edge of the product mesh intersects with the voxel
 	bool productEdgeIntersectsVoxel(const std::vector<gp_Pnt>& voxelPoints, const std::vector<gp_Pnt>& productPoints, int intersectionLogic);
 	/// check if any edge of the voxel mesh intersects with the prodcut
@@ -142,7 +142,7 @@ public:
 	explicit voxel() {};
 
 	/// check the intersection of a triangluted product and a voxel
-	bool checkIntersecting(GeometryCacheItem& lookup, const std::vector<gp_Pnt>& voxelPoints, const gp_Pnt& centerPoint, int intersectionLogic = 4);
+	bool checkIntersecting(const GeometryCacheItem& lookup, const std::vector<gp_Pnt>& voxelPoints, const gp_Pnt& centerPoint, int intersectionLogic = 4);
 
 	/// returns integers representing the voxel mesh that comply with the getCornerPoints output
 	static const std::vector<std::array<int, 3>>& getVoxelTriangles() { return voxelTriangles; }

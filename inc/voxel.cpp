@@ -12,7 +12,7 @@
 
 #include <thread>   
 
-std::vector<gp_Pnt> voxel::getPotentialMeshObjectPoints(const std::vector<gp_Pnt>& voxelPoints, GeometryCacheItem& lookup)
+std::vector<gp_Pnt> voxel::getPotentialMeshObjectPoints(const std::vector<gp_Pnt>& voxelPoints, const GeometryCacheItem& lookup)
 {
 	// move the points of the voxel
 	std::vector<gp_Pnt> copyVoxelPoints;
@@ -61,31 +61,49 @@ bool voxel::linearEqIntersection(const std::vector<gp_Pnt>& productPoints, const
 }
 
 
-bool voxel::voxelCoreIsInShape(const gp_Pnt& centerPoint, GeometryCacheItem& lookup)
+bool voxel::voxelCoreIsInShape(const gp_Pnt& centerPoint, const GeometryCacheItem& lookup)
 {
 	// add check if voxel falls completely in the shape
 	gp_Pnt centerPointCopy = centerPoint;
 	centerPointCopy.Transform(lookup.getTransformation().Inverted());
-	gp_Pnt offsetPoint = gp_Pnt(centerPoint.X(), centerPoint.Y(), centerPoint.Z() + 100);
-	offsetPoint.Transform(lookup.getTransformation().Inverted());
-	std::array<gp_Pnt, 2> castRay = { centerPointCopy,  offsetPoint };
 
-	int counter = 0;
-	std::vector<std::pair<bg::model::box<BoostPoint3D>, MeshTriangle>> qResultList;
-	lookup.getMeshIndexPtr()->query(bgi::intersects(helperFunctions::createBBox(centerPointCopy, offsetPoint)), std::back_inserter(qResultList));
-	for (const std::pair<bg::model::box<BoostPoint3D>, MeshTriangle>& qResult : qResultList)
+	std::vector<gp_Vec> directions = {
+		gp_Vec(0.31, 0.17, 1.0),
+		gp_Vec(-0.23, 0.41, 1.0),
+		gp_Vec(0.19, -0.37, 1.0),
+		gp_Vec(-0.43, -0.29, 1.0),
+		gp_Vec(0.61, 0.32, 1.0)
+	};
+
+	int vote = 0;
+	for (size_t i = 0; i < directions.size(); i++)
 	{
-		MeshTriangle triangle = qResult.second;
-		const std::array<gp_Pnt, 3>& trianglePoints = triangle.getPoints();
-		if (helperFunctions::triangleIntersecting(castRay, trianglePoints))
+		gp_Vec offset = directions[i];
+
+		gp_Pnt offsetPoint = centerPointCopy.Translated(offset * 100);
+		std::array<gp_Pnt, 2> castRay = { centerPointCopy,  offsetPoint };
+
+		int counter = 0;
+		std::vector<std::pair<bg::model::box<BoostPoint3D>, MeshTriangle>> qResultList;
+		lookup.getMeshIndexPtr()->query(bgi::intersects(helperFunctions::createBBox(centerPointCopy, offsetPoint)), std::back_inserter(qResultList));
+		for (const std::pair<bg::model::box<BoostPoint3D>, MeshTriangle>& qResult : qResultList)
 		{
-			counter++;
+			MeshTriangle triangle = qResult.second;
+			const std::array<gp_Pnt, 3>& trianglePoints = triangle.getPoints();
+			if (helperFunctions::triangleIntersecting(castRay, trianglePoints)) //TODO: this could be more rebuust with a distance from wire calc
+			{
+				counter++;
+			}
 		}
-	}
-	if (counter % 2 == 1)
-	{
-		isIntersecting_ = true;
-		return true;
+		if (counter % 2 == 1)
+		{
+			vote++;
+			if (vote == 2)
+			{
+				isIntersecting_ = true;
+				return true;
+			}
+		}
 	}
 	return false;
 }
@@ -196,7 +214,7 @@ bool voxel::voxelEdgeIntersectsProduct(const std::vector<gp_Pnt>& voxelPoints, c
 }
 
 
-bool voxel::checkIntersecting(GeometryCacheItem& lookup, const std::vector<gp_Pnt>& voxelPoints, const gp_Pnt& centerPoint, int intersectionLogic)
+bool voxel::checkIntersecting(const GeometryCacheItem& lookup, const std::vector<gp_Pnt>& voxelPoints, const gp_Pnt& centerPoint, int intersectionLogic)
 {
 	if (!voxelPoints.size()) { return false; }
 

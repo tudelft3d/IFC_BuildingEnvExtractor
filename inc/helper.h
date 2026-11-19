@@ -188,7 +188,12 @@ struct HalfEdgeLoop
 
 // helper functions that can be utilised everywhere
 struct helperFunctions{
-	
+
+private:
+	// mutex to avoid dataRaces with the force solid logic
+	inline static std::mutex SolidSemanticMutex_;
+
+public:
 	/// point managing functions
 	
 	/// Convert OpenCascade point to Boost point
@@ -505,6 +510,7 @@ struct helperFunctions{
 
 	/// forces solid semantic data on a solid shape that is missing it
 	static TopoDS_Shape addSolidSemantic(const TopoDS_Shape& assumedSolid);
+
 
 	/// creates a planar face based on the input face
 	static bool face2Plane(const TopoDS_Face& theFace, gp_Pln* thePlane);

@@ -362,6 +362,8 @@ inc/settingsCollection.h
 inc/settingsCollection.cpp
 inc/fileWriter.h
 inc/fileWriter.cpp
+inc/GeometryCache.h
+inc/GeometryCache.cpp
 inc/stringManager.h
 inc/stringManager.cpp
 inc/surfaceCollection.h

@@ -26,7 +26,7 @@ private:
 	std::vector<std::unique_ptr<voxel>> VoxelLookup_; 
 
 	// list for roomnum to voxelIdx
-	std::map<int, std::vector<int>> room2VoxelIdx_;
+	std::unordered_map<int, std::vector<int>> room2VoxelIdx_;
 
 	std::mutex voxelLookupMutex;
 

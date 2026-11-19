@@ -134,6 +134,7 @@ private:
 
 public:
 
+	// Read the input file and toggle the settings
 	bool init(const std::vector<std::string>& inputPathList);
 
 	bool run();

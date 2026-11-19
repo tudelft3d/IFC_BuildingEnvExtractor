@@ -4723,6 +4723,8 @@ void helperFunctions::devideFaces(const TopoDS_Shape& inputShape, std::vector<To
 
 TopoDS_Shape helperFunctions::addSolidSemantic(const TopoDS_Shape& assumedSolid)
 {
+	std::lock_guard<std::mutex> listGuard(SolidSemanticMutex_);
+
 	BRep_Builder builder;
 	TopoDS_Shell shell;
 	builder.MakeShell(shell);

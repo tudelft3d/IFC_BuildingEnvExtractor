@@ -1,5 +1,6 @@
 #include "helper.h"
 #include "settingsCollection.h"
+#include "GeometryCache.h"
 
 // Boost includes
 #include <boost/algorithm/string.hpp>
@@ -31,155 +32,11 @@
 #define DATAMANAGER_DATAMANAGER_H
 
 
-// container for mesh triangles
-class MeshTriangle
-{
-private:
-	/// the three points of the triangle (do not store any other larger vector)
-	std::array<gp_Pnt, 3> points_ = {};
-public:
-	MeshTriangle(const std::array<gp_Pnt, 3>& points) { points_ = points; }
-	/// return the three points of the triangle
-	const std::array<gp_Pnt, 3>& getPoints() { return points_; }
-};
-
-//TODO: new class maybe
-struct GeometryFingerprint
-{
-	long long sumX_ = 0;
-	long long sumY_ = 0;
-	long long sumZ_ = 0;
-	long long sumPt_ = 0;
-
-	GeometryFingerprint(const TopoDS_Shape& geom)
-	{
-		for (TopExp_Explorer expl(geom, TopAbs_VERTEX); expl.More(); expl.Next()) {
-			gp_Pnt evalPoint = BRep_Tool::Pnt(TopoDS::Vertex(expl.Current()));
-			sumX_ += static_cast<int>(std::ceil(evalPoint.X() * 1e6));
-			sumY_ += static_cast<int>(std::ceil(evalPoint.Y() * 1e6));
-			sumZ_ += static_cast<int>(std::ceil(evalPoint.Z() * 1e6));
-			sumPt_++;
-		}
-	}
-
-	bool operator==(const GeometryFingerprint& other) const
-	{
-		return 
-			sumX_ == other.sumX_ &&
-			sumY_ == other.sumY_ &&
-			sumZ_ == other.sumZ_ &&
-			sumPt_ == other.sumPt_;
-	}
-};
-
-struct GeometryFingerprintHash
-{
-	size_t operator()(const GeometryFingerprint& f) const
-	{
-		size_t seed = 0;
-
-		auto combine = [&seed](size_t value)
-		{
-			seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-		};
-
-		combine(std::hash<long long>{}(f.sumX_));
-		combine(std::hash<long long>{}(f.sumY_));
-		combine(std::hash<long long>{}(f.sumZ_));
-		combine(std::hash<long long>{}(f.sumPt_));
-
-		return seed;
-	}
-};
-
-class GeometryInstance
-{
-private:
-	TopoDS_Shape geometryShape_;
-	bgi::rtree<std::pair<bg::model::box<BoostPoint3D>, MeshTriangle>, bgi::rstar<25>> triangleIndex_;
-	bool active_ = false;
-public:
-	GeometryInstance(const TopoDS_Shape& instanceShape) { geometryShape_ = instanceShape; }
-
-	void init(const std::string& guid, bool forceSimple);
-
-	const TopoDS_Shape& getGeo() const 
-	{ 
-		return geometryShape_; 
-	}
-	const bgi::rtree<std::pair<bg::model::box<BoostPoint3D>, MeshTriangle>, bgi::rstar<25>>* getTriangleIndex() const { return &triangleIndex_; }
-};
-
-class GeometryCacheItem
-{
-private:
-	const IfcSchema::IfcProduct* productPtr_;
-	GeometryInstance* instancedGeometryPtr_;
-	bg::model::box<BoostPoint3D> boundingBox_;
-	gp_Trsf transformation_;
-
-public:
-	GeometryCacheItem(const IfcSchema::IfcProduct* productPtr, GeometryInstance* instancedGeometryPtr, const gp_Trsf& transformation) : 
-		productPtr_(productPtr), instancedGeometryPtr_(instancedGeometryPtr), transformation_(transformation)
-	{}
-
-	void init();
-
-	const IfcSchema::IfcProduct* getProduct() const { return productPtr_ ;}
-
-	const bg::model::box<BoostPoint3D>& getBoundingBox() const { return boundingBox_; };
-
-	TopoDS_Shape getGeo(bool transformed) const;
-	const gp_Trsf& getTransformation() const { return transformation_; }
-
-	const bgi::rtree<std::pair<bg::model::box<BoostPoint3D>, MeshTriangle>, bgi::rstar<25>>* getMeshIndexPtr() const { return instancedGeometryPtr_->getTriangleIndex(); }
-};
-
-
-
-//TODO: until here
-
-// lookup for the major spatial index used in the code (indexing all the objects in the ifc file)
-class IfcProductSpatialData
-{
-private:
-	// unique pointer to the product and its data
-	IfcSchema::IfcProduct* productPtr_;
-	// full shape of the product
-	TopoDS_Shape productShape_;
-
-	// spatial index of the triangles constructing the mesh of the object
-	bgi::rtree<Value, bgi::rstar<25>> triangleIndex_;
-	// vector containing the triangle points related to the index
-	std::vector<MeshTriangle> productTrianglePoints_;
-
-public:
-	IfcProductSpatialData(
-		const IfcSchema::IfcProduct* productPtr,
-		const TopoDS_Shape& productShape);
-
-	~IfcProductSpatialData() {
-	}
-	/// returns the pointer of the product 
-	IfcSchema::IfcProduct* getProductPtr() const { return productPtr_; }
-	/// returns the shape of the product
-	const TopoDS_Shape& getProductShape() const { return productShape_;  }
-	/// replaces or sets the stored shape of the product
-	void setProductShape(const TopoDS_Shape& newShape) { productShape_ = newShape; }
-	/// returns the index for the triangulated shape
-	bgi::rtree<Value, bgi::rstar<25>>* getIndxPointer() { return &triangleIndex_; }
-	/// returns the triangulated shape vector that coorperates with the index
-	const std::vector<MeshTriangle>& getProductTriangleList() { return productTrianglePoints_; }
-	/// returns the triangulated shape vector that coorperates with the index
-	const MeshTriangle& getProductTriangleList(int i) { return productTrianglePoints_[i]; }
-};
-
-class fileKernelCollection 
+class fileContainer 
 {
 private:
 
 	std::unique_ptr<IfcParse::IfcFile> file_ = nullptr;
-	std::unique_ptr<IfcGeom::OpenCascadeKernel> kernel_;
 
 	// The unit multipliers found
 	double length_ = 0;
@@ -188,23 +45,16 @@ private:
 	double getSiScaleValue(const IfcSchema::IfcSIUnit& unitItem);
 
 public:
-	fileKernelCollection(const std::string& file);
+	fileContainer(const std::string& file);
 
-	~fileKernelCollection() {
-	}
+	fileContainer(const fileContainer&) = delete;
+	fileContainer& operator=(const fileContainer&) = delete;
 
-	fileKernelCollection(const fileKernelCollection&) = delete;
-	fileKernelCollection& operator=(const fileKernelCollection&) = delete;
-
-	fileKernelCollection(fileKernelCollection&&) noexcept = default;
-	fileKernelCollection& operator=(fileKernelCollection&&) noexcept = default;
-
-	IfcGeom::OpenCascadeKernel* getKernelPtr() { return kernel_.get(); }
+	fileContainer(fileContainer&&) noexcept = default;
+	fileContainer& operator=(fileContainer&&) noexcept = default;
 
 	/// returns the pointer to the file object
 	IfcParse::IfcFile* getFilePtr() {return file_.get();}
-	/// returns the pointer to the iterator
-	IfcGeom::Iterator* getIteratorPtr(bool isSimple);
 	/// returns the length multiplier
 	double getLengthMultiplier() const { return length_; }
 	/// returns if the file object is good (functioning)
@@ -230,24 +80,20 @@ private:
 	// translation that is adding the object translation to the ifc georef translation
 	gp_Trsf objectIfcTranslation_;
 
-	std::vector<fileKernelCollection> datacollection_;
+	std::vector<fileContainer> datacollection_;
 
 	static const int treeDepth = 5;
 
 	/// stores the actual geometry instance
-	std::unordered_map< GeometryFingerprint, GeometryInstance, GeometryFingerprintHash > geometryInstanceCache_;
+	//std::unordered_map< GeometryFingerprint, GeometryInstance, GeometryFingerprintHash > geometryInstanceCache_;
 	/// stores data about geo, points to inscance cache
-	std::vector<GeometryCacheItem> geometryCache_;
+	GeometryCache geometryCache_;
 	
 	std::shared_mutex indexMutex_;
 	bgi::rtree<Value, bgi::rstar<treeDepth>> index_;
 
 	std::mutex spaceIndexMutex_;
 	bgi::rtree<Value, bgi::rstar<treeDepth>> spaceIndex_;
-
-	std::mutex convertMutex_;
-	std::mutex solidSemanticMutex_;
-	std::mutex uniqueKeyMutex_;
 
 	std::map <std::string, std::unordered_map < std::string, int >> productIndxLookup_;
 	std::unordered_map<std::string, int> spaceIndxLookup_;
@@ -271,8 +117,6 @@ private:
 	
 	/// get the kernel which contains the product with the supplied product guid
 	IfcGeom::Iterator* getIteratorPtr(const std::string& productGuid);	
-	/// get the kernel which contains the product with the supplied product guid
-	IfcGeom::OpenCascadeKernel* getKernelObject(const std::string& productGuid);
 	/// gets shapes from memory without checking for correct adjusted boolean
 	int getObjectShapeLocation(const IfcSchema::IfcProduct* product, bool isSpace = false);
 
@@ -315,9 +159,7 @@ private:
 	// populate a map that has all the guid related propertysets 
 	void populateAttributeLookup();
 
-	void AddBRepElementToIndex(const std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>& shapeList, std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>::const_iterator  startIdx, std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>>::const_iterator  endIdx, std::unordered_set<std::string>& uniqueKeySet, int& counter, std::mutex& counterMutex, bool isRoom = false);
-
-	void AddBRepElementToIndex2(bool isRoom = false);
+	void AddBRepElementToIndex();
 
 public:
 	/*
@@ -353,22 +195,17 @@ public:
 	/// get the pointer to the space objects index
 	const bgi::rtree<Value, bgi::rstar<treeDepth>>* getSpaceIndexPointer() { return &spaceIndex_; }
 	/// get the spatial/product data related to the space dividing objects index
-	const std::vector<GeometryCacheItem>& getLookup() { return geometryCache_; }
+	const GeometryCache& getLookup() { return geometryCache_; }
 	/// get the spatial/product data related to the space dividing objects index
-	const GeometryCacheItem& getLookup(int i) { return geometryCache_.at(i); }
+	const GeometryCacheItem& getLookup(int i) { return geometryCache_.getItem(i); }
 	/// get the spatial/product data related to the space dividing objects index
-	GeometryCacheItem* getLookupPtr(int i) { return &geometryCache_.at(i); }
+	const GeometryCacheItem* getLookupPtr(int i) { return geometryCache_.getItemPtr(i); }
 	/// get all indexed object shapes
 	std::vector<TopoDS_Shape> getIndexedShapes();
 	/// get all interior BVO shapes
 	std::vector<TopoDS_Shape> getIndexedBVOShapes();
 	/// get all indexed lookup values
 	std::vector<Value> getIndexedValues();
-
-	///// get the spatial/product data related to the space objects index
-	//const IfcProductSpatialData& getSpaceLookup(int i) { return SpaceLookup_.at(i); }
-	///// get the spatial/product data related to the space objects index
-	//IfcProductSpatialData* getSpaceLookupPtr(int i) { return &SpaceLookup_.at(i); }
 
 	// internalises the geometry while approximating a smallest bbox around the geometry
 	void internalizeGeo();
@@ -399,8 +236,6 @@ public:
 	/// get the shape of an ifcproduct
 	TopoDS_Shape getObjectShape(const IfcSchema::IfcProduct* product, bool getNested = false, bool isSimple = false, bool fromMemOnly = false); //TODO: remove this
 
-	/// gets all the objects stored in the ifc file, does not cache
-	std::vector<IfcGeom::BRepElement*> getAllObjects();
 
 };
 

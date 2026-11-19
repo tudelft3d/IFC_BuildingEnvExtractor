@@ -161,7 +161,7 @@ bool VoxelGrid::addVoxel(int indx, DataManager* h)
 		const GeometryCacheItem* lookup = h->getLookupPtr(resultItem.second);
 		if (boxel->checkIntersecting(*lookup, pointList, midPointOCCT, settingsCollection.intersectionLogic()))
 		{
-			boxel->addInternalProduct(resultItem);
+			boxel->addInternalProduct(resultItem.second);
 		}
 	}
 
@@ -566,11 +566,6 @@ void VoxelGrid::pairVoxels()
 		room2VoxelIdx_[roomNum].emplace_back(i);
 	}
 
-	if (!SettingsCollection::getInstance().makeInterior())
-	{
-		return;
-	}
-
 	int buildingNum = 0;
 	for (int i = 0; i < totalVoxels_; i++)
 	{
@@ -602,12 +597,13 @@ void VoxelGrid::markVoxelBuilding(int startIndx, int buildnum) {
 			{
 				if (otherIdx == - 1) { continue; }
 
-				voxel& otherVoxel = *VoxelLookup_[otherIdx];
+				voxel* otherVoxel = VoxelLookup_[otherIdx].get();
+				if (otherVoxel == nullptr) { continue; }
 
-				if (!otherVoxel.getIsIntersecting()) { continue; }
-				if (otherVoxel.getBuildingNum() != -1) { continue; }
+				if (!otherVoxel->getIsIntersecting()) { continue; }
+				if (otherVoxel->getBuildingNum() != -1) { continue; }
 
-				otherVoxel.setBuildingNum(buildnum);
+				otherVoxel->setBuildingNum(buildnum);
 				potentialBuildingVoxels.emplace_back(otherIdx);
 			}
 		}
@@ -656,12 +652,11 @@ bool VoxelGrid::voxelBeamWindowIntersection(DataManager* h, int voxelIdx, int in
 
 	for (int beamVoxelIdx : voxelBeam)
 	{
-		std::vector<Value> intersectingValues = VoxelLookup_[beamVoxelIdx]->getInternalProductList();
-		for (auto valueIt = intersectingValues.begin(); valueIt != intersectingValues.end(); ++valueIt)
-		{
-			//std::string productTypeName = h->getLookup(valueIt->second).getProductPtr()->data().type()->name();
+		std::vector<int> intersectingValues = VoxelLookup_[beamVoxelIdx]->getInternalProductList();
 
-			std::string productTypeName = h->getLookup(valueIt->second).getProduct()->declaration().name();
+		for (int currentIndx : intersectingValues)
+		{
+			std::string productTypeName = h->getLookup(currentIndx).getProduct()->declaration().name();
 
 			if (productTypeName == "IfcDoor" || productTypeName == "IfcWindow")
 			{
@@ -678,7 +673,7 @@ int VoxelGrid::invertDir(int dirIndx) { //TODO: this seems voxel related code?
 	else { return dirIndx + 1; }
 }
 
-void VoxelGrid::setSemanticVoxelFace(DataManager* h, int voxelIdx, int dirIndx, const std::vector<Value>& intersectingValues)
+void VoxelGrid::setSemanticVoxelFace(DataManager* h, int voxelIdx, int dirIndx, const std::vector<int>& intersectingValues)
 {
 	voxel* voxel = VoxelLookup_[voxelIdx].get();
 
@@ -689,9 +684,9 @@ void VoxelGrid::setSemanticVoxelFace(DataManager* h, int voxelIdx, int dirIndx, 
 	bool hasNormalSurface = false;
 	bool hasRoofSurface = false;
 
-	for (auto valueIt = intersectingValues.begin(); valueIt != intersectingValues.end(); ++valueIt)
+	for (int currentIndx : intersectingValues)
 	{
-		const IfcSchema::IfcProduct* intersectedProduct = h->getLookup(valueIt->second).getProduct();
+		const IfcSchema::IfcProduct* intersectedProduct = h->getLookup(currentIndx).getProduct();
 		//std::string productTypeName = intersectedProduct->data().type()->name();
 		std::string productTypeName = intersectedProduct->declaration().name();
 		
@@ -859,13 +854,14 @@ void VoxelGrid::computeSurfaceSemantics(DataManager* h)
 		for (int indxdir = 0; indxdir < 6; indxdir++)
 		{
 			int neighbourIndx = getNeighbour(currentIdx, indxdir);
-			voxel& neighbourVoxel = *VoxelLookup_[neighbourIndx];
+			voxel* neighbourVoxel = VoxelLookup_[neighbourIndx].get();
+			if (neighbourVoxel == nullptr) { continue; }
+			if (neighbourVoxel->getIsIntersecting()) { continue; }
+			if (neighbourVoxel->getRoomNum() == -1) { continue; }
 			int invertDir = indxdir ^ 1;
-			if (neighbourVoxel.getIsIntersecting()) { continue; }
-			if (neighbourVoxel.getRoomNum() == -1) { continue; }
-			if (!neighbourVoxel.hasFace(invertDir)) { continue; }
+			if (!neighbourVoxel->hasFace(invertDir)) { continue; }
 
-			std::vector<Value> intersectingValues = currentVoxel->getInternalProductList();
+			std::vector<int> intersectingValues = currentVoxel->getInternalProductList();
 			setSemanticVoxelFace(h, neighbourIndx, invertDir, intersectingValues);
 		}	
 	}
@@ -894,15 +890,16 @@ std::vector<int> VoxelGrid::getOuterIntersectingVoxels() const
 		voxel* currentVoxel = VoxelLookup_[i].get();
 		if (currentVoxel == nullptr) { continue; }
 		if (!currentVoxel->getIsIntersecting()) { continue; }
-		if (currentVoxel->getBuildingNum() == -1) { continue; }
 
 		std::array<int, 6> neighbours = getDirNeighbours(i);
 		for (const int otherIdx : neighbours)
 		{
 			if (otherIdx == -1) { continue; }
 
-			const voxel& otherVoxel = *VoxelLookup_.at(otherIdx);
-			if (otherVoxel.getRoomNum() == 0)
+			const voxel* otherVoxel = VoxelLookup_.at(otherIdx).get();
+			if (otherVoxel == nullptr) { continue; }
+
+			if (otherVoxel->getRoomNum() == 0)
 			{
 				intersectingVoxels.emplace_back(i);
 				break;

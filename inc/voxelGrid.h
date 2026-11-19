@@ -92,7 +92,7 @@ private:
 	/// inverts the dirInx for neighbourSearching
 	static int invertDir(int dirIndx);
 
-	void setSemanticVoxelFace(DataManager* h, int voxelIdx, int dirIndx, const std::vector<Value>& intersectingValues);
+	void setSemanticVoxelFace(DataManager* h, int voxelIdx, int dirIndx, const std::vector<int>& intersectingValues);
 
 public:
 	VoxelGrid(DataManager* h);

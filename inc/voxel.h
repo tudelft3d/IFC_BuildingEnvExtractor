@@ -43,7 +43,7 @@ private:
 	int roomNum_ = -1;
 
 	/// collection of the ifc product the voxel intersects with
-	std::vector<Value> internalProducts_;
+	std::vector<int> internalProducts_;
 
 	// transitional faces (faces between different types of voxels) 
 	// voids hold their own containers, intersecting voxels hold the outer shell
@@ -178,9 +178,9 @@ public:
 	int getBuildingNum() const { return buildingNum_; }
 
 	/// internalize an object, used to internalize the objects the voxel intersects with
-	void addInternalProduct(const Value& prodValue) { internalProducts_.emplace_back(prodValue); }
+	void addInternalProduct(const int& prodValue) { internalProducts_.emplace_back(prodValue); }
 	/// returns the list with internalized products
-	std::vector<Value> getInternalProductList() const { return internalProducts_; }
+	std::vector<int> getInternalProductList() const { return internalProducts_; }
 
 	/// returns boolean if the face in that direction is present, if no number input returns if any face is present
 	/// 0 = -X

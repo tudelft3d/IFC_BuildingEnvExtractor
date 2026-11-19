@@ -207,7 +207,7 @@ void CJGeoCreator::garbageCollection()
 
 	if (!settingsCollection.make40() || finishedLoD40_)
 	{
-		std::vector<Value>().swap(externalValueList_);
+		std::vector<int>().swap(externalValueList_);
 	}
 
 	// check if internal data can be released
@@ -1933,12 +1933,12 @@ std::vector<TopoDS_Shape> CJGeoCreator::beamProjection(DataManager* h)
 			const voxel& currentVoxel = voxelGrid_->getVoxel(currentVoxelIdx);
 			if (&currentVoxel != nullptr)
 			{
-				const std::vector<Value>& internalValueList = currentVoxel.getInternalProductList();
+				const std::vector<int>& internalValueList = currentVoxel.getInternalProductList();
 				if (!internalValueList.empty())
 				{
-					for (const Value& currentValue : internalValueList)
+					for (const int& currentIndx : internalValueList)
 					{
-						topValueIdxset.insert(currentValue.second);
+						topValueIdxset.insert(currentIndx);
 					}
 					break;
 				}
@@ -3190,6 +3190,11 @@ void CJGeoCreator::makeSimpleLodRooms(DataManager* h, CJT::Kernel* kernel, std::
 					TopLoc_Location loc;
 					auto mesh = BRep_Tool::Triangulation(otherFace, loc);
 
+					if (mesh.IsNull())
+					{
+						continue;
+					}
+
 					for (int j = 1; j <= mesh.get()->NbTriangles(); j++) 
 					{
 						const Poly_Triangle& theTriangle = mesh->Triangles().Value(j);
@@ -4360,9 +4365,9 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoD40(DataManager* h, CJT::Kernel*
 		else
 		{
 			std::cout << "\tRay casting data from LoDe.1 and/or 3.2 is used\n";
-			for (const Value& currentValue : externalValueList_)
+			for (const int& currentValue : externalValueList_)
 			{
-				const GeometryCacheItem& lookup = h->getLookup(currentValue.second);
+				const GeometryCacheItem& lookup = h->getLookup(currentValue);
 				TopoDS_Shape currentShape = lookup.getGeo(true);
 				const IfcSchema::IfcProduct* currentProduct = lookup.getProduct();
 				shapeProductList.emplace_back(std::make_pair(currentShape, currentProduct));
@@ -4532,8 +4537,8 @@ std::vector<CJT::GeoObject> CJGeoCreator::makeLoDe1(DataManager* h, CJT::Kernel*
 	if (settingsCollection.voxelBasedFiltering())
 	{
 		std::vector<int> intersectingVoxels = voxelGrid_->getOuterIntersectingVoxels();
-		std::vector<Value> productLookupValues = getUniqueProductValues(intersectingVoxels);
-		LoDE1Faces_ = getE1Objects<TopoDS_Face>(h, unitScale, productLookupValues, voxelIndex);
+		std::vector<int> productLookupValues = getUniqueProductValues(intersectingVoxels);
+		LoDE1Faces_ = getE1Objects2<TopoDS_Face>(h, unitScale, productLookupValues, voxelIndex);
 	}
 	else
 	{
@@ -4634,8 +4639,8 @@ std::vector< CJT::GeoObject>CJGeoCreator::makeLoD32(DataManager* h, CJT::Kernel*
 		if (settingsCollection.voxelBasedFiltering())
 		{
 			std::vector<int> intersectingVoxels = voxelGrid_->getOuterIntersectingVoxels();
-			std::vector<Value> productLookupValues = getUniqueProductValues(intersectingVoxels);
-			outerSurfacePairList = getE1Objects<TopoDS_Face>(h, unitScale, productLookupValues, voxelIndex);
+			std::vector<int> productLookupValues = getUniqueProductValues(intersectingVoxels);
+			outerSurfacePairList = getE1Objects2<TopoDS_Face>(h, unitScale, productLookupValues, voxelIndex);
 		}
 		else
 		{
@@ -5311,10 +5316,10 @@ void CJGeoCreator::makeVRoom(DataManager* h, CJT::Kernel* kernel, std::vector<CJ
 }
 
 template <typename T>
-std::vector<std::pair<T, const IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objects(
+std::vector<std::pair<T, const IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objects2(
 	DataManager* h,
 	int unitScale, 
-	const std::vector<Value>& productLookupValues,
+	const std::vector<int>& productLookupValues,
 	const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIdx)
 {
 	SettingsCollection& settingsCollection = SettingsCollection::getInstance();
@@ -5326,12 +5331,13 @@ std::vector<std::pair<T, const IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objec
 	}
 
 	std::vector<int> scoreList;
-	std::vector<Value> cleanedProductLookupValues;
+	std::vector<int> cleanedProductLookupValues;
 	bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>> faceIndx;
 	double searchBuffer = settingsCollection.searchBufferLod32();
-	for (size_t i = 0; i < productLookupValues.size(); i++)
+
+	for (int lookupIndx : productLookupValues)
 	{
-		const GeometryCacheItem& lookup = h->getLookup(productLookupValues[i].second);
+		const GeometryCacheItem& lookup = h->getLookup(lookupIndx);
 		TopoDS_Shape currentShape = lookup.getGeo(true);
 
 		BoostBox3D totalBox = helperFunctions::createBBox(currentShape, searchBuffer);
@@ -5345,19 +5351,35 @@ std::vector<std::pair<T, const IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objec
 			BoostBox3D currentBox = helperFunctions::createBBox(currentFace);
 			faceIndx.insert(std::make_pair(currentBox, currentFace));
 		}
-		cleanedProductLookupValues.emplace_back(productLookupValues[i]);
+		cleanedProductLookupValues.emplace_back(lookupIndx);
 	}
 
 	// evaluate which surfaces are visible from the exterior
 	std::vector<std::pair<T, const IfcSchema::IfcProduct*>> outerSurfacePairList;
-	getOuterRayObjects(outerSurfacePairList, cleanedProductLookupValues, scoreList, h, faceIndx, voxelIdx);
+	getOuterRayObjects<T>(outerSurfacePairList, cleanedProductLookupValues, scoreList, h, faceIndx, voxelIdx);
 	std::vector<int>().swap(scoreList);
 
 	return outerSurfacePairList;
 }
 
 template <typename T>
-void CJGeoCreator::getOuterRayObjects(std::vector<std::pair<T, const IfcSchema::IfcProduct*>>& outerSurfacePairList, const std::vector<Value>& totalValueObjectList, const std::vector<int>& scoreList, DataManager* h, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIndex)
+std::vector<std::pair<T, const IfcSchema::IfcProduct*>> CJGeoCreator::getE1Objects(
+	DataManager* h,
+	int unitScale,
+	const std::vector<Value>& productLookupValues,
+	const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIdx)
+{
+	std::vector<int> idxList;
+	idxList.reserve(productLookupValues.size());
+	for (const auto& [bbox, indx] : productLookupValues)
+	{
+		idxList.emplace_back(indx);
+	}
+	return getE1Objects2<T>(h, unitScale, idxList, voxelIdx);
+}
+
+template <typename T>
+void CJGeoCreator::getOuterRayObjects(std::vector<std::pair<T, const IfcSchema::IfcProduct*>>& outerSurfacePairList, const std::vector<int>& totalValueObjectList, const std::vector<int>& scoreList, DataManager* h, const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx, const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIndex)
 {
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount();
@@ -5400,7 +5422,7 @@ void CJGeoCreator::getOuterRayObjects(std::vector<std::pair<T, const IfcSchema::
 		auto endIdx = totalValueObjectList.begin() + endList + 1;
 		beginIndx = endList + 1;
 
-		std::vector<Value> sublist(startIdx, endIdx);
+		std::vector<int> sublist(startIdx, endIdx);
 		threadList.emplace_back([this, &outerSurfacePairList, sublist = std::move(sublist), &processedObjects, &processedCountMutex, &listMutex, &h, &faceIdx, &voxelIndex]() {
 			getOuterRayObjects<T>(outerSurfacePairList, sublist, processedObjects, processedCountMutex, listMutex, h, faceIdx, voxelIndex);
 		});
@@ -5419,7 +5441,7 @@ void CJGeoCreator::getOuterRayObjects(std::vector<std::pair<T, const IfcSchema::
 template <typename T>
 void CJGeoCreator::getOuterRayObjects(
 	std::vector<std::pair<T, const IfcSchema::IfcProduct*>>& outerObjectPairList,
-	const std::vector<Value>& valueObjectList, 
+	const std::vector<int>& valueObjectList, 
 	int& processedObject,
 	std::mutex& processedObjectmutex,
 	std::mutex& listmutex,
@@ -5433,13 +5455,13 @@ void CJGeoCreator::getOuterRayObjects(
 	double searchBuffer = settingsCollection.searchBufferLod32();
 	double voxelSize = settingsCollection.voxelSize();
 
-	for (const Value& currentValue : valueObjectList)
+	for (int lookupIndx : valueObjectList)
 	{
 		std::unique_lock<std::mutex> processCountLock(processedObjectmutex);
 		processedObject++;
 		processCountLock.unlock();
 
-		const GeometryCacheItem& lookup = h->getLookup(currentValue.second);
+		const GeometryCacheItem& lookup = h->getLookup(lookupIndx);
 		const std::string& lookupType = lookup.getProduct()->declaration().name();
 		const TopoDS_Shape& currentShape = lookup.getGeo(true);
 
@@ -5487,7 +5509,7 @@ void CJGeoCreator::getOuterRayObjects(
 					if (!objectHasBeenStored)
 					{
 						std::unique_lock<std::mutex> listLock(listmutex);
-						externalValueList_.emplace_back(currentValue);
+						externalValueList_.emplace_back(lookupIndx);
 						listLock.unlock();
 						objectHasBeenStored = true;
 					}
@@ -6270,11 +6292,13 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* cjtKernel
 		if (itThread < 2) { itThread = 2; } // ifcopenshell doesnt work on 1 thread
 
 		ifcopenshell::geometry::Settings settings = settingsCollection.iteratorSettings();
+		settings.get< ifcopenshell::geometry::settings::UseWorldCoords >().value = true;
+
 		auto kernel = std::make_unique<IfcGeom::OpenCascadeKernel>(settings);
 
 		IfcGeom::Iterator it(
 			std::move(kernel),
-			settingsCollection.iteratorSettings(),
+			settings,
 			h->getSourceFile(i),
 			filterFuncs,
 			itThread
@@ -6300,6 +6324,9 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* cjtKernel
 			}
 			currentItemNum++;
 		} while (it.next());
+
+		settings.get< ifcopenshell::geometry::settings::UseWorldCoords >().value = false;
+
 		std::cout << "\t" << "File " + std::to_string((int)i + 1) << " - Parsing IFC Objects - " << currentItemNum << "\r";
 
 		int coreUse = threadCount;
@@ -6497,18 +6524,24 @@ std::vector<Value> CJGeoCreator::makeUniqueValueList(const std::vector<Value>& v
 	return valueSet;
 }
 
-std::vector<Value> CJGeoCreator::getUniqueProductValues(const std::vector<int>& voxelList)
+std::vector<int> CJGeoCreator::getUniqueProductValues(const std::vector<int>& voxelList)
 {
-	std::vector<Value> productLookupValues;
+	std::vector<int> productLookupValues;
 	for (int voxelIdx : voxelList)
 	{
 		const voxel& currentVoxel = voxelGrid_->getVoxel(voxelIdx);
-		for (const Value& productValue : currentVoxel.getInternalProductList())
+		for (int productValue : currentVoxel.getInternalProductList())
 		{
 			productLookupValues.emplace_back(productValue);
 		}
 	}
-	return makeUniqueValueList(productLookupValues);
+
+	std::map<int, int> m;
+	auto it = std::copy_if(productLookupValues.cbegin(), productLookupValues.cend(), productLookupValues.begin(),
+		[&m](int i) { return !m[i]++; });
+
+	productLookupValues.erase(it, productLookupValues.end());
+	return productLookupValues;
 }
 
 

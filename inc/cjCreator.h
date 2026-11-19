@@ -95,7 +95,7 @@ private:
 	// list collects the storey city Pointers
 	std::vector<CJT::CityObject> storeyObjects_;
 	// list collects the objects that are external according to the raycasting process
-	std::vector<Value> externalValueList_;
+	std::vector<int> externalValueList_;
 
 	/// list that collects the LoD0.2 interior copy shapes for DXF and/or OBJ output
 	std::vector<std::pair<TopoDS_Shape, FileWriter::storageObject>> LoD02Interior_;
@@ -270,15 +270,22 @@ private:
 	template <typename T>
 	std::vector<std::pair<T, const IfcSchema::IfcProduct*>> getE1Objects(
 		DataManager* h,
-		int unitScale, 
+		int unitScale,
 		const std::vector<Value>& productLookupValues,
+		const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIdx);
+
+	template <typename T>
+	std::vector<std::pair<T, const IfcSchema::IfcProduct*>> getE1Objects2(
+		DataManager* h,
+		int unitScale, 
+		const std::vector<int>& productLookupValues,
 		const bgi::rtree<std::pair<BoostBox3D, int>, bgi::rstar<25>>& voxelIdx);
 
 	// get the outer surface by raycasting against exterior voxels
 	template<typename T>
 	void getOuterRayObjects(
 		std::vector<std::pair<T, const IfcSchema::IfcProduct*>>& outerSurfacePairList,
-		const std::vector<Value>& totalValueObjectList,
+		const std::vector<int>& totalValueObjectList,
 		const std::vector<int>& scoreList,
 		DataManager* h,
 		const bgi::rtree<std::pair<BoostBox3D, TopoDS_Face>, bgi::rstar<25>>& faceIdx,
@@ -288,7 +295,7 @@ private:
 	template<typename T>
 	void getOuterRayObjects(
 		std::vector<std::pair<T, const IfcSchema::IfcProduct*>>& outerSurfacePairList,
-		const std::vector<Value>& valueObjectList,
+		const std::vector<int>& valueObjectList,
 		int& processedObject,
 		std::mutex& processedObjectmutex,
 		std::mutex& listmutex,
@@ -335,7 +342,7 @@ private:
 	/// remove dublicate values from valueList
 	std::vector<Value> makeUniqueValueList(const std::vector<Value>& valueList);
 	//gets the unqiue products that intersect with the voxelList
-	std::vector<Value> getUniqueProductValues(const std::vector<int>& voxelList);
+	std::vector<int> getUniqueProductValues(const std::vector<int>& voxelList);
 
 	// CityJSON object related code
 

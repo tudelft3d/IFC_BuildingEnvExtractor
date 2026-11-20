@@ -2,6 +2,7 @@
 #include "GeometryCache.h"
 #include "settingsCollection.h"
 #include "errorCollection.h"
+#include "DebugUtils.h"
 
 
 gp_Trsf getTransformationBrepElement(const IfcGeom::BRepElement* element)
@@ -153,7 +154,7 @@ void GeometryCache::addItem(IfcGeom::BRepElement* brepElem, const gp_Trsf& objec
 		instancePtr = &insertedIt->second;
 	}
 
-	gp_Trsf trsf = getTransformationBrepElement(brepElem) * objectTranslation;
+	gp_Trsf trsf = objectTranslation * getTransformationBrepElement(brepElem);
 	gp_Trsf rotation;
 	rotation.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), gridRotation);
 	trsf.Multiply(rotation);

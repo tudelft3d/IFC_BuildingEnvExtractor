@@ -2100,7 +2100,6 @@ void CJGeoCreator::reduceSurfaces(const std::vector<TopoDS_Shape>& inputShapes, 
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount() - 1;
 	if (coreUse > inputShapes.size()) { coreUse = inputShapes.size(); }
-
 	int totalScore = 0;
 	std::vector<int> scoreList;
 
@@ -6291,8 +6290,7 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* cjtKernel
 		int itThread = threadCount;
 		if (itThread < 2) { itThread = 2; } // ifcopenshell doesnt work on 1 thread
 
-		ifcopenshell::geometry::Settings settings = settingsCollection.iteratorSettings();
-		settings.get< ifcopenshell::geometry::settings::UseWorldCoords >().value = true;
+		ifcopenshell::geometry::Settings settings = settingsCollection.iteratorSettings(false, true);
 
 		auto kernel = std::make_unique<IfcGeom::OpenCascadeKernel>(settings);
 
@@ -6324,8 +6322,6 @@ void CJGeoCreator::brepIFcElemToGeoObject(DataManager* h, CJT::Kernel* cjtKernel
 			}
 			currentItemNum++;
 		} while (it.next());
-
-		settings.get< ifcopenshell::geometry::settings::UseWorldCoords >().value = false;
 
 		std::cout << "\t" << "File " + std::to_string((int)i + 1) << " - Parsing IFC Objects - " << currentItemNum << "\r";
 

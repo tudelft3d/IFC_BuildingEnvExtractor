@@ -494,7 +494,7 @@ public:
     std::unordered_set<std::string> getOpeningObjectsList() { return openingObjects_; }
     std::unordered_set<std::string> getCuttingObjectsList() { return cuttingObjects_; }
 
-    ifcopenshell::geometry::Settings iteratorSettings(bool simple = false);
+    ifcopenshell::geometry::Settings iteratorSettings(bool simple = false, bool worldCoord = false);
     void setIterator(const ifcopenshell::geometry::Settings& settingsObject) { iteratorSettings_ = settingsObject; }
     void setSimpleIterator(const ifcopenshell::geometry::Settings& settingsObject) { simpleIteratorSettings_ = settingsObject; }
 

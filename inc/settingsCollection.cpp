@@ -1520,13 +1520,26 @@ void SettingsCollection::setAllLoDOutputFalse()
 	return;
 }
 
-ifcopenshell::geometry::Settings SettingsCollection::iteratorSettings(bool simple)
+ifcopenshell::geometry::Settings SettingsCollection::iteratorSettings(bool simple, bool worldcoord)
 {
 	if (simple)
 	{
-		return simpleIteratorSettings_;
+		if (!worldcoord)
+		{
+			return simpleIteratorSettings_;
+		}
+		ifcopenshell::geometry::Settings iteratorSettings = simpleIteratorSettings_;
+		iteratorSettings.get<ifcopenshell::geometry::settings::UseWorldCoords >().value = true;
+		return iteratorSettings;
 	}
-	return iteratorSettings_;
+	
+	if (!worldcoord)
+	{
+		return iteratorSettings_;
+	}
+	ifcopenshell::geometry::Settings iteratorSettings = iteratorSettings_;
+	iteratorSettings.get<ifcopenshell::geometry::settings::UseWorldCoords >().value = true;
+	return iteratorSettings;
 }
 
 

@@ -343,7 +343,7 @@ gp_Vec DataManager::computeObjectTranslation(const std::string& objectType)
 	std::vector<IfcGeom::filter_t> filterFuncs;
 	filterFuncs.emplace_back(IfcGeom::entity_filter(true, false, { objectType }));
 
-	ifcopenshell::geometry::Settings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(true);
+	ifcopenshell::geometry::Settings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(true, true);
 
 	for (size_t i = 0; i < getSourceFileCount(); i++)
 	{
@@ -402,8 +402,6 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 			settings.threadcount()
 		);
 		if (!it.initialize()) { continue; }
-
-		int itCount = 0;
 
 		std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>> shapeList;
 		shapeList.reserve(collectionItem.getFilePtr()->instances_by_type(typeName)->size()); //TODO: optimize this
@@ -499,7 +497,7 @@ std::vector<gp_Pnt> DataManager::getObjectListPoints(const std::string& classTyp
 	std::vector<IfcGeom::filter_t> filterFuncs;
 	filterFuncs.emplace_back(IfcGeom::entity_filter(true, true, { classTypeName }));
 
-	ifcopenshell::geometry::Settings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(true);
+	ifcopenshell::geometry::Settings iteratorSettings = SettingsCollection::getInstance().iteratorSettings(simple, true);
 
 	double gridRotation = SettingsCollection::getInstance().gridRotation();
 	std::vector<gp_Pnt> pointList;
@@ -989,7 +987,7 @@ void DataManager::AddBRepElementToIndex()
 		count++;
 		std::cout << "\t" << prefixText << " - " << count << " of " << totalSize << "      \r";
 		
-		geometryCache_.initItem(i);
+		geometryCache_.initItem(i);		
 		const GeometryCacheItem& cacheItem = geometryCache_.getItem(i);
 
 		const IfcSchema::IfcProduct* currentProduct = cacheItem.getProduct();

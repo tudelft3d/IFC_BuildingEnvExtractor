@@ -44,7 +44,6 @@ void GeometryCacheItem::init()
 		ErrorCollection::getInstance().addError(ErrorID::warningFailedObjectSimplefication, productPtr_->GlobalId());
 		return;
 	}
-
 	return;
 }
 
@@ -154,10 +153,9 @@ void GeometryCache::addItem(IfcGeom::BRepElement* brepElem, const gp_Trsf& objec
 		instancePtr = &insertedIt->second;
 	}
 
-	gp_Trsf trsf = objectTranslation * getTransformationBrepElement(brepElem);
-	gp_Trsf rotation;
-	rotation.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), gridRotation);
-	trsf.Multiply(rotation);
+	gp_Trsf trsf;
+	trsf.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), gridRotation);
+	trsf.Multiply(objectTranslation * getTransformationBrepElement(brepElem));
 
 	GeometryCacheItem geometryCache = GeometryCacheItem(product, instancePtr, trsf);
 	geometryCacheList_.emplace_back(geometryCache);

@@ -81,7 +81,6 @@ void VoxelGrid::populateVoxelGrid(DataManager* h)
 
 	// split the range over cores
 	int coreUse = SettingsCollection::getInstance().threadcount() - 1;
-	coreUse = 1; //TODO: remove
 	int threadScore = columSumScore / coreUse;
 	int voxelsGrown = 0;
 	int beginIdx = 0;

@@ -275,13 +275,8 @@ void SettingsCollection::generateGeneralSettings()
 
 	simpleIteratorSettings.get<ifcopenshell::geometry::DisableOpeningSubtractions>().value = true;
 
-	iteratorSettings.get<
-		ifcopenshell::geometry::settings::UseWorldCoords
-	>().value = false;
-
-	simpleIteratorSettings.get<
-		ifcopenshell::geometry::settings::UseWorldCoords
-	>().value = false;
+	iteratorSettings.get< ifcopenshell::geometry::settings::UseWorldCoords >().value = false;
+	simpleIteratorSettings.get< ifcopenshell::geometry::settings::UseWorldCoords >().value = false;
 
 	setIterator(iteratorSettings);
 	setSimpleIterator(simpleIteratorSettings);

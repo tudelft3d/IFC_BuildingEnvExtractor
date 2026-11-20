@@ -138,9 +138,6 @@ public:
 	std::vector<std::pair<std::vector<TopoDS_Edge>, CJObjectID>> getDirectionalFaces(int dirIndx, double angle, int roomNum);
 
 	gp_Pnt getPointInRoom(int roomNum);
-
-
-
 };
 
 #endif // VOXEL_VOXEL_H

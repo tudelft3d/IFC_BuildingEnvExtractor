@@ -125,6 +125,16 @@ private:
 		{ 11, 8}
 	};
 
+	/// returns integers representing the voxel mesh that comply with the getCornerPoints output
+	static const std::vector<std::array<int, 3>>& getVoxelTriangles() { return voxelTriangles; }
+	/// returns integers representing the voxel edges that comply with the getCornerPoints output
+	static const std::vector<std::array<int, 2>>& getVoxelEdges() { return voxelEdges; }
+
+	/// returns integers of the voxel planes' mesh that comply with the getPlanePoints output
+	const std::vector<std::array<int, 3>>& getplaneTriangles() { return planeTriangles; }
+	/// returns integers of the voxel planes' edges that comply with the getPlanePoints output
+	static const std::vector<std::array<int, 2>>& getPlaneEdges() { return planeEdges; }
+
 	/// get the points of the product mesh
 	std::vector<gp_Pnt> getPotentialMeshObjectPoints(const std::vector<gp_Pnt>& voxelPoints, const GeometryCacheItem& lookup);
 	/// check if any cornerpoints fall inside voxel
@@ -143,18 +153,6 @@ public:
 
 	/// check the intersection of a triangluted product and a voxel
 	bool checkIntersecting(const GeometryCacheItem& lookup, const std::vector<gp_Pnt>& voxelPoints, const gp_Pnt& centerPoint, int intersectionLogic = 4);
-
-	/// returns integers representing the voxel mesh that comply with the getCornerPoints output
-	static const std::vector<std::array<int, 3>>& getVoxelTriangles() { return voxelTriangles; }
-	/// returns integers representing the voxel faces that comply with the getCornerPoints output
-	static const std::vector<std::array<int, 4>>& getVoxelFaces() { return voxelFaces; }
-	/// returns integers representing the voxel edges that comply with the getCornerPoints output
-	static const std::vector<std::array<int, 2>>& getVoxelEdges() { return voxelEdges; }
-
-	/// returns integers of the voxel planes' mesh that comply with the getPlanePoints output
-	const std::vector<std::array<int, 3>>& getplaneTriangles() { return planeTriangles; }
-	/// returns integers of the voxel planes' edges that comply with the getPlanePoints output
-	static const std::vector<std::array<int, 2>>& getPlaneEdges() { return planeEdges; }
 
 	/// sets number representing to which building the voxel belongs
 	void setBuildingNum(int num) { buildingNum_ = num; }

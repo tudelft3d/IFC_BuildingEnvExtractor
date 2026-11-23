@@ -159,7 +159,10 @@ private:
 	// populate a map that has all the guid related propertysets 
 	void populateAttributeLookup();
 
+	// add the geometry mememory data to the shape index and init all the required data for mem
 	void AddBRepElementToIndex();
+	// add the geometry mememory data to the shape index and init all the required data for mem as subgroup
+	void AddBRepElementToIndex(int startIndx, int endIndx, std::mutex& countMutex, int& counter);
 
 public:
 	/*

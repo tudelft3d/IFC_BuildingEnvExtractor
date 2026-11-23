@@ -977,17 +977,42 @@ std::string DataManager::getProjection() {
 void DataManager::AddBRepElementToIndex()
 {
 	int totalSize = geometryCache_.size();
-	int count = 0;
-	std::string prefixText = "Indexing Objects";
+	int coreUse = SettingsCollection::getInstance().threadcount() - 1;
+	int subListSize = totalSize / coreUse;
+	
+	int counter = 0;
+	std::mutex countMutex;
+	std::vector<std::thread> threadList;
 
-	std::cout << "\n\t" << prefixText << " - " << count << " of " << totalSize << "      \r";
+	std::cout << "\n";
 
-	for (size_t i = 0; i < geometryCache_.size(); i++)
+	for (size_t i = 0; i < coreUse; i++)
 	{
-		count++;
-		std::cout << "\t" << prefixText << " - " << count << " of " << totalSize << "      \r";
-		
-		geometryCache_.initItem(i);		
+		int start = subListSize * i;
+		int end = (i == coreUse - 1) ? totalSize : subListSize * (i + 1);
+
+		threadList.emplace_back([this, start, end, &countMutex, &counter]() { AddBRepElementToIndex(start, end, countMutex, counter); });
+	}
+
+	threadList.emplace_back([&] {helperFunctions::updateCounter("Indexing Objects", totalSize, counter, countMutex); });
+
+	for (auto& thread : threadList) {
+		if (thread.joinable()) {
+			thread.join();
+		}
+	}
+	return;
+}
+
+void DataManager::AddBRepElementToIndex(int startIndx, int endIndx, std::mutex& countMutex, int& counter)
+{
+	for (size_t i = startIndx; i < endIndx; i++)
+	{
+		countMutex.lock();
+		counter++;
+		countMutex.unlock();
+
+		geometryCache_.initItem(i);
 		const GeometryCacheItem& cacheItem = geometryCache_.getItem(i);
 
 		const IfcSchema::IfcProduct* currentProduct = cacheItem.getProduct();
@@ -1003,13 +1028,11 @@ void DataManager::AddBRepElementToIndex()
 			continue;
 		}
 
+		bg::model::box < BoostPoint3D> boundingBox = cacheItem.getBoundingBox();
+
 		indexMutex_.lock();
-		//if (!storeLookupOnly)
-		{
-			bg::model::box < BoostPoint3D> boundingBox = cacheItem.getBoundingBox();
-			index_.insert(std::make_pair(boundingBox, i));
-			updateBoudingData(boundingBox);
-		}
+		index_.insert(std::make_pair(boundingBox, i));
+		updateBoudingData(boundingBox);
 
 		std::string productType = currentProduct->declaration().name();
 
@@ -1021,7 +1044,7 @@ void DataManager::AddBRepElementToIndex()
 		productIndxLookup_[productType].insert({ currentProduct->GlobalId(), i });
 		indexMutex_.unlock();
 	}
-	std::cout << "\n";
+	return;
 }
 
 void DataManager::populateAttributeLookup()

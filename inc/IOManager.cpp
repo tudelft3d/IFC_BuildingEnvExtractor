@@ -205,8 +205,8 @@ void IOManager::printIFCSummary()
 	}
 	std::cout << "- Correct local placement\n";
 	std::cout << boolToString(settingsCollection.correctPlacement()) << "\n";
-	std::cout << "- Ignore void grade:\n";
-	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.ignoreVoidGrade() << "\n";
+	std::cout << "- Ignore voids:\n";
+	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.ignoreVoids() << "\n";
 	std::cout << "- Simplify geometry:\n";
 	std::cout << boolToString(settingsCollection.simplefyGeo()) << "\n";
 	std::cout << "- Ignore IsExternal:\n";
@@ -305,9 +305,13 @@ void IOManager::printSummary()
 	std::cout << "- Max thread count\n";
 	std::cout << CommunicationStringImportanceEnum::getString(CommunicationStringImportanceID::indent) << settingsCollection.threadcount() << "\n\n";
 
-	if (settingsCollection.ignoreVoidGrade() != 0 && settingsCollection.summaryVoxels() ||
-		settingsCollection.ignoreVoidGrade() != 0 && settingsCollection.makeV() ||
-		settingsCollection.ignoreVoidGrade() != 0 && settingsCollection.make32())
+	bool ignoreVoids = settingsCollection.ignoreVoids();
+	if (ignoreVoids && settingsCollection.summaryVoxels() ||
+		ignoreVoids && settingsCollection.makeV() ||
+		ignoreVoids && settingsCollection.make32() ||
+		ignoreVoids && settingsCollection.make40() ||
+		ignoreVoids && settingsCollection.make41() ||
+		ignoreVoids && settingsCollection.makee1())
 	{
 		std::cout << errorWarningStringEnum::getString(ErrorID::warningSimplefication) << "\n\n";
 		ErrorCollection::getInstance().addError(ErrorID::warningSimplefication);
@@ -475,7 +479,7 @@ nlohmann::json IOManager::getIFCSettings()
 	{
 		ifcJSON[ifcDivOName] = settingsCollection.getCustomDivList();
 	}
-	ifcJSON[ifcignoreVoidOName] = settingsCollection.ignoreVoidGrade();
+	ifcJSON[ifcignoreVoidOName] = settingsCollection.ignoreVoids();
 	ifcJSON[ifcSimpleOName] = settingsCollection.simplefyGeo();
 	ifcJSON[ifcIgnoreSimpleOName] = settingsCollection.getIgnoreSimplificationList();
 	ifcJSON[ifcIgnoreComplex] = settingsCollection.ignoreComplex();

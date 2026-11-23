@@ -91,7 +91,7 @@ private:
         "IfcDoor",
         "IfcWindow"
     };
-    int ignoreVoidGrade_ = 0;
+    bool ignoreVoids_ = false;
     bool ignoreIsExternal_ = true;
     bool simplefyGeo_ = true;
     bool ignoreComplex_ = false;
@@ -373,9 +373,9 @@ public:
     void setUseProxy(bool value) { useProxy_ = value; }
     void setUseProxy(const nlohmann::json& json);
 
-    int ignoreVoidGrade() const { return ignoreVoidGrade_; }
-    void setIgnoreVoidGrade(int value) { ignoreVoidGrade_ = value; }
-    void setIgnoreVoidGrade(const nlohmann::json& json); 
+    bool ignoreVoids() const { return ignoreVoids_; }
+    void setIgnoreVoids(bool value) { ignoreVoids_ = value; }
+    void setIgnoreVoids(const nlohmann::json& json);
 
     int ignoreIsExternal() const { return ignoreIsExternal_; }
     void setIgnoreIsExternal(int value) { ignoreIsExternal_ = value; }

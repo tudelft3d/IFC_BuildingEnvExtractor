@@ -204,7 +204,7 @@ void SettingsCollection::setIFCRelatedSettings(const nlohmann::json& json)
 		setUseDefaultDiv(ifcDataJson);
 		setUseProxy(ifcDataJson);
 		setCustomDivList(ifcDataJson);
-		setIgnoreVoidGrade(ifcDataJson);
+		setIgnoreVoids(ifcDataJson);
 		setIgnoreIsExternal(ifcDataJson);
 		setIgnoreComplex(ifcDataJson);
 		setSimplefyGeo(ifcDataJson);
@@ -939,14 +939,14 @@ void SettingsCollection::setUseProxy(const nlohmann::json& json)
 	return;
 }
 
-void SettingsCollection::setIgnoreVoidGrade(const nlohmann::json& json)
+void SettingsCollection::setIgnoreVoids(const nlohmann::json& json)
 {
 	std::string ignoreVoidOName = JsonObjectInEnum::getString(JsonObjectInID::IFCignoreVoids);
 	if (json.contains(ignoreVoidOName))
 	{
 		try
 		{
-			int ignoreVoidInt = getJsonInt(json[ignoreVoidOName], false, false);
+			int ignoreVoidInt = getJsonBoolValue(json[ignoreVoidOName]);
 
 			if (ignoreVoidInt < 0 && ignoreVoidInt > 3)
 			{
@@ -954,7 +954,7 @@ void SettingsCollection::setIgnoreVoidGrade(const nlohmann::json& json)
 				return;
 			}
 
-			setIgnoreVoidGrade(ignoreVoidInt);
+			setIgnoreVoids(ignoreVoidInt);
 		}
 		catch (const ErrorID& exceptionId)
 		{

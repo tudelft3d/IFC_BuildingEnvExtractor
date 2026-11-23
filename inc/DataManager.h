@@ -128,21 +128,6 @@ private:
 	std::vector<gp_Pnt> getObjectListPoints(const std::string& classTypeName, bool simple = false);
 	/// get flat pointlist of the input product 
 	std::vector<gp_Pnt> getObjectPoints(IfcSchema::IfcProduct* product, bool simple = false);
-	/// replace the simple shape of a spatial data object in memory
-	void updateShapeMemory(IfcSchema::IfcProduct* product, TopoDS_Shape shape);
-	
-	/// apply voids to opening objects
-	void applyVoids();
-	/// applies the voids to all of the template type to the index and reports to user
-	template <typename T>
-	void timedVoidShapeAdjust(const std::string& typeName);
-	/// applies the voids to all of the template type to the index
-	template <typename T>
-	void voidShapeAdjust(T productList);
-	/// returns the voids that have no objects placed inside of it
-	std::vector<TopoDS_Shape> computeEmptyVoids(IfcSchema::IfcRelVoidsElement::list::ptr voidElementList);
-	/// returns a shape which is the voidobjectlist voids applied to the untrimmed input shape
-	TopoDS_Shape applyVoidtoShape(const TopoDS_Shape& untrimmedShape, std::vector<TopoDS_Shape>& voidObjectList);
 
 	// update the lll and urr point
 	void updateBoudingData(const bg::model::box <BoostPoint3D>& box);

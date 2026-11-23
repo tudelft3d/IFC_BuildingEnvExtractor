@@ -383,8 +383,7 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 	std::string preFixString = typeName + " objects ";
 
 	SettingsCollection& settings = SettingsCollection::getInstance();
-
-	bool isSimple = false; //TODO: impement
+	bool isSimple = SettingsCollection::getInstance().ignoreVoids();
 	double gridRotation = SettingsCollection::getInstance().gridRotation();
 
 	std::vector<IfcGeom::filter_t> filterFuncs;
@@ -403,10 +402,6 @@ void DataManager::timedAddObjectListToIndex(const std::string& typeName, std::un
 		);
 		if (!it.initialize()) { continue; }
 
-		std::vector<std::pair<const IfcSchema::IfcProduct*, TopoDS_Shape>> shapeList;
-		shapeList.reserve(collectionItem.getFilePtr()->instances_by_type(typeName)->size()); //TODO: optimize this
-
-		int count = 0;
 		int currentItemNum = 0;
 		fileNum++;
 		do { 
@@ -542,83 +537,6 @@ std::vector<gp_Pnt> DataManager::getObjectPoints(IfcSchema::IfcProduct* product,
 	return pointList;
 }
 
-void DataManager::updateShapeMemory(IfcSchema::IfcProduct* product, TopoDS_Shape shape)
-{
-	//TODO: implement
-	//if (!product->Representation()) { return; }
-
-	//helperFunctions::triangulateShape(shape);
-	//std::string objectType = product->declaration().name();
-
-	//// filter with lookup
-	//std::lock_guard<std::shared_mutex> lock(indexMutex_);
-	//if (productIndxLookup_.find(objectType) == productIndxLookup_.end()) { return; }
-	//if (productIndxLookup_[objectType].find(product->GlobalId()) == productIndxLookup_[objectType].end()) { return; }
-
-	//IfcProductSpatialData& currentLookupvalue = productLookup_[productIndxLookup_[objectType][product->GlobalId()]];
-	//currentLookupvalue.setProductShape(shape);
-	return;
-}
-
-
-void DataManager::applyVoids()
-{
-	//TODO: make this work with the opening objects list 
-	std::cout << CommunicationStringEnum::getString(CommunicationStringID::infoIgnoreVoids) << std::endl;
-	timedVoidShapeAdjust<IfcSchema::IfcWall>("IfcWall");
-	timedVoidShapeAdjust<IfcSchema::IfcSlab>("IfcSlab");
-	timedVoidShapeAdjust<IfcSchema::IfcRoof>("IfcRoof");
-	std::cout << "\n";
-}
-
-template <typename T>
-void DataManager::timedVoidShapeAdjust(const std::string& typeName)
-{
-	std::cout << "\t" + typeName + " objects ";
-	auto startTime = std::chrono::high_resolution_clock::now();
-
-	for (size_t i = 0; i < getSourceFileCount(); i++) //TODO: multithread
-	{
-		IfcParse::IfcFile* fileObject = datacollection_[i].getFilePtr();
-		voidShapeAdjust(datacollection_[i].getFilePtr()->instances_by_type<T>());
-
-		std::cout << "finished in: " <<
-			std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() <<
-			UnitStringEnum::getString(UnitStringID::seconds) << std::endl;
-		return;
-	}
-}
-
-template <typename T>
-void DataManager::voidShapeAdjust(T productList)
-{
-	for (auto it = productList->begin(); it != productList->end(); ++it)
-	{
-		IfcSchema::IfcProduct* wallProduct = *it;
-
-		// get the voids
-		IfcSchema::IfcElement* objectElement = wallProduct->as<IfcSchema::IfcElement>();
-		IfcSchema::IfcRelVoidsElement::list::ptr voidElementList = objectElement->HasOpenings();
-		std::vector<TopoDS_Shape> validVoidShapes = computeEmptyVoids(voidElementList);
-
-		if (validVoidShapes.size() == 0)
-		{
-			continue;
-		}
-		else if (validVoidShapes.size() == voidElementList->size())
-		{
-			TopoDS_Shape finalShape = getObjectShape(wallProduct, false, false);
-			updateShapeMemory(wallProduct, finalShape);
-		}
-
-		TopoDS_Shape untrimmedWallShape = getObjectShape(wallProduct, false, true);
-		TopoDS_Shape finalShape = applyVoidtoShape(untrimmedWallShape, validVoidShapes);
-
-		if (finalShape.IsNull()) { continue; }
-		updateShapeMemory(wallProduct, finalShape);
-	}
-}
-
 nlohmann::json DataManager::get2x3GeoData()
 {
 	IfcParse::IfcFile* fileObject = datacollection_[0].getFilePtr();
@@ -672,115 +590,6 @@ nlohmann::json DataManager::get2x3GeoData()
 	}
 	return grefData;
 }
-
-std::vector<TopoDS_Shape> DataManager::computeEmptyVoids(IfcSchema::IfcRelVoidsElement::list::ptr voidElementList)
-{
-	//TODO: implement
-	//// find if the voids are filled or not
-	std::vector<TopoDS_Shape> emptyVoidShapeList;
-	//std::unordered_set<std::string> cuttingObjects = SettingsCollection::getInstance().getCuttingObjectsList();
-
-	//for (auto et = voidElementList->begin(); et != voidElementList->end(); ++et)
-	//{
-	//	IfcSchema::IfcRelVoidsElement* voidElement = *et;
-	//	IfcSchema::IfcFeatureElementSubtraction* openingElement = voidElement->RelatedOpeningElement();
-	//	TopoDS_Shape substractionShape = getObjectShape(openingElement, false);
-
-	//	// find void occupying objects
-	//	gp_Pnt lllPoint;
-	//	gp_Pnt urrPoint;
-	//	helperFunctions::bBoxDiagonal(getObjectPoints(openingElement), &lllPoint, &urrPoint, 0);
-
-	//	std::vector<Value> qResult;
-	//	bg::model::box<BoostPoint3D> qBox = bg::model::box<BoostPoint3D>(
-	//		helperFunctions::Point3DOTB(lllPoint),
-	//		helperFunctions::Point3DOTB(urrPoint)
-	//		);
-	//	index_.query(bgi::intersects(qBox), std::back_inserter(qResult));
-
-	//	// if no occupying objects found void can be applied
-	//	if (qResult.size() == 0)
-	//	{
-	//		emptyVoidShapeList.emplace_back(substractionShape);
-	//		continue;
-	//	}
-
-	//	BRepClass3d_SolidClassifier insideChecker;
-	//	insideChecker.Load(substractionShape);
-
-	//	bool intersects = false;
-	//	for (size_t i = 0; i < qResult.size(); i++)
-	//	{
-	//		const IfcProductSpatialData& lookup = getLookup(qResult[i].second);
-	//		IfcSchema::IfcProduct* qProduct = lookup.getProductPtr();
-	//		if (cuttingObjects.find(qProduct->declaration().name()) == cuttingObjects.end()) { continue; }
-
-	//		TopoDS_Shape qShape = getObjectShape(qProduct, false);
-	//		for (TopExp_Explorer expl(qShape, TopAbs_VERTEX); expl.More(); expl.Next())
-	//		{
-	//			insideChecker.Perform(BRep_Tool::Pnt(TopoDS::Vertex(expl.Current())), 0.01);
-	//			if (insideChecker.State() || insideChecker.IsOnAFace())
-	//			{
-	//				intersects = true;
-	//				break;
-	//			}
-	//		}
-	//		if (intersects)
-	//		{
-	//			break;
-	//		}
-	//	}
-
-	//	if (!intersects)
-	//	{
-	//		emptyVoidShapeList.emplace_back(substractionShape);
-	//		continue;
-	//	}
-	//}
-	return emptyVoidShapeList;
-}
-
-TopoDS_Shape DataManager::applyVoidtoShape(const TopoDS_Shape& untrimmedShape, std::vector<TopoDS_Shape>& voidObjectList)
-{
-	double precision = SettingsCollection::getInstance().linearTolerance();
-
-	// bool out voidShape
-	BOPAlgo_Splitter aSplitter;
-	TopTools_ListOfShape aLSObjects;
-	aLSObjects.Append(untrimmedShape);
-	TopTools_ListOfShape aLSTools;
-
-	for (size_t i = 0; i < voidObjectList.size(); i++)
-	{
-		aLSTools.Append(voidObjectList[i]);
-	}
-
-	aLSTools.Reverse();
-	aSplitter.SetArguments(aLSObjects);
-	aSplitter.SetTools(aLSTools);
-	aSplitter.SetRunParallel(Standard_True);
-	aSplitter.SetNonDestructive(Standard_True);
-	aSplitter.Perform();
-
-	const TopoDS_Shape& aResult = aSplitter.Shape(); // result of the operation
-
-	TopoDS_Shape finalShape;
-	// get a basepoint of the wall
-	gp_Pnt anchorPoint = helperFunctions::getFirstPointShape(untrimmedShape);
-	for (TopExp_Explorer solidExpl(aResult, TopAbs_SOLID); solidExpl.More(); solidExpl.Next())
-	{
-		TopoDS_Solid currentSolid = TopoDS::Solid(solidExpl.Current());
-		for (TopExp_Explorer expl(currentSolid, TopAbs_VERTEX); expl.More(); expl.Next()) {
-			gp_Pnt evalPoint = BRep_Tool::Pnt(TopoDS::Vertex(expl.Current()));
-			if (anchorPoint.IsEqual(evalPoint, precision))
-			{
-				return currentSolid;
-			}
-		}
-	}
-	return TopoDS_Shape();
-}
-
 
 void DataManager::updateBoudingData(const bg::model::box<BoostPoint3D>& box)
 {
@@ -1382,12 +1191,6 @@ void DataManager::indexGeo()
 	AddBRepElementToIndex();
 	std::cout << "\n";
 
-	// find valid voids
-	if (settingsCollection.ignoreVoidGrade() == 1)
-	{
-		//applyVoids();
-	}
-
 	if (index_.empty())
 	{
 		if (!SettingsCollection::getInstance().ignoreIsExternal())
@@ -1611,12 +1414,9 @@ TopoDS_Shape DataManager::getObjectShape(const IfcSchema::IfcProduct* product, b
 	std::string objectType = product->declaration().name();
 	const std::unordered_set<std::string>& openingObjects = SettingsCollection::getInstance().getOpeningObjectsList();
 
-	int simplefyGeoGrade = SettingsCollection::getInstance().ignoreVoidGrade();
+	if (!isSimple) { isSimple = SettingsCollection::getInstance().ignoreVoids(); }
 	bool forceSolid = SettingsCollection::getInstance().forceSolid();
 
-	if (simplefyGeoGrade == 0) { isSimple = false; }
-	else if (simplefyGeoGrade == 2) { isSimple = true; }
-	else if (openingObjects.find(objectType) == openingObjects.end()) { isSimple = false; }
 
 	// get the object from memory if available
 	const TopoDS_Shape& potentialShape = getObjectShapeFromMem(product, isSimple);
